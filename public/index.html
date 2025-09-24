@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+</head>
+<body>
+   <div class="container"> 
+       <header class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3">
+           <div class="col-md-3 mb-2 mb-md-0"> 
+               <a href="/" class="header-logo d-inline-flex link-body-emphasis text-decoration-none"> 
+                   <img src="/media/logo.png" class="bi" alt="Логотип">
+                   <span>homa</span>
+               </a> 
+           </div> 
+       <div class="header-nav col-md-3 text-end">
+           <button type="button" class="modal-btn" data-modal="reg-modal">Регистрация</button>
+            <div class="modal" data-modal="reg-modal">
+                <div class="modal-content">
+                    <span class="close"></span>
+                    <div class="form">
+                        <form > 
+                            <img class="form-logo mb-4" src="/media/logo.png" alt="Логотип"> 
+                            <h1 class="form-title">Регистрация</h1> 
+                            <input type="email" class="form-control" placeholder="Email">
+                            <div class="password">
+                                <input type="password" class="form-control" placeholder="Пароль" name="password">
+                                <a href="#" class="password-control"></a>
+                            </div>
+                            <div class="password">
+                                <input type="password" class="form-control" placeholder="Повторите пароль" name="password">
+                                <a href="#" class="password-control"></a>
+                            </div>
+                            <button type="submit">Зарегистрироваться</button> 
+                        </form>
+                    </div>
+                </div>
+            </div> 
+           <button type="button" class="modal-btn" data-modal="login-modal">Войти</button> 
+           <div class="modal" data-modal="login-modal">
+                <div class="modal-content">
+                    <span class="close"></span>
+                    <div class="form">
+                        <form > 
+                            <img class="form-logo mb-4" src="/media/logo.png" alt="Логотип"> 
+                            <h1 class="form-title">Вход</h1> 
+                            <input type="email" class="form-control form-right-data" placeholder="Email">
+                            <div class="password">
+                                <input type="password" class="form-control form-right-data" placeholder="Пароль" name="password">
+                                <a href="#" class="password-control"></a>
+                            </div>
+                            <button type="submit">Войти</button> 
+                        </form>
+                    </div>
+                </div>
+            </div> 
+        </div> 
+        </header> 
+   </div>
+   
+   <div class="article text-center" style="background-image: url('/media/background-article.png');"> 
+       <h1 class="display-4 fw-bold text-body-emphasis">Твой следующий адрес начинается здесь</h1> 
+       <div class="col-lg-6 mx-auto"> 
+           <div class="d-grid gap-2 d-sm-flex justify-content-sm-center"> 
+               <button type="button">Показать на карте</button> 
+               <button type="button">Показать объявления</button> 
+           </div> 
+       </div> 
+   </div>
+   
+   <div class="container"> 
+        <div class="list-items">
+            <h1>Популярные объявления</h1>
+            <div class="container py-3">
+                <div class="slick-slider-container">
+                    <div class="slick-slide">
+                        <div class="slick-card">
+                            <img class="card-image" src="/media/living-room.jpg" alt="Фото карточки">
+                            <span class="card-price">86 000 ₽/мес.</span>
+                            <span class="card-description">3-комн. кв. · 78,9м² · 3/8 этаж</span>
+                            <span class="card-metro"><img src="/media/metro.png" alt="Метро">Кантемировская</span>
+                            <span class="card-address">Пролетарский проспект, 27</span>
+                            <span class="card-like"><img src="/media/like-icon.png" alt="Лайк"></span>
+                        </div>
+                    </div>
+                    <div class="slick-slide">
+                        <div class="slick-card">
+                            <img class="card-image" src="/media/living-room.jpg" alt="">
+                            <span class="card-price">86 000 ₽/мес.</span>
+                            <span class="card-description">3-комн. кв. · 78,9м² · 3/8 этаж</span>
+                            <span class="card-metro"><img src="/media/metro.png" alt="">Кантемировская</span>
+                            <span class="card-address">Пролетарский проспект, 27</span>
+                            <span class="card-like"><img src="/media/like-icon.png" alt=""></span>
+                        </div>
+                    </div>
+                    <div class="slick-slide">
+                        <div class="slick-card">
+                            <img class="card-image" src="/media/living-room.jpg" alt="">
+                            <span class="card-price">86 000 ₽/мес.</span>
+                            <span class="card-description">3-комн. кв. · 78,9м² · 3/8 этаж</span>
+                            <span class="card-metro"><img src="/media/metro.png" alt="">Кантемировская</span>
+                            <span class="card-address">Пролетарский проспект, 27</span>
+                            <span class="card-like"><img src="/media/like-icon.png" alt=""></span>
+                        </div>
+                    </div>
+                    <div class="slick-slide">
+                        <div class="slick-card">
+                            <img class="card-image" src="/media/living-room.jpg" alt="">
+                            <span class="card-price">86 000 ₽/мес.</span>
+                            <span class="card-description">3-комн. кв. · 78,9м² · 3/8 этаж</span>
+                            <span class="card-metro"><img src="/media/metro.png" alt="">Кантемировская</span>
+                            <span class="card-address">Пролетарский проспект, 27</span>
+                            <span class="card-like"><img src="/media/like-icon.png" alt=""></span>
+                        </div>
+                    </div>
+                    <div class="slick-slide">
+                        <div class="slick-card">
+                            <img class="card-image" src="/media/living-room.jpg" alt="">
+                            <span class="card-price">86 000 ₽/мес.</span>
+                            <span class="card-description">3-комн. кв. · 78,9м² · 3/8 этаж</span>
+                            <span class="card-metro"><img src="/media/metro.png" alt="">Кантемировская</span>
+                            <span class="card-address">Пролетарский проспект, 27</span>
+                            <span class="card-like"><img src="/media/like-icon.png" alt=""></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+$(document).ready(function(){
+    $('.slick-slider-container').slick({
+        slidesToShow: 4,
+        slidesToScroll: 1,
+        responsive: [
+            { breakpoint: 1500, settings: { slidesToShow: 3 } },
+            { breakpoint: 1000, settings: { slidesToShow: 2 } },
+            { breakpoint: 500, settings: { slidesToShow: 1 } }
+        ]
+    });
+    
+    $('body').on('click', '.modal-btn', function() {
+        const modalName = $(this).data('modal');
+        $(`.modal[data-modal="${modalName}"]`).css('display', 'block');
+    });
+    
+    $('body').on('click', '.modal .close', function() {
+        $(this).closest('.modal').css('display', 'none');
+    });
+    
+    $('body').on('click', '.modal', function(event) {
+        if (event.target === this) {
+            $(this).css('display', 'none');
+        }
+    });
+    
+    $('body').on('click', '.password-control', function(){
+        const $passwordBlock = $(this).closest('.password');
+        const $input = $passwordBlock.find('input');
+        const isPassword = $input.attr('type') === 'password';
+        
+        $(this).toggleClass('view', !isPassword);
+        $input.attr('type', isPassword ? 'text' : 'password');
+        
+        return false;
+    });
+    
+    $('body').on('click', '.card-like', function() {
+        const $like = $(this);
+        const $img = $like.find('img');
+        const isActive = $img.attr('src').includes('active-like-icon.png');
+        
+        $img.attr('src', isActive 
+            ? '/media/like-icon.png' 
+            : '/media/active-like-icon.png'
+        );
+        
+        $like.toggleClass('card-like-active', !isActive);
+    });
+});
+</script>
+</body>
+</html>

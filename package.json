@@ -1,0 +1,25 @@
+{
+  "name": "homa",
+  "version": "1.0.0",
+  "description": "Web server for homa",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vladip48/-----------.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Vladip48/-----------/issues"
+  },
+  "homepage": "https://github.com/Vladip48/-----------#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
