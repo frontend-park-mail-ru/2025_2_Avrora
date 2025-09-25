@@ -1,26 +1,52 @@
 function initSlider() {
+    if ($('.slick-slider-container').hasClass('slick-initialized')) {
+        $('.slick-slider-container').slick('unslick');
+    }
+    
     $('.slick-slider-container').slick({
         slidesToShow: 4,
         slidesToScroll: 1,
+        infinite: true,
+        autoplay: true,
+        autoplaySpeed: 3000,
+        dots: true,
+        arrows: true,
         responsive: [
-            { breakpoint: 1500, settings: { slidesToShow: 3 } },
-            { breakpoint: 1000, settings: { slidesToShow: 2 } },
-            { breakpoint: 500, settings: { slidesToShow: 1 } }
+            { 
+                breakpoint: 1200, 
+                settings: { 
+                    slidesToShow: 3,
+                    slidesToScroll: 1
+                } 
+            },
+            { 
+                breakpoint: 768, 
+                settings: { 
+                    slidesToShow: 2,
+                    slidesToScroll: 1
+                } 
+            },
+            { 
+                breakpoint: 480, 
+                settings: { 
+                    slidesToShow: 1,
+                    slidesToScroll: 1
+                } 
+            }
         ]
     });
 }
 
 function initCardLikes() {
-    $('body').on('click', '.card-like', function() {
-        const $like = $(this);
-        const $img = $like.find('img');
-        const isActive = $img.attr('src').includes('active-like-icon.png');
+    $('body').off('click', '.card-like');
+    
+    $('body').on('click', '.card-like', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         
-        $img.attr('src', isActive ? 
-                  './images/like-icon.png' : 
-                  './images/active-like-icon.png'
-        );
-        
-        $like.toggleClass('card-like-active', !isActive);
+        const adId = parseInt($(this).data('ad-id'));
+        if (adId) {
+            toggleLike(adId);
+        }
     });
 }
