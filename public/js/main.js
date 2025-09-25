@@ -1,7 +1,7 @@
 $(document).ready(function(){
+    loadPopularAds();
+    
     initModals();
-    initSlider();
-    initCardLikes();
     initAuth();
     
     $('#show-map-btn').on('click', function() {
@@ -17,4 +17,17 @@ $(document).ready(function(){
             $('.modal').css('display', 'none');
         }
     });
+    
+    $(window).on('resize', function() {
+        if ($('.slick-slider-container').hasClass('slick-initialized')) {
+            $('.slick-slider-container').slick('resize');
+        }
+    });
 });
+
+function reloadAds() {
+    if ($('.slick-slider-container').hasClass('slick-initialized')) {
+        $('.slick-slider-container').slick('unslick');
+    }
+    loadPopularAds();
+}
