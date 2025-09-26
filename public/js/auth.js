@@ -55,7 +55,7 @@ function initAuth() {
             return;
         }
         
-        fetch('/signup', {
+        fetch('http://localhost:8080/api/v1/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -109,7 +109,7 @@ function initAuth() {
         
         clearFormValidation($form);
         
-        fetch('/login', {
+        fetch('http://localhost:8080/api/v1/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
