@@ -1,0 +1,13 @@
+{
+  "source": {
+    "include": ["public"],
+    "includePattern": ".js$",
+    "excludePattern": "(node_modules/|dist/)"
+  },
+  "opts": {
+    "destination": "./docs",
+    "recurse": true,
+    "verbose": true
+  },
+  "plugins": ["plugins/markdown"]
+}
