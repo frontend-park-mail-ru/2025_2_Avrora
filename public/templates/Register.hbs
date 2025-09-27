@@ -1,0 +1,15 @@
+<form class="form" novalidate>
+    <img class="form__logo mb-4" src="../../images/logo.png" alt="Логотип"> 
+    <h1 class="form__title">Регистрация</h1> 
+    {{#each inputs}}
+        <div id="{{this.name}}">
+            <input maxlength="100" type="{{this.type}}" placeholder="{{this.placeholder}}" name="{{this.name}}">
+            <div class="warning" id="warn_{{this.name}}">{{this.warn}}</div>
+        </div>
+    {{/each}}
+
+    <div id="signup">
+        <div class="warning" id="warn_signup"></div>
+        <button id="signup" type="submit">Зарегистрироваться</button>
+    </div>
+</form>

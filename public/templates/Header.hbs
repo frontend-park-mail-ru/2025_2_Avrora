@@ -1,0 +1,15 @@
+<div class="logo">
+    <a href="/" class="logo__link">
+        <img src="../../images/logo.png" class="logo__image" alt="Логотип">
+        <span class="logo__title">Homa</span>
+    </a>
+</div>
+<div class="menu">
+    {{#if isAuthenticated}}
+        <span class="menu__user">{{user.email}}</span>
+        <button type="button" class="menu__button logout">Выйти</button>
+    {{else}}
+        <button type="button" class="menu__button login">Войти</button>
+        <button type="button" class="menu__button register">Регистрация</button>
+    {{/if}}
+</div>

@@ -1,0 +1,45 @@
+.section {
+    background-image: url("../../images/background-article.png");
+    background-size: cover;
+    padding: 100px 0;
+    text-align: center;
+}
+
+.section h1 {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 38px;
+    line-height: 100%;
+    color: #fff;
+    margin-bottom: 50px;
+}
+
+.section__button {
+    width: 260px;
+    height: 50px;
+    padding: 12px 10px;
+    border-radius: 6px;
+    border: none;
+    background-color: #1FBB72;
+    color: #fff;
+    font-family: "Lato", sans-serif;
+    font-weight: 703;
+    font-size: 16px;
+    line-height: 100%;
+    text-align: center;
+    cursor: pointer;
+}
+
+.section__button:hover {
+    background-color: #22CA7C;
+    transition: .2s linear;
+}
+
+.section__buttonn:focus {
+    background-color: #309164;
+    transition: .2s linear;
+}
+
+.section button:last-child {
+    margin-left: 50px;
+}
