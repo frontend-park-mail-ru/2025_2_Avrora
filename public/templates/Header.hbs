@@ -1,0 +1,7 @@
+{{#if isAuthenticated}}
+    <span class="menu__user">{{user.email}}</span>
+    <button type="button" class="menu__button logout">Выйти</button>
+{{else}}
+    <button type="button" class="menu__button register">Регистрация</button>
+    <button type="button" class="menu__button login">Войти</button>
+{{/if}}
