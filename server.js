@@ -3,7 +3,7 @@ const express = require("express");
 const path = require("path");
 
 const app = express();
-const PORT = 3000;
+const PORT = 8001;
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", API_CONFIG.API_BASE_URL);
