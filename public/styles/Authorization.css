@@ -32,7 +32,7 @@
     width: 40%;
     border-radius: 5px;
     border: 2px solid #A0A8BE;
-    padding: 10px 50px 10px 10px;
+    padding: 10px;
     margin: 15px 0;
     color: #A0A8BE;
 }
@@ -45,6 +45,10 @@
     color: #2B332F;
     border-color: #2B332F;
     transition: .2s linear;
+}
+
+.form__password input {
+    padding-right: 50px;
 }
 
 .form button {
@@ -107,4 +111,13 @@
 
 .password__toggle:hover {
     opacity: 1;
+}
+
+.form input:-webkit-autofill,
+.form input:-webkit-autofill:hover, 
+.form input:-webkit-autofill:focus,
+.form input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: #333 !important;
+    transition: background-color 5000s ease-in-out 0s;
 }
