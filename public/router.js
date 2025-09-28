@@ -60,6 +60,10 @@ export class Router {
      * @param {string} path - Путь маршрута для загрузки
      */
     loadRoute(path) {
+        if (path === "/logout") {
+            return;
+        }
+        
         const page = this.routes[path] || this.routes["/"];
         
         if (this.app.currentPage?.cleanup) {
