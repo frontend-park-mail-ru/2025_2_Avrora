@@ -30,6 +30,7 @@ export class Input {
         
         this.isValid = null;
         this.validationRules = [];
+        this.wasValidated = false;
         
         if (type === 'password') {
             this.eyeIcon = document.createElement('img');
@@ -49,8 +50,6 @@ export class Input {
         }
         
         this.container.appendChild(this.errorElement);
-        
-        this.element.addEventListener('blur', this.validate.bind(this));
     }
 
     /**
@@ -97,7 +96,7 @@ export class Input {
     }
 
     /**
-     * Выполняет валидацию поля ввода
+     * Выполняет валидацию поля ввода (для отправки формы)
      * @returns {boolean} true если поле валидно, false в противном случае
      */
     validate() {
@@ -106,6 +105,8 @@ export class Input {
         if (this.validationRules.length === 0) {
             return true;
         }
+
+        this.wasValidated = true;
 
         for (const rule of this.validationRules) {
             const error = rule(value);
@@ -117,6 +118,76 @@ export class Input {
 
         this.markAsValid();
         return true;
+    }
+
+    /**
+     * Проверяет валидность без отображения ошибок (для динамической проверки)
+     * @returns {boolean} true если поле валидно, false в противном случае
+     */
+    checkValidity() {
+        const value = this.getValue();
+        
+        if (this.validationRules.length === 0) {
+            return true;
+        }
+
+        for (const rule of this.validationRules) {
+            const error = rule(value);
+            if (error) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Обновляет визуальное состояние на основе текущей валидности
+     * @returns {Input} Возвращает экземпляр для цепочки вызовов
+     */
+    updateVisualState() {
+        if (!this.wasValidated) {
+            return this;
+        }
+
+        const value = this.getValue();
+        
+        if (!value) {
+            this.clearVisualState();
+            return this;
+        }
+
+        const isValid = this.checkValidity();
+        
+        if (isValid) {
+            this.markAsValid();
+        } else {
+            this.markAsInvalid();
+        }
+        
+        return this;
+    }
+
+    /**
+     * Сбрасывает флаг валидации
+     * @returns {Input} Возвращает экземпляр для цепочки вызовов
+     */
+    resetValidation() {
+        this.wasValidated = false;
+        this.clearVisualState();
+        return this;
+    }
+
+    /**
+     * Очищает визуальное состояние
+     * @returns {Input} Возвращает экземпляр для цепочки вызовов
+     */
+    clearVisualState() {
+        this.element.classList.remove('error__input');
+        this.element.classList.remove('right__input');
+        this.errorMessage.clear();
+        this.isValid = null;
+        return this;
     }
 
     /**
@@ -140,6 +211,16 @@ export class Input {
     }
 
     /**
+     * Добавляет обработчик события потери фокуса
+     * @param {Function} handler - Функция-обработчик
+     * @returns {Input} Возвращает экземпляр для цепочки вызовов
+     */
+    onBlur(handler) {
+        this.element.addEventListener('blur', handler);
+        return this;
+    }
+
+    /**
      * Показывает сообщение об ошибке
      * @param {string} message - Текст сообщения об ошибке
      * @returns {Input} Возвращает экземпляр для цепочки вызовов
@@ -157,10 +238,7 @@ export class Input {
      * @returns {Input} Возвращает экземпляр для цепочки вызовов
      */
     clearError() {
-        this.element.classList.remove('error__input');
-        this.element.classList.remove('right__input');
         this.errorMessage.clear();
-        this.isValid = null;
         return this;
     }
 
@@ -177,11 +255,11 @@ export class Input {
     }
 
     /**
-     * Отмечает поле как невалидное
+     * Отмечает поле как невалидное (без сообщения об ошибке)
      * @returns {Input} Возвращает экземпляр для цепочки вызовов
      */
     markAsInvalid() {
-        this.element.classList.remove('error__input');
+        this.element.classList.add('error__input');
         this.element.classList.remove('right__input');
         this.isValid = false;
         return this;
