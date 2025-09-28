@@ -107,7 +107,7 @@ export class BoardsWidget {
             address: offer.address || 'Адрес не указан',
             offer_type: offer.offer_type,
 
-            image: "../../images/default_offer.jpg",
+            image: offer.image || "../../images/default_offer.jpg",
             likeClass: isLiked ? "liked" : "",
             likeIcon: isLiked
                 ? "../../images/active__like.png"
