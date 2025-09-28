@@ -136,7 +136,8 @@ class App {
             this.state.user = null;
             this.state.boards = [];
             this.header?.render();
-            this.router.navigate("/");
+            history.replaceState({}, "", "/");
+            this.router.loadRoute("/");
         }
     }
 }
