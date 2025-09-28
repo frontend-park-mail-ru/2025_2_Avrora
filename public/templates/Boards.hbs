@@ -1,14 +1,19 @@
-{{#each items}}
-    <div class="board__block">
-        <img class="board__image" src="{{this.image}}" alt="Фото объявления">
-        <span class="board__like {{this.likeClass}}" data-ad-id="{{this.id}}">
-            <img src="{{this.likeIcon}}" alt="Лайк">
-        </span>
-        <span class="board__price">{{this.price}}</span>
-        <span class="board__description">{{this.rooms}} · {{this.area}}</span>
-        <span class="board__metro">
-            <img src="../../images/metro.png" alt="Метро"> {{this.metro}}
-        </span>
-        <span class="board__address">{{this.address}}</span>
-    </div>
+<!-- src/templates/BoardsList.hbs -->
+{{#each offers}}
+<div class="board__block">
+    <img class="board__image" src="{{image}}" alt="Фото объявления">
+    <span class="board__like {{likeClass}}" data-ad-id="{{id}}">
+        <img src="{{likeIcon}}" alt="Лайк">
+    </span>
+    <span class="board__price">{{formatPrice price}} ₽</span>
+    <span class="board__description">{{rooms}}-комн. · {{area}}м²</span>
+    <span class="board__metro">
+        <img src="../../images/metro.png" alt="Метро"> {{metro}}
+    </span>
+    <span class="board__address">{{address}}</span>
+</div>
 {{/each}}
+
+<div class="pagination">
+    <p>Страница {{meta.page}} из {{meta.total}} предложений</p>
+</div>

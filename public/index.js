@@ -9,8 +9,18 @@ import { API_CONFIG } from "./config.js";
 
 class App {
     constructor() {
+        // Safely parse localStorage data
+        let userData = null;
+        try {
+            const storedUserData = localStorage.getItem('userData');
+            userData = storedUserData ? JSON.parse(storedUserData) : null;
+        } catch (error) {
+            console.error("Failed to parse userData from localStorage:", error);
+            userData = null; // Fallback to null if parsing fails
+        }
+
         this.state = {
-            user: JSON.parse(localStorage.getItem('userData') || 'null'),
+            user: userData, // Use parsed or fallback value
             boards: []
         };
 

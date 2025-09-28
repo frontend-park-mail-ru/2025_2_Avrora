@@ -29,18 +29,19 @@ export class BoardsWidget {
         }
     }
 
-    async loadBoards() {
+   async loadBoards() {
         const result = await API.get(API_CONFIG.ENDPOINTS.BOARDS.OFFERS);
-        if (result.ok) {
-            return result.data.boards || [];
+        if (result.ok && result.data && Array.isArray(result.data.offers)) {
+            this.meta = result.data.meta || { page: 1, total: 0, limit: 20 };
+            return result.data.offers;
         }
         return [];
     }
 
-    renderContent(boards) {
+    renderContent(offers) {
         this.cleanup();
 
-        if (!boards || boards.length === 0) {
+        if (!offers || offers.length === 0) {
             this.renderEmptyState();
             return;
         }
@@ -52,8 +53,9 @@ export class BoardsWidget {
         const boardsContainer = document.createElement('div');
         boardsContainer.className = 'boards__container';
 
-        this.boardCards = boards.map(board => 
-            new BoardCard(board, this.state, this.app)
+        // ✅ Format each raw offer into BoardCard-compatible object
+        this.boardCards = offers.map(offer => 
+            new BoardCard(this.formatBoard(offer), this.state, this.app)
         );
 
         this.boardCards.forEach(boardCard => {
@@ -62,6 +64,30 @@ export class BoardsWidget {
         });
 
         this.parent.appendChild(boardsContainer);
+    }
+
+    formatBoard(offer) {
+        // You might later load user likes from state or localStorage
+        const isLiked = this.state.user?.likedOffers?.includes(offer.id) || false;
+
+        return {
+            id: offer.id,
+            title: offer.title || 'Без названия',
+            description: offer.description || '',
+            price: offer.price,
+            area: offer.area,
+            rooms: offer.rooms,
+            address: offer.address || 'Адрес не указан',
+            offer_type: offer.offer_type,
+
+            // UI-only fields for BoardCard
+            image: "../../images/default_offer.jpg", // or from CDN if available
+            likeClass: isLiked ? "liked" : "",
+            likeIcon: isLiked
+                ? "../../images/active__like.png"
+                : "../../images/like.png",
+            metro: "Метро не указано" // or fetch from location_id if you have mapping
+        };
     }
 
     renderError(message) {
