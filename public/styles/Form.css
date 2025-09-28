@@ -1,3 +1,7 @@
+/**
+ * Стили для форм авторизации и регистрации
+ * @file Form.css
+ */
 .form {
     width: 50vw;
     margin: 0 auto;
@@ -52,7 +56,9 @@
     background-color: #309164;
     transition: .2s linear;
 }
-
+/**
+ * Стили для сообщений об ошибках
+ */
 .warning {
     color: #f00;
     display: block;

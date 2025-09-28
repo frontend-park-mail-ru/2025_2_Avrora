@@ -1,5 +1,12 @@
 import { API_CONFIG } from "../config.js";
 
+/**
+ * Универсальная функция для выполнения API запросов
+ * @async
+ * @param {string} endpoint - Конечная точка API
+ * @param {Object} [options={}] - Опции запроса
+ * @returns {Promise<Object>} Результат запроса
+ */
 async function apiRequest(endpoint, options = {}) {
     try {
         const token = localStorage.getItem('authToken');
@@ -31,9 +38,38 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
+/**
+ * Реализация реального API для работы с бэкендом
+ * @module realAPI
+ */
 export const API = {
+    /**
+     * GET запрос к API
+     * @param {string} endpoint - Конечная точка API
+     * @returns {Promise<Object>} Результат запроса
+     */
     get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
+
+    /**
+     * POST запрос к API
+     * @param {string} endpoint - Конечная точка API
+     * @param {Object} body - Тело запроса
+     * @returns {Promise<Object>} Результат запроса
+     */
     post: (endpoint, body) => apiRequest(endpoint, { method: 'POST', body }),
+
+    /**
+     * PUT запрос к API
+     * @param {string} endpoint - Конечная точка API
+     * @param {Object} body - Тело запроса
+     * @returns {Promise<Object>} Результат запроса
+     */
     put: (endpoint, body) => apiRequest(endpoint, { method: 'PUT', body }),
+
+    /**
+     * DELETE запрос к API
+     * @param {string} endpoint - Конечная точка API
+     * @returns {Promise<Object>} Результат запроса
+     */
     delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' })
 };

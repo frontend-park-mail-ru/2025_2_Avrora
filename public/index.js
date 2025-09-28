@@ -6,20 +6,45 @@ import { API } from './utils/API.js';
 import { Router } from './router.js';
 import { API_CONFIG } from "./config.js";
 
-
+/**
+ * Главный класс приложения Homa
+ * @class
+ */
 class App {
+    /**
+     * Создает экземпляр приложения
+     * @constructor
+     */
     constructor() {
+        /**
+         * Состояние приложения
+         * @type {Object}
+         * @property {Object|null} user - Данные пользователя
+         * @property {Array} boards - Список объявлений
+         */
         this.state = {
             user: JSON.parse(localStorage.getItem('userData') || 'null'),
             boards: []
         };
 
+        /**
+         * Зарегистрированные страницы приложения
+         * @type {Object}
+         */
         this.pages = {};
+
+        /**
+         * Текущая активная страница
+         * @type {Object|null}
+         */
         this.currentPage = null;
 
         this.init();
     }
 
+    /**
+     * Инициализирует приложение
+     */
     init() {
         this.createDOMStructure();
         this.initializeComponents();
@@ -36,6 +61,10 @@ class App {
         }
     }
 
+    /**
+     * Создает базовую DOM структуру приложения
+     * @throws {Error} Если корневой элемент не найден
+     */
     createDOMStructure() {
         const root = document.getElementById('root');
         if (!root) throw new Error('Root element not found');
@@ -47,6 +76,9 @@ class App {
         root.appendChild(this.mainElement);
     }
 
+    /**
+     * Инициализирует компоненты приложения
+     */
     initializeComponents() {
         this.pages.main = new MainPage(this.mainElement, this.state, this);
         this.pages.login = new LoginPage(this.mainElement, this.state, this);
@@ -57,6 +89,9 @@ class App {
         this.setHeaderEventListeners();
     }
 
+    /**
+     * Устанавливает обработчики событий для header
+     */
     setHeaderEventListeners() {
         const logoLink = this.headerElement.querySelector(".logo__link");
         const loginBtn = this.headerElement.querySelector(".login");
@@ -69,6 +104,11 @@ class App {
         logoutBtn && (logoutBtn.onclick = (e) => { e.preventDefault(); this.logout(); });
     }
 
+    /**
+     * Устанавливает данные пользователя после авторизации
+     * @param {Object} user - Данные пользователя
+     * @param {string} token - JWT токен
+     */
     setUser(user, token) {
         this.state.user = user;
         localStorage.setItem('userData', JSON.stringify(user));
@@ -78,6 +118,10 @@ class App {
         this.loadBoards();
     }
 
+    /**
+     * Выполняет выход пользователя из системы
+     * @async
+     */
     async logout() {
         try {
             await API.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT, {});
@@ -93,6 +137,10 @@ class App {
         }
     }
     
+    /**
+     * Загружает список объявлений с сервера
+     * @async
+     */
     async loadBoards() {
         const result = await API.get(API_CONFIG.ENDPOINTS.BOARDS.OFFERS);
         if (result.ok) {
@@ -101,6 +149,9 @@ class App {
     }
 }
 
+/**
+ * Инициализирует приложение после загрузки DOM
+ */
 document.addEventListener('DOMContentLoaded', () => {
     new App();
 });

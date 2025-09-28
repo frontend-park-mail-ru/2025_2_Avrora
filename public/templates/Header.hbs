@@ -1,4 +1,12 @@
-<div class="logo">
+{{!**
+ * Handlebars шаблон для заголовка приложения
+ * @template Header.hbs
+ * @param {Object} context - Контекст шаблона
+ * @param {boolean} context.isAuthenticated - Флаг авторизации пользователя
+ * @param {Object} context.user - Данные пользователя
+ * @param {string} context.user.email - Email пользователя
+ *}}
+ <div class="logo">
     <a href="/" class="logo__link">
         <img src="../../images/logo.png" class="logo__image" alt="Логотип">
         <span class="logo__title">Homa</span>

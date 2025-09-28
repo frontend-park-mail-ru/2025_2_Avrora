@@ -1,6 +1,21 @@
 import { API_CONFIG } from "../config.js";
 
+/**
+ * Mock реализация API для тестирования и разработки
+ * @module mockAPI
+ */
+
+/**
+ * Mock API объект с методами для работы с данными
+ * @type {Object}
+ */
 export const API = {
+    /**
+     * GET запрос к mock API
+     * @async
+     * @param {string} endpoint - Конечная точка API
+     * @returns {Promise<Object>} Результат запроса
+     */
     get: async (endpoint) => {
         if (endpoint === API_CONFIG.ENDPOINTS.BOARDS.OFFERS) {
             return {
@@ -26,6 +41,14 @@ export const API = {
         }
         return { ok: false, status: 404, error: 'Not found' };
     },
+
+    /**
+     * POST запрос к mock API
+     * @async
+     * @param {string} endpoint - Конечная точка API
+     * @param {Object} body - Тело запроса
+     * @returns {Promise<Object>} Результат запроса
+     */
     post: async (endpoint, body) => {
         if (endpoint === API_CONFIG.ENDPOINTS.AUTH.LOGIN) {
             if (body.password === '111111') {

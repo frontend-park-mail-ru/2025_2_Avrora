@@ -1,3 +1,8 @@
+/**
+ * Главный файл стилей приложения Homa
+ * @file index.css
+ * @description Содержит reset стили, базовые стили и импорты компонентов
+ */
 @import "./Header.css";
 @import "./Section.css";
 @import "./Boards.css";
@@ -17,7 +22,6 @@
 }
 
 /* Links */
-
 a, a:link, a:visited  {
     text-decoration: none;
 }
@@ -27,7 +31,6 @@ a:hover  {
 }
 
 /* Common */
-
 aside, nav, footer, header, section, main {
 	display: block;
 }
@@ -55,7 +58,6 @@ address {
 }
 
 /* Form */
-
 input, textarea, button, select {
 	font-family: inherit;
     font-size: inherit;
@@ -96,7 +98,9 @@ legend {
 input[type='file'] {
 	max-width: 100%;
 }
-
+/**
+ * Стили для header приложения
+ */
 header {
     display: flex;
     align-items: center;

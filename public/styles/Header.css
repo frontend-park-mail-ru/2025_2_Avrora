@@ -1,3 +1,11 @@
+/**
+ * Стили для компонента Header
+ * @file Header.css
+ */
+
+/**
+ * Стили для логотипа и ссылки
+ */
 .logo__link{
     display: flex;
     align-items: center;
@@ -16,7 +24,9 @@
     color: #000;
     margin-left: 25px;
 }
-
+/**
+ * Стили для меню навигации
+ */
 .menu {
     display: flex;
     align-items: center;

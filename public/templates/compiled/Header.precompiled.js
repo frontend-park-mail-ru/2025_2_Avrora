@@ -1,3 +1,8 @@
+/**
+ * Скомпилированный Handlebars шаблон для отображения заголовка приложения
+ * @module HeaderTemplate
+ * @description Предкомпилированный шаблон для компонента Header
+ */
 (function() {
   var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};
 templates['Header.hbs'] = template({"1":function(container,depth0,helpers,partials,data) {

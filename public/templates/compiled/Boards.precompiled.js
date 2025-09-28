@@ -1,3 +1,8 @@
+/**
+ * Скомпилированный Handlebars шаблон для отображения списка объявлений
+ * @module BoardsTemplate
+ * @description Предкомпилированный шаблон для компонента Boards
+ */
 (function() {
   var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};
 templates['Boards.hbs'] = template({"1":function(container,depth0,helpers,partials,data) {

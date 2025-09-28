@@ -3,7 +3,18 @@ import { validEmail, validPassword } from '../utils/auth.js';
 import { ErrorMessage } from '../components/Alerts/ErrorMessage.js';
 import { API_CONFIG } from "../config.js";
 
+/**
+ * Страница регистрации пользователя
+ * @class
+ */
 export class RegisterPage {
+    /**
+     * Создает экземпляр RegisterPage
+     * @constructor
+     * @param {HTMLElement} parent - Родительский элемент для рендеринга
+     * @param {Object} state - Состояние приложения
+     * @param {Object} app - Экземпляр главного приложения
+     */
     constructor(parent, state, app) {
         this.state = state;
         this.parent = parent;
@@ -11,6 +22,9 @@ export class RegisterPage {
         this.eventListeners = [];
     }
 
+    /**
+     * Рендерит страницу регистрации
+     */
     render() {
         const template = Handlebars.templates["Register.hbs"];
         this.parent.innerHTML = template({
@@ -25,6 +39,10 @@ export class RegisterPage {
         this.setEventListeners();
     }
 
+    /**
+     * Получает DOM элементы формы
+     * @returns {Object} Объект с DOM элементами
+     */
     getElements() {
         return {
             email: this.parent.querySelector("input[name=email]"),
@@ -37,6 +55,11 @@ export class RegisterPage {
         };
     }
 
+    /**
+     * Обрабатывает отправку формы регистрации
+     * @async
+     * @param {Event} e - Событие отправки формы
+     */
     async submitSignup(e) {
         e.preventDefault();
         const { email, password, rePassword, warnEmail, warnPassword, warnRePass } = this.getElements();
@@ -83,6 +106,9 @@ export class RegisterPage {
         }
     }
 
+    /**
+     * Устанавливает обработчики событий
+     */
     setEventListeners() {
         const { form, email, password, rePassword } = this.getElements();
         if (form) this.addEventListener(form, "submit", this.submitSignup.bind(this));
@@ -94,6 +120,12 @@ export class RegisterPage {
         });
     }
 
+    /**
+     * Добавляет обработчик события с отслеживанием
+     * @param {HTMLElement} element - DOM элемент
+     * @param {string} event - Тип события
+     * @param {Function} handler - Обработчик события
+     */
     addEventListener(element, event, handler) {
         if (element) {
             element.addEventListener(event, handler);
@@ -101,6 +133,9 @@ export class RegisterPage {
         }
     }
 
+    /**
+     * Очищает ресурсы страницы
+     */
     cleanup() {
         this.eventListeners.forEach(({ element, event, handler }) =>
             element.removeEventListener(event, handler)

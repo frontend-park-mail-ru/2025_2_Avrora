@@ -1,3 +1,8 @@
+/**
+ * Скомпилированный Handlebars шаблон для страницы входа
+ * @module LoginTemplate
+ * @description Предкомпилированный шаблон для страницы авторизации
+ */
 (function() {
   var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};
 templates['Login.hbs'] = template({"1":function(container,depth0,helpers,partials,data) {

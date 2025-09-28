@@ -1,3 +1,8 @@
+/**
+ * Скомпилированный Handlebars шаблон для главной секции приложения
+ * @module SectionTemplate
+ * @description Предкомпилированный шаблон для главной секции с призывом к действию
+ */
 (function() {
   var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};
 templates['Section.hbs'] = template({"compiler":[8,">= 4.3.0"],"main":function(container,depth0,helpers,partials,data) {

@@ -2,13 +2,16 @@ import { API as RealAPI } from './realAPI.js';
 import { API as MockAPI } from './mockAPI.js';
 
 /**
- * Переключение между реальным API и mockAPI.
+ * Модуль для переключения между реальным API и mockAPI
+ * @module API
  * 
- * Чтобы включить моки — установить:
- *   localStorage.setItem("USE_MOCK_API", "true")
+ * @example
+ * // Чтобы включить моки — установить:
+ * localStorage.setItem("USE_MOCK_API", "true")
  * 
- * Чтобы вернуться к реальному API:
- *   localStorage.removeItem("USE_MOCK_API")
+ * @example
+ * // Чтобы вернуться к реальному API:
+ * localStorage.removeItem("USE_MOCK_API")
  */
 
 localStorage.setItem("USE_MOCK_API", "true");
@@ -16,4 +19,8 @@ localStorage.setItem("USE_MOCK_API", "true");
 
 const useMock = localStorage.getItem("USE_MOCK_API") === "true";
 
+/**
+ * Экспортируемый API объект, который автоматически выбирает между реальным и mock API
+ * @type {Object}
+ */
 export const API = useMock ? MockAPI : RealAPI;

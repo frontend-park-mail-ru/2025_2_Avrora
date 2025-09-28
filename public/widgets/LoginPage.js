@@ -3,7 +3,18 @@ import { validEmail } from '../utils/auth.js';
 import { ErrorMessage } from '../components/Alerts/ErrorMessage.js';
 import { API_CONFIG } from "../config.js";
 
+/**
+ * Страница входа в систему
+ * @class
+ */
 export class LoginPage {
+    /**
+     * Создает экземпляр LoginPage
+     * @constructor
+     * @param {HTMLElement} parent - Родительский элемент для рендеринга
+     * @param {Object} state - Состояние приложения
+     * @param {Object} app - Экземпляр главного приложения
+     */
     constructor(parent, state, app) {
         this.state = state;
         this.parent = parent;
@@ -11,6 +22,9 @@ export class LoginPage {
         this.eventListeners = [];
     }
 
+    /**
+     * Рендерит страницу входа
+     */
     render() {
         const template = Handlebars.templates["Login.hbs"];
         this.parent.innerHTML = template({
@@ -25,6 +39,10 @@ export class LoginPage {
         this.setEventListeners();
     }
 
+    /**
+     * Получает DOM элементы формы
+     * @returns {Object} Объект с DOM элементами
+     */
     getElements() {
         return {
             email: this.parent.querySelector("input[name=email]"),
@@ -33,6 +51,11 @@ export class LoginPage {
         };
     }
 
+    /**
+     * Обрабатывает отправку формы входа
+     * @async
+     * @param {Event} e - Событие отправки формы
+     */
     async submitLogin(e) {
         e.preventDefault();
         const { email, password } = this.getElements();
@@ -62,6 +85,9 @@ export class LoginPage {
         }
     }
 
+    /**
+     * Устанавливает обработчики событий
+     */
     setEventListeners() {
         const { form, email, password } = this.getElements();
         if (form) this.addEventListener(form, "submit", this.submitLogin.bind(this));
@@ -73,6 +99,12 @@ export class LoginPage {
         });
     }
 
+    /**
+     * Добавляет обработчик события с отслеживанием
+     * @param {HTMLElement} element - DOM элемент
+     * @param {string} event - Тип события
+     * @param {Function} handler - Обработчик события
+     */
     addEventListener(element, event, handler) {
         if (element) {
             element.addEventListener(event, handler);
@@ -80,6 +112,9 @@ export class LoginPage {
         }
     }
 
+    /**
+     * Очищает ресурсы страницы
+     */
     cleanup() {
         this.eventListeners.forEach(({ element, event, handler }) =>
             element.removeEventListener(event, handler)

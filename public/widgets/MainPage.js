@@ -1,7 +1,18 @@
 import { Section } from "../components/Section/Section.js";
 import { BoardsWidget } from "./BoardsWidget.js";
 
+/**
+ * Главная страница приложения
+ * @class
+ */
 export class MainPage {
+    /**
+     * Создает экземпляр MainPage
+     * @constructor
+     * @param {HTMLElement} parent - Родительский элемент для рендеринга
+     * @param {Object} state - Состояние приложения
+     * @param {Object} app - Экземпляр главного приложения
+     */
     constructor(parent, state, app) {
         this.parent = parent;
         this.state = state;
@@ -14,6 +25,10 @@ export class MainPage {
         this.boardsWidget = new BoardsWidget(this.boardsContainer, state, app);
     }
 
+    /**
+     * Рендерит главную страницу
+     * @async
+     */
     async render() {
         this.parent.innerHTML = "";
 
@@ -24,6 +39,9 @@ export class MainPage {
         await this.boardsWidget.render();
     }
 
+    /**
+     * Очищает ресурсы страницы
+     */
     cleanup() {
         if (this.boardsWidget.cleanup) {
             this.boardsWidget.cleanup();

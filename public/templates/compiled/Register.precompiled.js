@@ -1,3 +1,8 @@
+/**
+ * Скомпилированный Handlebars шаблон для страницы регистрации
+ * @module RegisterTemplate
+ * @description Предкомпилированный шаблон для страницы регистрации пользователя
+ */
 (function() {
   var template = Handlebars.template, templates = Handlebars.templates = Handlebars.templates || {};
 templates['Register.hbs'] = template({"1":function(container,depth0,helpers,partials,data) {

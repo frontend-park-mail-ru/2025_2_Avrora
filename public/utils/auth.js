@@ -1,8 +1,23 @@
+/**
+ * Модуль для валидации email и пароля
+ * @module auth
+ */
+
+/**
+ * Валидирует email адрес
+ * @param {string} email - Email для валидации
+ * @returns {boolean} true если email валиден, иначе false
+ */
 export function validEmail(email) {
     const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return pattern.test(email);
 }
 
+/**
+ * Валидирует пароль по критериям безопасности
+ * @param {string} password - Пароль для валидации
+ * @returns {string[]} Массив ошибок валидации (пустой если пароль валиден)
+ */
 export function validPassword(password) {
     const errors = [];
     if (password.length < 8) errors.push("Пароль должен быть не менее 8 символов");

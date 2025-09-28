@@ -1,3 +1,7 @@
+/**
+ * Стили для главной секции приложения
+ * @file Section.css
+ */
 .section {
     background-image: url("../../images/background-article.png");
     background-size: cover;

@@ -1,3 +1,18 @@
+{{!**
+ * Handlebars шаблон для отображения списка объявлений
+ * @template Boards.hbs
+ * @param {Object} context - Контекст шаблона
+ * @param {Array} context.items - Массив объявлений
+ * @param {string} context.items.image - URL изображения объявления
+ * @param {string} context.items.likeClass - CSS класс для кнопки лайка
+ * @param {string} context.items.id - ID объявления
+ * @param {string} context.items.likeIcon - URL иконки лайка
+ * @param {string} context.items.price - Цена объявления
+ * @param {string} context.items.rooms - Количество комнат
+ * @param {string} context.items.area - Площадь
+ * @param {string} context.items.metro - Ближайшее метро
+ * @param {string} context.items.address - Адрес
+ *}}
 <div class="list__boards">
     <h1>Популярные объявления</h1>
     <div class="list__boards__container">

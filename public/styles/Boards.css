@@ -1,3 +1,7 @@
+/**
+ * Стили для компонента Boards (список объявлений)
+ * @file Boards.css
+ */
 .list__boards {
     padding: 50px 0;
     width: 90vw;
