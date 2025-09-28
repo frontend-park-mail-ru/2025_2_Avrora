@@ -1,0 +1,110 @@
+.form {
+    width: 60vw;
+    text-align: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.form__password {
+    position: relative;
+    width: 40%;
+    margin: 0 auto;
+}
+
+.form__logo {
+    width: 150px;
+    height: 150px;
+}
+
+.form__title {
+    font-family: "Lato", sans-serif;
+    font-weight: 600;
+    font-size: 36px;
+    margin: 30px 0;
+}
+
+.form input {
+    font-family: "Inter", sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    width: 40%;
+    border-radius: 5px;
+    border: 2px solid #A0A8BE;
+    padding: 10px 50px 10px 10px;
+    margin: 15px 0;
+    color: #A0A8BE;
+}
+
+.form__password input {
+    width: 100%;
+}
+
+.form input:focus {
+    color: #2B332F;
+    border-color: #2B332F;
+    transition: .2s linear;
+}
+
+.form button {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 10px 40px;
+    border-radius: 5px;
+    border: none;
+    background-color: #1FBB72;
+    color: #fff;
+    text-align: center;
+    margin: 0 auto;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+.form button:hover {
+    background-color: #22CA7C;
+    transition: .2s linear;
+}
+
+.form button:focus {
+    background-color: #309164;
+    transition: .2s linear;
+}
+
+.error__input {
+    border-color: #FF0000 !important; 
+    color: #FF0000 !important;
+}
+
+.error__button {
+    background-color: rgba(48, 145, 100, .4) !important;
+}
+
+.error__text {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: #FF0000;
+    display: block;
+}
+
+.right__input {
+    border-color: #1FBB72 !important;
+} 
+
+.password__toggle {
+    position: absolute;
+    top: 50%;
+    left: 95%;
+    transform: translate(-95%, -50%);
+    cursor: pointer;
+    width: 20px;
+    height: 18px;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+}
+
+.password__toggle:hover {
+    opacity: 1;
+}

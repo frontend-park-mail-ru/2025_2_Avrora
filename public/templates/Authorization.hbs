@@ -1,0 +1,6 @@
+{{#each inputs}}
+    <div>
+        <input maxlength="100" type="{{this.type}}" placeholder="{{this.placeholder}}" name="{{this.name}}">
+        <div class="error__text" id="error__{{this.name}}"></div>
+    </div>
+{{/each}}
