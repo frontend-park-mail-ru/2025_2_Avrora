@@ -76,12 +76,12 @@ export class BoardsWidget {
             description: offer.description || '',
             price: offer.price,
             area: offer.area,
-            rooms: offer.rooms,
+            rooms: offer.rooms == null ? 1 : offer.rooms,
             address: offer.address || 'Адрес не указан',
             offer_type: offer.offer_type,
 
             // UI-only fields for BoardCard
-            image: "../../images/default_offer.jpg", // or from CDN if available
+            image: "../../images/default_offer.jpg",
             likeClass: isLiked ? "liked" : "",
             likeIcon: isLiked
                 ? "../../images/active__like.png"
