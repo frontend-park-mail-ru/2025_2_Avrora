@@ -142,15 +142,16 @@ export class LoginPage {
             if (result.ok) {
                 this.app.setUser(result.data.user, result.data.token);
             } else {
-                this.errorMessage.show("Неверный email или пароль");
+                const errorMessage = result.data?.error;
+                this.errorMessage.show(errorMessage);
                 this.button.setErrorState(true);
-                Object.values(this.inputs).forEach(input => input.markAsInvalid());
+                this.clearAllVisualStates();
             }
         } catch (error) {
             console.error('Login error:', error);
             this.errorMessage.show("Ошибка сети. Попробуйте позже.");
             this.button.setErrorState(true);
-            Object.values(this.inputs).forEach(input => input.markAsInvalid());
+            this.clearAllVisualStates();
         } finally {
             this.button.setLoading(false);
         }
@@ -162,11 +163,20 @@ export class LoginPage {
     clearValidationErrors() {
         Object.values(this.inputs).forEach(input => {
             input.clearError();
-            input.markAsInvalid();
+            input.resetValidation();
         });
         
         this.errorMessage.clear();
         this.button.setErrorState(false);
+    }
+
+    /**
+     * Очищает все визуальные состояния полей (убирает right__input и error__input)
+     */
+    clearAllVisualStates() {
+        Object.values(this.inputs).forEach(input => {
+            input.clearVisualState();
+        });
     }
 
     /**
@@ -189,9 +199,7 @@ export class LoginPage {
      */
     handleInputChange(input) {
         return () => {
-            if (input.isValid === false) {
-                input.clearError();
-            }
+            input.clearVisualState();
             this.button.setErrorState(false);
         };
     }
