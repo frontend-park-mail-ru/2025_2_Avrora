@@ -124,7 +124,6 @@ export class RegisterPage {
 
         const emailStr = this.inputs.email.getValue();
         const passStr = this.inputs.password.getValue();
-        const repassStr = this.inputs.repassword.getValue();
 
         let hasErrors = false;
 
@@ -137,9 +136,6 @@ export class RegisterPage {
         }
 
         if (!this.inputs.repassword.validate()) {
-            hasErrors = true;
-        } else if (passStr !== repassStr) {
-            this.inputs.repassword.showError("Пароли не совпадают");
             hasErrors = true;
         }
 
@@ -159,21 +155,16 @@ export class RegisterPage {
             if (result.ok) {
                 this.app.setUser(result.data.user, result.data.token);
             } else {
-                console.log('Register error:', result.error);
-                if (result.error && result.error.includes('уже существует')) {
-                    this.errorMessage.show("Пользователь с таким email уже существует");
-                    this.inputs.email.showError("Email уже используется");
-                } else {
-                    this.errorMessage.show("Ошибка регистрации");
-                }
+                const errorMessage = result.data?.error;
+                this.errorMessage.show(errorMessage);
                 this.button.setErrorState(true);
-                Object.values(this.inputs).forEach(input => input.markAsInvalid());
+                this.clearAllVisualStates();
             }
         } catch (error) {
             console.error('Register error:', error);
             this.errorMessage.show("Ошибка сети. Попробуйте позже.");
             this.button.setErrorState(true);
-            Object.values(this.inputs).forEach(input => input.markAsInvalid());
+            this.clearAllVisualStates();
         } finally {
             this.button.setLoading(false);
         }
@@ -185,11 +176,20 @@ export class RegisterPage {
     clearValidationErrors() {
         Object.values(this.inputs).forEach(input => {
             input.clearError();
-            input.markAsInvalid();
+            input.resetValidation();
         });
         
         this.errorMessage.clear();
         this.button.setErrorState(false);
+    }
+
+    /**
+     * Очищает все визуальные состояния полей (убирает right__input и error__input)
+     */
+    clearAllVisualStates() {
+        Object.values(this.inputs).forEach(input => {
+            input.clearVisualState();
+        });
     }
 
     /**
@@ -212,32 +212,8 @@ export class RegisterPage {
      */
     handleInputChange(input) {
         return () => {
-            if (input.isValid === false) {
-                input.clearError();
-            }
+            input.clearVisualState();
             this.button.setErrorState(false);
-            
-            if (input.getName() === 'repassword' && this.inputs.password) {
-                const password = this.inputs.password.getValue();
-                const repassword = input.getValue();
-                
-                if (password && repassword && password !== repassword) {
-                    input.showError("Пароли не совпадают");
-                } else if (password && repassword && password === repassword) {
-                    input.markAsValid();
-                }
-            }
-            
-            if (input.getName() === 'password' && this.inputs.repassword) {
-                const password = input.getValue();
-                const repassword = this.inputs.repassword.getValue();
-                
-                if (password && repassword && password !== repassword) {
-                    this.inputs.repassword.showError("Пароли не совпадают");
-                } else if (password && repassword && password === repassword) {
-                    this.inputs.repassword.markAsValid();
-                }
-            }
         };
     }
 
