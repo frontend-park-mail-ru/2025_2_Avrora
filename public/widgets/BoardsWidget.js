@@ -53,7 +53,6 @@ export class BoardsWidget {
         const boardsContainer = document.createElement('div');
         boardsContainer.className = 'boards__container';
 
-        // ✅ Format each raw offer into BoardCard-compatible object
         this.boardCards = offers.map(offer => 
             new BoardCard(this.formatBoard(offer), this.state, this.app)
         );
@@ -67,7 +66,6 @@ export class BoardsWidget {
     }
 
     formatBoard(offer) {
-        // You might later load user likes from state or localStorage
         const isLiked = this.state.user?.likedOffers?.includes(offer.id) || false;
 
         return {
@@ -79,14 +77,12 @@ export class BoardsWidget {
             rooms: offer.rooms == null ? 1 : offer.rooms,
             address: offer.address || 'Адрес не указан',
             offer_type: offer.offer_type,
-
-            // UI-only fields for BoardCard
-            image: "../../images/default_offer.jpg",
+            image: offer.image || "../../images/default_offer.jpg",
             likeClass: isLiked ? "liked" : "",
             likeIcon: isLiked
                 ? "../../images/active__like.png"
                 : "../../images/like.png",
-            metro: "Метро не указано" // or fetch from location_id if you have mapping
+            metro: "Метро не указано"
         };
     }
 
