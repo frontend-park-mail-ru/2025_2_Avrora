@@ -8,7 +8,7 @@ templates['Boards.hbs'] = template({"1":function(container,depth0,helpers,partia
         return undefined
     };
 
-  return "    <div class=\"board__block\">\n        <img class=\"board__image\" src=\""
+  return "    <div class=\"board__block\">\n        <img class=\"board__image\" src=\"http://37.139.40.252:8080/api/v1/image/default_offer.jpg\""
     + alias2(alias1((depth0 != null ? lookupProperty(depth0,"image") : depth0), depth0))
     + "\" alt=\"Фото объявления\">\n        <span class=\"board__like "
     + alias2(alias1((depth0 != null ? lookupProperty(depth0,"likeClass") : depth0), depth0))
