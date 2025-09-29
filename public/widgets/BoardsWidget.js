@@ -1,0 +1,198 @@
+import { API } from "../utils/API.js";
+import { API_CONFIG } from "../config.js";
+import { BoardCard } from "../components/Boards/BoardCard.js";
+
+/**
+ * Класс виджета для отображения списка объявлений
+ * @class
+ */
+export class BoardsWidget {
+    /**
+     * Создает экземпляр виджета объявлений
+     * @param {HTMLElement} parent - Родительский элемент для рендеринга
+     * @param {Object} state - Состояние приложения
+     * @param {App} app - Экземпляр главного приложения
+     */
+    constructor(parent, state, app) {
+        this.parent = parent;
+        this.state = state;
+        this.app = app;
+        this.eventListeners = [];
+        this.isLoading = false;
+        this.boardCards = [];
+    }
+
+    /**
+     * Рендерит виджет объявлений
+     * Загружает данные и отображает контент в зависимости от состояния
+     * @async
+     */
+    async render() {
+        try {
+            this.isLoading = true;
+
+            let boards = this.state.boards && this.state.boards.length > 0
+                ? this.state.boards
+                : await this.loadBoards();
+
+            this.renderContent(boards);
+        } catch (error) {
+            console.error("Error rendering boards:", error);
+            this.renderError("Не удалось загрузить объявления");
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    /**
+     * Загружает список объявлений с сервера
+     * @returns {Promise<Array>} Массив объявлений
+     * @async
+     */
+    async loadBoards() {
+        const result = await API.get(API_CONFIG.ENDPOINTS.BOARDS.OFFERS);
+        if (result.ok && result.data && Array.isArray(result.data.offers)) {
+            this.meta = result.data.meta || { page: 1, total: 0, limit: 20 };
+            return result.data.offers;
+        }
+        return [];
+    }
+
+    /**
+     * Отображает контент с объявлениями
+     * @param {Array} offers - Массив объявлений для отображения
+     */
+    renderContent(offers) {
+        this.cleanup();
+
+        if (!offers || offers.length === 0) {
+            this.renderEmptyState();
+            return;
+        }
+
+        const title = document.createElement('h1');
+        title.textContent = 'Популярные объявления';
+        this.parent.appendChild(title);
+
+        const boardsContainer = document.createElement('div');
+        boardsContainer.className = 'boards__container';
+
+        this.boardCards = offers.map(offer => 
+            new BoardCard(this.formatBoard(offer), this.state, this.app)
+        );
+
+        this.boardCards.forEach(boardCard => {
+            const cardElement = boardCard.render();
+            boardsContainer.appendChild(cardElement);
+        });
+
+        this.parent.appendChild(boardsContainer);
+    }
+
+    /**
+     * Форматирует данные объявления для отображения в карточке
+     * @param {Object} offer - Объект объявления с сервера
+     * @returns {Object} Отформатированный объект объявления
+     */
+    formatBoard(offer) {
+        const isLiked = this.state.user?.likedOffers?.includes(offer.id) || false;
+
+        return {
+            id: offer.id,
+            title: offer.title || 'Без названия',
+            description: offer.description || '',
+            price: offer.price,
+            area: offer.area,
+            rooms: offer.rooms == null ? 1 : offer.rooms,
+            address: offer.address || 'Адрес не указан',
+            offer_type: offer.offer_type,
+
+            image: offer.image || "../../images/default_offer.jpg",
+            likeClass: isLiked ? "liked" : "",
+            likeIcon: isLiked
+                ? "../../images/active__like.png"
+                : "../../images/like.png",
+            metro: "Метро не указано"
+        };
+    }
+
+    /**
+     * Отображает состояние ошибки при загрузке данных
+     * @param {string} message - Сообщение об ошибке
+     */
+    renderError(message) {
+        this.cleanup();
+        
+        const title = document.createElement('h1');
+        title.textContent = 'Популярные объявления';
+        this.parent.appendChild(title);
+
+        const errorState = document.createElement('div');
+        errorState.className = 'error__state';
+        
+        const errorText = document.createElement('p');
+        errorText.textContent = message;
+        errorState.appendChild(errorText);
+        
+        const retryButton = document.createElement('button');
+        retryButton.className = 'retry__button';
+        retryButton.textContent = 'Попробовать снова';
+        errorState.appendChild(retryButton);
+        
+        this.parent.appendChild(errorState);
+
+        this.addEventListener(retryButton, "click", () => this.render());
+    }
+
+    /**
+     * Отображает состояние пустого списка объявлений
+     */
+    renderEmptyState() {
+        this.cleanup();
+        
+        const title = document.createElement('h1');
+        title.textContent = 'Популярные объявления';
+        this.parent.appendChild(title);
+
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty__state';
+        
+        const emptyText = document.createElement('p');
+        emptyText.textContent = 'Нет доступных объявлений';
+        emptyState.appendChild(emptyText);
+        
+        this.parent.appendChild(emptyState);
+    }
+
+    /**
+     * Добавляет обработчик события с отслеживанием для последующей очистки
+     * @param {HTMLElement} element - Элемент для добавления обработчика
+     * @param {string} event - Тип события
+     * @param {Function} handler - Функция-обработчик
+     */
+    addEventListener(element, event, handler) {
+        if (element) {
+            element.addEventListener(event, handler);
+            this.eventListeners.push({ element, event, handler });
+        }
+    }
+
+    /**
+     * Удаляет все зарегистрированные обработчики событий
+     */
+    removeEventListeners() {
+        this.eventListeners.forEach(({ element, event, handler }) =>
+            element.removeEventListener(event, handler)
+        );
+        this.eventListeners = [];
+    }
+
+    /**
+     * Выполняет очистку виджета: удаляет обработчики и очищает DOM
+     */
+    cleanup() {
+        this.removeEventListeners();
+        this.boardCards = [];
+        this.parent.innerHTML = '';
+    }
+}
