@@ -1,7 +1,15 @@
 {{#if isAuthenticated}}
     <span class="menu__user">{{user.email}}</span>
-    <button type="button" class="menu__button logout">Выйти</button>
+    <button type="button" class="logout">
+        <img src="../images/logout.png" alt="Выйти">
+    </button>
 {{else}}
-    <button type="button" class="menu__button register">Регистрация</button>
-    <button type="button" class="menu__button login">Войти</button>
+    <button type="button" class="menu__button register {{#if isRegisterPage}}disabled{{/if}}" 
+            {{#if isRegisterPage}}disabled{{/if}}>
+        Регистрация
+    </button>
+    <button type="button" class="menu__button login {{#if isLoginPage}}disabled{{/if}}" 
+            {{#if isLoginPage}}disabled{{/if}}>
+        Войти
+    </button>
 {{/if}}

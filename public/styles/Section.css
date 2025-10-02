@@ -21,22 +21,13 @@
     height: 50px;
     border-radius: 5px;
     border: none;
-    background-color: #1FBB72;
+    background-color: rgba(48, 145, 100, .4);
     color: #fff;
     text-align: center;
-    cursor: pointer;
+    cursor: default;
+    pointer-events: none;
 }
 
-.section__button:hover {
-    background-color: #22CA7C;
-    transition: .2s linear;
-}
-
-.section__buttonn:focus {
-    background-color: #309164;
-    transition: .2s linear;
-}
-
-.section button:last-child {
+.section__button:last-child {
     margin-left: 50px;
 }

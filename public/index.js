@@ -47,6 +47,12 @@ class App {
          */
         this.currentPage = null;
 
+        /**
+         * Хранилище обработчиков событий для последующей очистки
+         * @type {Map}
+         */
+        this.eventHandlers = new Map();
+
         this.init();
     }
 
@@ -97,15 +103,74 @@ class App {
      * Устанавливает обработчики событий для элементов заголовка
      */
     setHeaderEventListeners() {
-        const logoLink = this.headerElement.querySelector(".logo__link");
-        const loginBtn = this.headerElement.querySelector(".login");
-        const registerBtn = this.headerElement.querySelector(".register");
-        const logoutBtn = this.headerElement.querySelector(".logout");
+        this.removeHeaderEventListeners();
 
-        logoLink && (logoLink.onclick = (e) => { e.preventDefault(); this.router.navigate("/"); });
-        loginBtn && (loginBtn.onclick = (e) => { e.preventDefault(); this.router.navigate("/login"); });
-        registerBtn && (registerBtn.onclick = (e) => { e.preventDefault(); this.router.navigate("/register"); });
-        logoutBtn && (logoutBtn.onclick = (e) => { e.preventDefault(); this.logout(); });
+        const elements = {
+            logoLink: this.headerElement.querySelector(".logo__link"),
+            loginBtn: this.headerElement.querySelector(".login"),
+            registerBtn: this.headerElement.querySelector(".register"),
+            logoutBtn: this.headerElement.querySelector(".logout")
+        };
+
+        if (elements.logoLink) {
+            const handler = (e) => { 
+                e.preventDefault(); 
+                this.router.navigate("/"); 
+            };
+            elements.logoLink.addEventListener('click', handler);
+            this.eventHandlers.set('logoLink', { 
+                element: elements.logoLink, 
+                handler 
+            });
+        }
+
+        if (elements.loginBtn) {
+            const handler = (e) => { 
+                e.preventDefault(); 
+                this.router.navigate("/login"); 
+            };
+            elements.loginBtn.addEventListener('click', handler);
+            this.eventHandlers.set('loginBtn', { 
+                element: elements.loginBtn, 
+                handler 
+            });
+        }
+
+        if (elements.registerBtn) {
+            const handler = (e) => { 
+                e.preventDefault(); 
+                this.router.navigate("/register"); 
+            };
+            elements.registerBtn.addEventListener('click', handler);
+            this.eventHandlers.set('registerBtn', { 
+                element: elements.registerBtn, 
+                handler 
+            });
+        }
+
+        if (elements.logoutBtn) {
+            const handler = (e) => { 
+                e.preventDefault(); 
+                this.logout(); 
+            };
+            elements.logoutBtn.addEventListener('click', handler);
+            this.eventHandlers.set('logoutBtn', { 
+                element: elements.logoutBtn, 
+                handler 
+            });
+        }
+    }
+
+    /**
+     * Удаляет обработчики событий для элементов заголовка
+     */
+    removeHeaderEventListeners() {
+        for (const { element, handler } of this.eventHandlers.values()) {
+            if (element && handler) {
+                element.removeEventListener('click', handler);
+            }
+        }
+        this.eventHandlers.clear();
     }
 
     /**
@@ -118,6 +183,7 @@ class App {
         localStorage.setItem('userData', JSON.stringify(user));
         localStorage.setItem('authToken', token);
         this.header?.render();
+        this.setHeaderEventListeners();
         this.router.navigate("/");
     }
 
@@ -136,9 +202,17 @@ class App {
             this.state.user = null;
             this.state.boards = [];
             this.header?.render();
+            this.setHeaderEventListeners();
             history.replaceState({}, "", "/");
             this.router.loadRoute("/");
         }
+    }
+
+    /**
+     * Очищает ресурсы приложения при уничтожении
+     */
+    destroy() {
+        this.removeHeaderEventListeners();
     }
 }
 

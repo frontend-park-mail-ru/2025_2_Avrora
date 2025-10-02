@@ -45,13 +45,52 @@ export class Header {
         const menuDiv = document.createElement('div');
         menuDiv.className = 'menu';
         
+        const isLoginPage = this.app.currentPage === this.app.pages.login;
+        const isRegisterPage = this.app.currentPage === this.app.pages.register;
+        
         const template = Handlebars.templates["Header.hbs"];
         menuDiv.innerHTML = template({
             isAuthenticated: !!this.state.user,
-            user: this.state.user
+            user: this.state.user,
+            isLoginPage: isLoginPage,
+            isRegisterPage: isRegisterPage
         });
         
         this.parent.appendChild(logoDiv);
         this.parent.appendChild(menuDiv);
+        
+        this.setEventListeners();
+    }
+
+    /**
+     * Устанавливает обработчики событий для кнопок меню
+     */
+    setEventListeners() {
+        const loginButton = this.parent.querySelector('.menu__button.login');
+        if (loginButton && !loginButton.disabled) {
+            const handler = (e) => {
+                e.preventDefault();
+                this.app.router.navigate("/login");
+            };
+            loginButton.addEventListener('click', handler);
+        }
+
+        const registerButton = this.parent.querySelector('.menu__button.register');
+        if (registerButton && !registerButton.disabled) {
+            const handler = (e) => {
+                e.preventDefault();
+                this.app.router.navigate("/register");
+            };
+            registerButton.addEventListener('click', handler);
+        }
+
+        const logoutButton = this.parent.querySelector('.logout');
+        if (logoutButton) {
+            const handler = (e) => {
+                e.preventDefault();
+                this.app.logout();
+            };
+            logoutButton.addEventListener('click', handler);
+        }
     }
 }

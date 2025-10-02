@@ -34,14 +34,6 @@
     transition: .2s linear;
 }
 
-.board__image {
-    height: 260px;
-    background-color: rgba(0, 0, 0, .5);
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
-    margin-bottom: 10px;
-}
-
 .board__like {
     position: absolute;
     right: 0;
@@ -72,7 +64,7 @@
     font-weight: 700;
     font-size: 22px;
     color: #000;
-    margin-bottom: 10px;
+    margin: 10px 0;
     padding-left: 20px;
 }
 
@@ -128,4 +120,98 @@
     text-align: center;
     margin: 0 auto;
     cursor: pointer;
+}
+
+.board__image__slider {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    overflow: hidden;
+    border-radius: 12px 12px 0 0;
+}
+
+.slider__image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    background-color: rgba(0, 0, 0, .5);
+}
+
+.slider__image__active {
+    opacity: 1;
+}
+
+.slider__btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease, background-color 0.2s ease;
+    z-index: 10;
+}
+
+.slider__btn:hover {
+    background: rgba(255, 255, 255, 1);
+}
+
+.board__image__slider:hover .slider__btn {
+    opacity: 1;
+}
+
+.slider__btn__prev {
+    left: 8px;
+}
+
+.slider__btn__next {
+    right: 8px;
+}
+
+.slider__btn svg {
+    width: 20px;
+    height: 20px;
+    color: #333;
+}
+
+.slider__dots {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    z-index: 10;
+}
+
+.slider__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.slider__dot__active {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.2);
+}
+
+.slider__dot:hover {
+    background: rgba(255, 255, 255, 0.9);
 }
