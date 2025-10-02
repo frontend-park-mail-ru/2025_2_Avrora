@@ -38,9 +38,9 @@ export class Button {
      */
     setErrorState(hasError) {
         if (hasError) {
-            this.element.classList.add('error__button');
+            this.element.disabled = true;
         } else {
-            this.element.classList.remove('error__button');
+            this.element.disabled = false;
         }
         return this;
     }

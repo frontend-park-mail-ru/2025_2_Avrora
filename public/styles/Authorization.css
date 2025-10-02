@@ -33,7 +33,7 @@
     border-radius: 5px;
     border: 2px solid #A0A8BE;
     padding: 10px;
-    margin: 15px 0;
+    margin: 10px 0;
     color: #A0A8BE;
 }
 
@@ -63,7 +63,7 @@
     text-align: center;
     margin: 0 auto;
     cursor: pointer;
-    margin-top: 15px;
+    margin-top: 5px;
 }
 
 .form button:hover {
@@ -81,8 +81,10 @@
     color: #FF0000 !important;
 }
 
-.error__button {
+.form button:disabled {
     background-color: rgba(48, 145, 100, .4) !important;
+    cursor: default;
+    pointer-events: none;
 }
 
 .error__text {
@@ -91,6 +93,7 @@
     font-size: 16px;
     color: #FF0000;
     display: block;
+    height: 1.25rem;
 }
 
 .right__input {

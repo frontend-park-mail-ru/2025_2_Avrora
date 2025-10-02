@@ -35,6 +35,11 @@ header {
     font-weight: 600;
     font-size: 16px;
     color: #000;
+    display: inline-block;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .menu__button {
@@ -50,6 +55,12 @@ header {
     cursor: pointer;
 }
 
+.menu__button:disabled {
+    background-color: rgba(48, 145, 100, .4);
+    cursor: default;
+    pointer-events: none;
+}
+
 .menu__button:hover {
     background-color: rgba(48, 145, 100, .3);
     transition: .2s linear;
@@ -63,4 +74,9 @@ header {
 .login, 
 .logout {
     margin-left: 25px;
+}
+
+.logout {
+    width: 30px;
+    height: 30px;
 }

@@ -25,11 +25,13 @@ export class Section {
         button1.type = 'button';
         button1.className = 'section__button';
         button1.textContent = 'Показать на карте';
+        button1.disabled = true;
         
         const button2 = document.createElement('button');
         button2.type = 'button';
         button2.className = 'section__button';
         button2.textContent = 'Показать объявления';
+        button2.disabled = true;
         
         buttonGroup.appendChild(button1);
         buttonGroup.appendChild(button2);

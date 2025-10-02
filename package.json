@@ -8,7 +8,8 @@
     "lint": "eslint . --color",
     "lint:report": "eslint . --format stylish",
     "lint:fix": "eslint . --fix",
-    "docs": "jsdoc -c jsdoc.json"
+    "docs": "jsdoc -c jsdoc.json",
+    "compile-hbs": "handlebars public/templates/Authorization.hbs public/templates/Boards.hbs public/templates/Header.hbs -f public/templates/compiled/templates.js"
   },
   "keywords": [
     "spa",
@@ -21,7 +22,7 @@
   "dependencies": {
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
     "handlebars": "^4.7.8"
   },
   "devDependencies": {

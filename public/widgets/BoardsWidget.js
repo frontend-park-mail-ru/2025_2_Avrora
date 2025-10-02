@@ -106,8 +106,7 @@ export class BoardsWidget {
             rooms: offer.rooms == null ? 1 : offer.rooms,
             address: offer.address || 'Адрес не указан',
             offer_type: offer.offer_type,
-
-            image: offer.image || "../../images/default_offer.jpg",
+            images: offer.images,
             likeClass: isLiked ? "liked" : "",
             likeIcon: isLiked
                 ? "../../images/active__like.png"

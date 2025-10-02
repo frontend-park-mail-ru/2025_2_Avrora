@@ -1,6 +1,10 @@
 # 2025_2_Avrora
+- Ссылка на деплой - http://37.139.40.252:8000
+- Точка входа - server.js
+- Конфигурация API - public/config.js
 - Запуск - node server.js
 - Установка зависимостей - npm install
+- Компиляция Handlebars файлов - npm run compile-hbs
 - Стандартный отчет ESLint - npm run lint
 - Детальный отчет ESLint - npm run lint:report
 - Исправление ошибок с ESLint - npm run lint:fix
