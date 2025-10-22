@@ -1,18 +1,8 @@
-/**
- * Проверяет валидность email адреса
- * @param {string} email - Email адрес для проверки
- * @returns {boolean} true если email валиден, false в противном случае
- */
 export function validEmail(email) {
-    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const pattern = /^[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.[\p{L}]{2,}$/u;
     return pattern.test(email);
 }
 
-/**
- * Проверяет валидность пароля по заданным правилам
- * @param {string} password - Пароль для проверки
- * @returns {string[]} Массив строк с ошибками валидации, пустой массив если пароль валиден
- */
 export function validPassword(password) {
     const errors = [];
     if (password.length < 6) errors.push("Пароль должен быть не менее 6 символов");

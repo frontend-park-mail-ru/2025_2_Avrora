@@ -1,113 +1,85 @@
 import { API } from '../utils/API.js';
 import { validEmail } from '../utils/auth.js';
-import { ErrorMessage } from '../components/Authorization/Alerts/ErrorMessage.js';
-import { Form } from '../components/Authorization/Form/Form.js';
 import { Input } from '../components/Authorization/Input/Input.js';
-import { Button } from '../components/Authorization/Button/Button.js';
 import { API_CONFIG } from "../config.js";
 
-/**
- * Класс страницы входа в систему
- * @class
- */
 export class LoginPage {
-    /**
-     * Создает экземпляр страницы входа
-     * @param {HTMLElement} parent - Родительский элемент для рендеринга
-     * @param {Object} state - Состояние приложения
-     * @param {App} app - Экземпляр главного приложения
-     */
     constructor(parent, state, app) {
         this.state = state;
         this.parent = parent;
         this.app = app;
+        this.inputs = {};
+        this.eventListeners = [];
     }
 
-    /**
-     * Рендерит страницу входа
-     */
-    render() {
-        this.parent.innerHTML = '';
-        
-        this.form = new Form('form');
-        this.form.onSubmit(this.submitLogin.bind(this));
-        
-        const logo = document.createElement('img');
-        logo.className = 'form__logo';
-        logo.src = '../../images/logo.png';
-        logo.alt = 'Логотип';
-        
-        const title = document.createElement('h1');
-        title.className = 'form__title';
-        title.textContent = 'Вход';
-        
-        const inputsContainer = document.createElement('div');
-        inputsContainer.className = 'form__container';
-        
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'form__block';
-        
-        const mainErrorElement = document.createElement('div');
-        mainErrorElement.className = 'error__text';
-        mainErrorElement.id = 'error__login';
-        this.errorMessage = new ErrorMessage(mainErrorElement);
-        
-        this.button = new Button('Войти');
-        
-        this.form
-            .addChild(logo)
-            .addChild(title)
-            .addChild(inputsContainer)
-            .addChild(buttonContainer);
-        
-        buttonContainer.appendChild(this.errorMessage.element);
-        buttonContainer.appendChild(this.button.getElement());
+    async render() {
+        this.cleanup();
 
-        const template = Handlebars.templates["Authorization.hbs"];
-        const inputsConfig = [
-            { placeholder: "Email", type: "email", name: "email" },
-            { placeholder: "Пароль", type: "password", name: "password" }
-        ];
+        const template = Handlebars.templates['Authorization.hbs'];
         
-        inputsContainer.innerHTML = template({ inputs: inputsConfig });
-        
-        this.inputs = {};
-        inputsConfig.forEach(config => {
-            const inputElement = inputsContainer.querySelector(`input[name="${config.name}"]`);
-            if (inputElement) {
-                const inputContainer = inputElement.parentElement;
-                this.inputs[config.name] = new Input(
-                    config.type,
-                    config.placeholder,
-                    config.name
-                );
-
-                if (config.name === 'email') {
-                    this.inputs[config.name].addValidationRule((value) => {
-                        if (!value) return "Введите Email";
-                        if (!validEmail(value)) return "Введите корректный Email";
-                        return null;
-                    });
-                } else if (config.name === 'password') {
-                    this.inputs[config.name].addValidationRule((value) => {
-                        if (!value) return "Введите пароль";
-                        return null;
-                    });
-                }
-
-                inputContainer.replaceWith(this.inputs[config.name].getElement());
-            }
+        // Регистрируем хелпер для сравнения
+        Handlebars.registerHelper('eq', function(a, b) {
+            return a === b;
         });
 
-        this.parent.appendChild(this.form.getElement());
-        
+        const html = template({
+            title: 'Вход',
+            buttonText: 'Войти',
+            inputs: [
+                { placeholder: "Email", type: "email", name: "email" },
+                { placeholder: "Пароль", type: "password", name: "password" }
+            ]
+        });
+
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        this.parent.appendChild(container.firstElementChild);
+
+        this.initializeComponents();
         this.setEventListeners();
     }
 
-    /**
-     * Обрабатывает отправку формы входа
-     * @param {Event} e - Событие отправки формы
-     */
+    initializeComponents() {
+        const form = this.parent.querySelector('.auth-form');
+        this.form = form;
+
+        // Инициализируем инпуты
+        const emailContainer = this.parent.querySelector('[data-input-name="email"]');
+        const passwordContainer = this.parent.querySelector('[data-input-name="password"]');
+
+        this.inputs.email = new Input('email', 'Email', 'email')
+            .addValidationRule((value) => {
+                if (!value) return "Введите Email";
+                if (!validEmail(value)) return "Введите корректный Email";
+                return null;
+            });
+
+        this.inputs.password = new Input('password', 'Пароль', 'password')
+            .addValidationRule((value) => {
+                if (!value) return "Введите пароль";
+                return null;
+            });
+
+        // Заменяем стандартные инпуты на наши компоненты
+        emailContainer.replaceWith(this.inputs.email.getElement());
+        passwordContainer.replaceWith(this.inputs.password.getElement());
+
+        // Получаем ссылки на элементы формы
+        this.errorElement = this.parent.querySelector('.auth-form__error');
+        this.button = this.parent.querySelector('.auth-button');
+    }
+
+    setEventListeners() {
+        if (this.form) {
+            this.form.addEventListener('submit', this.submitLogin.bind(this));
+        }
+
+        Object.values(this.inputs).forEach(input => {
+            this.addEventListener(input.getInputElement(), 'focus', this.handleInputFocus(input));
+            this.addEventListener(input.getInputElement(), 'input', this.handleInputChange(input));
+        });
+    }
+
     async submitLogin(e) {
         e.preventDefault();
         
@@ -127,11 +99,11 @@ export class LoginPage {
         }
 
         if (hasErrors) {
-            this.button.setErrorState(true);
+            this.setButtonErrorState(true);
             return;
         }
 
-        this.button.setLoading(true);
+        this.setButtonLoading(true);
 
         try {
             const result = await API.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, { 
@@ -142,82 +114,97 @@ export class LoginPage {
             if (result.ok) {
                 this.app.setUser(result.data.user, result.data.token);
             } else {
-                const errorMessage = result.data?.error;
-                this.errorMessage.show(errorMessage);
-                this.button.setErrorState(true);
+                const errorMessage = result.error || "Ошибка авторизации";
+                this.showFormError(errorMessage);
+                this.setButtonErrorState(true);
                 this.clearAllVisualStates();
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.errorMessage.show("Ошибка сети. Попробуйте позже.");
-            this.button.setErrorState(true);
+            this.showFormError("Ошибка сети. Попробуйте позже.");
+            this.setButtonErrorState(true);
             this.clearAllVisualStates();
         } finally {
-            this.button.setLoading(false);
+            this.setButtonLoading(false);
         }
     }
 
-    /**
-     * Очищает ошибки валидации на форме
-     */
     clearValidationErrors() {
         Object.values(this.inputs).forEach(input => {
             input.clearError();
             input.resetValidation();
         });
         
-        this.errorMessage.clear();
-        this.button.setErrorState(false);
+        this.clearFormError();
+        this.setButtonErrorState(false);
     }
 
-    /**
-     * Очищает все визуальные состояния полей (убирает right__input и error__input)
-     */
     clearAllVisualStates() {
         Object.values(this.inputs).forEach(input => {
             input.clearVisualState();
         });
     }
 
-    /**
-     * Создает обработчик события фокуса на поле ввода
-     * @param {Input} input - Экземпляр поля ввода
-     * @returns {Function} Функция-обработчик
-     */
+    showFormError(message) {
+        this.errorElement.textContent = message;
+        this.errorElement.classList.add('auth-form__error--visible');
+    }
+
+    clearFormError() {
+        this.errorElement.textContent = '';
+        this.errorElement.classList.remove('auth-form__error--visible');
+    }
+
+    setButtonLoading(isLoading) {
+        if (isLoading) {
+            this.button.disabled = true;
+            this.button.textContent = 'Загрузка...';
+            this.button.classList.add('auth-button--loading');
+        } else {
+            this.button.disabled = false;
+            this.button.textContent = 'Войти';
+            this.button.classList.remove('auth-button--loading');
+        }
+    }
+
+    setButtonErrorState(hasError) {
+        if (hasError) {
+            this.button.disabled = true;
+            this.button.classList.add('auth-button--error');
+        } else {
+            this.button.disabled = false;
+            this.button.classList.remove('auth-button--error');
+        }
+    }
+
     handleInputFocus(input) {
         return () => {
             input.clearError();
-            this.errorMessage.clear();
-            this.button.setErrorState(false);
+            this.clearFormError();
+            this.setButtonErrorState(false);
         };
     }
 
-    /**
-     * Создает обработчик события ввода в поле
-     * @param {Input} input - Экземпляр поля ввода
-     * @returns {Function} Функция-обработчик
-     */
     handleInputChange(input) {
         return () => {
             input.clearVisualState();
-            this.button.setErrorState(false);
+            this.setButtonErrorState(false);
         };
     }
 
-    /**
-     * Устанавливает обработчики событий для полей ввода
-     */
-    setEventListeners() {
-        Object.values(this.inputs).forEach(input => {
-            input.onFocus(this.handleInputFocus(input));
-            input.onInput(this.handleInputChange(input));
-        });
+    addEventListener(element, event, handler) {
+        if (element) {
+            element.addEventListener(event, handler);
+            this.eventListeners.push({ element, event, handler });
+        }
     }
 
-    /**
-     * Очищает страницу при переходе на другую
-     */
     cleanup() {
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
+        
         this.parent.innerHTML = '';
     }
 }

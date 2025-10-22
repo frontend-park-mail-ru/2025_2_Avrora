@@ -1,7 +1,28 @@
-{{#if isAuthenticated}}
-    <span class="menu__user">{{user.email}}</span>
-    <button type="button" class="menu__button logout">Выйти</button>
-{{else}}
-    <button type="button" class="menu__button register">Регистрация</button>
-    <button type="button" class="menu__button login">Войти</button>
-{{/if}}
+<div class="header__container">
+    <div class="header__logo">
+        <a href="/" class="header__logo-link">
+            <img src="../../images/logo.png" class="header__logo-image" alt="Логотип">
+            <span class="header__logo-title">Homa</span>
+        </a>
+    </div>
+    <div class="header__menu">
+        {{#if isAuthenticated}}
+            <button type="button" class="header__menu-btn header__menu-btn--like">
+                <img src="../images/menu__like.png" alt="Избранное">
+            </button>
+            <button type="button" class="header__menu-btn header__menu-btn--add-object">
+                + Объект
+            </button>
+            <button type="button" class="header__menu-btn header__menu-btn--user">
+                <img src="{{user.avatar}}" alt="Профиль">
+            </button>
+        {{else}}
+            <button type="button" class="header__menu-btn header__menu-btn--register {{#if isRegisterPage}}header__menu-btn--disabled{{/if}}">
+                Регистрация
+            </button>
+            <button type="button" class="header__menu-btn header__menu-btn--login {{#if isLoginPage}}header__menu-btn--disabled{{/if}}">
+                Войти
+            </button>
+        {{/if}}
+    </div>
+</div>

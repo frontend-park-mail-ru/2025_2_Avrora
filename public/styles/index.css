@@ -1,7 +1,12 @@
 @import "./Header.css";
-@import "./Section.css";
-@import "./Boards.css";
+@import "./Search.css";
+@import "./Offer.css";
 @import "./Authorization.css";
+@import "./OffersList.css";
+@import "./Complex.css";
+@import "./ComplexesList.css";
+@import "./OfferCreate.css";
+@import "./Profile.css";
 
 
 * {

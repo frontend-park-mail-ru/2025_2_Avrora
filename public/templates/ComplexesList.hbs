@@ -1,0 +1,16 @@
+<h1 class="complexes-list__title">Подобрали ЖК для вас</h1>
+<div class="complexes-list__container">
+    {{#each complexes}}
+    <div class="complexes-list__item" data-complex-id="{{id}}">
+        {{#if imageUrl}}
+        <img class="complexes-list__image" src="{{imageUrl}}" alt="Фото ЖК {{title}}">
+        {{/if}}
+        <span class="complexes-list__item-title">{{title}}</span>
+        <span class="complexes-list__status">{{status}}</span>
+        <span class="complexes-list__metro">
+            <img src="../../images/metro.png" alt="Метро"> {{metro}}
+        </span>
+        <span class="complexes-list__address">{{address}}</span>
+    </div>
+    {{/each}}
+</div>

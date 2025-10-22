@@ -3,14 +3,36 @@
     background-size: cover;
     padding: 100px 0;
     text-align: center;
+    position: relative;
 }
 
-.section h1 {
+.section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 1;
+}
+
+.section__title {
     font-family: "Inter", sans-serif;
     font-weight: 700;
     font-size: 38px;
     color: #fff;
     margin-bottom: 50px;
+    position: relative;
+    z-index: 2;
+}
+
+.section__button-group {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 50px;
 }
 
 .section__button {
@@ -25,18 +47,18 @@
     color: #fff;
     text-align: center;
     cursor: pointer;
+    transition: background-color 0.2s linear;
 }
 
 .section__button:hover {
     background-color: #22CA7C;
-    transition: .2s linear;
 }
 
-.section__buttonn:focus {
+.section__button:focus {
     background-color: #309164;
-    transition: .2s linear;
+    outline: none;
 }
 
-.section button:last-child {
-    margin-left: 50px;
+.section__button:active {
+    transform: translateY(1px);
 }

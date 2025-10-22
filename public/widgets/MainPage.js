@@ -1,53 +1,42 @@
-import { Section } from "../components/Section/Section.js";
-import { BoardsWidget } from "./BoardsWidget.js";
+import { SearchWidget } from "./SearchWidget.js";
+import { OffersListWidget } from "./OffersListWidget.js";
+import { ComplexesListWidget } from "./ComplexesListWidget.js";
 
-/**
- * Класс главной страницы приложения
- * @class
- */
 export class MainPage {
-    /**
-     * Создает экземпляр главной страницы
-     * @param {HTMLElement} parent - Родительский элемент для рендеринга
-     * @param {Object} state - Состояние приложения
-     * @param {App} app - Экземпляр главного приложения
-     */
     constructor(parent, state, app) {
         this.parent = parent;
         this.state = state;
         this.app = app;
-
-        this.sectionContainer = document.createElement("div");
-        this.sectionContainer.className = 'section';
-        
-        this.boardsContainer = document.createElement("div");
-        this.boardsContainer.className = 'boards';
-
-        this.section = new Section(this.sectionContainer);
-        this.boardsWidget = new BoardsWidget(this.boardsContainer, state, app);
     }
 
-    /**
-     * Рендерит главную страницу
-     * Очищает родительский элемент и отображает секцию и виджет досок
-     * @async
-     */
     async render() {
         this.parent.innerHTML = "";
 
-        this.parent.appendChild(this.sectionContainer);
-        this.parent.appendChild(this.boardsContainer);
+        const searchContainer = document.createElement("div");
+        searchContainer.className = 'search';
+        
+        const offersContainer = document.createElement("div");
+        offersContainer.className = 'offers';
+        
+        const complexesContainer = document.createElement("div");
+        complexesContainer.className = 'complexes-list';
 
-        this.section.render();
-        await this.boardsWidget.render();
+        this.parent.appendChild(searchContainer);
+        this.parent.appendChild(offersContainer);
+        this.parent.appendChild(complexesContainer);
+
+        const searchWidget = new SearchWidget(searchContainer, {
+            navigate: (path) => this.app.router.navigate(path)
+        });
+        const offersWidget = new OffersListWidget(offersContainer, this.state, this.app);
+        const complexesWidget = new ComplexesListWidget(complexesContainer, this.state, this.app);
+
+        await searchWidget.render();
+        await offersWidget.render();
+        await complexesWidget.render();
     }
 
-    /**
-     * Выполняет очистку ресурсов при переходе на другую страницу
-     */
     cleanup() {
-        if (this.boardsWidget.cleanup) {
-            this.boardsWidget.cleanup();
-        }
+        this.parent.innerHTML = '';
     }
 }

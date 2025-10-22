@@ -1,0 +1,274 @@
+.complex__block {
+    width: 90vw;
+    margin: 0 auto;
+    margin-top: 20px;
+}
+
+.complex__suptitle {
+    font-family: "Inter", sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    color: #A0A8BE;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.complex__title {
+    font-family: "Inter", sans-serif;
+    font-weight: 500;
+    font-size: 32px;
+    color: #000;
+    margin-bottom: 5px;
+}
+
+.complex__metro {
+    margin-right: 30px;
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.complex__metro img {
+    height: 11px;
+    width: 16px;
+    margin-right: 5px;
+}
+
+.complex__desc {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+}
+
+.complex__map {
+    width: 90vw;
+    height: 80vh;
+    margin: 0 auto;
+    background-color: rgba(0, 0, 0, .5);
+    margin-bottom: 30px;
+}
+
+.complex__slider {
+    width: 100%;
+    height: 60vh;
+    position: relative;
+}
+
+.complex__slider-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    position: absolute;
+    bottom: 5vh;
+    left: 5vw;
+    z-index: 1000;
+}
+
+.complex__slider-title {
+    font-family: "Lato", sans-serif;
+    font-weight: 600;
+    font-size: 38px;
+    color: #fff;
+    background-color: rgba(48, 145, 100, .4);
+    padding: 10px;
+}
+
+.complex__slider-price {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    color: #fff;
+    background-color: rgba(48, 145, 100, .4);
+    padding: 10px;
+}
+
+.complex__slider-images {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.complex__slider-images .slider__image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.complex__slider-images .slider__image_active {
+    opacity: 1;
+}
+
+.complex__apartments {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.complex__apartment {
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 15px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.complex__apartment:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.complex__apartment-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.complex__apartment-price {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: #000;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.complex__apartment-title {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.complex__apartment-info {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #666;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.complex__apartment-address {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #A0A8BE;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.complex__apartment-metro {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.complex__apartment-metro img {
+    height: 11px;
+    width: 16px;
+    margin-right: 5px;
+}
+
+/* Slider controls */
+.slider__btn-group {
+    position: absolute;
+    bottom: 10vh;
+    right: 10vw;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+    opacity: 1;
+}
+
+.slider__btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    opacity: 1;
+}
+
+.slider__btn:hover {
+    background: rgba(255, 255, 255, 1);
+}
+
+.slider__btn svg {
+    width: 20px;
+    height: 20px;
+    color: #333;
+}
+
+.slider__dots {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    z-index: 10;
+}
+
+.slider__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.slider__dot_active {
+    background: rgba(255, 255, 255, 1);
+}
+
+.slider__dot:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* States */
+.complex__loading,
+.complex__error {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    text-align: center;
+    padding: 40px 0;
+}
+
+.complex__retry-btn {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 10px 40px;
+    border-radius: 5px;
+    border: none;
+    background-color: #1FBB72;
+    color: #fff;
+    text-align: center;
+    margin: 20px auto;
+    cursor: pointer;
+    display: block;
+}
