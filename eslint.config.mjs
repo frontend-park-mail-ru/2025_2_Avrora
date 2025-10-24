@@ -6,23 +6,24 @@ export default [
     ...js.configs.recommended,
     ignores: [
       "docs/**",
-      "public/templates/compiled/**",
-      "node_modules/**"
+      "public/templates/compiled/",
+      "node_modules/**",
     ]
   },
-  
+
   {
     files: ["**/*.js"],
     ignores: [
       "docs/**",
-      "public/templates/compiled/**",
-      "node_modules/**"
+      "public/templates/compiled/*.js",
+      "node_modules/**",
     ],
     languageOptions: {
       globals: {
         ...globals.browser,
         ...globals.node,
-        "Handlebars": "readonly"
+        "Handlebars": "readonly",
+        "HandlebarsTemplates": "readonly"
       }
     },
     rules: {
@@ -30,7 +31,7 @@ export default [
       "no-console": "off"
     }
   },
-  
+
   {
     files: ["server.js"],
     languageOptions: {
@@ -39,19 +40,19 @@ export default [
       }
     }
   },
-  
+
   {
-    files: ["public/templates/compiled/**/*.js"],
+    files: ["public/templates/compiled/*.js"],
     languageOptions: {
       globals: {
         "Handlebars": "readonly",
+        "template": "readonly",
+        "templates": "readonly",
+        "container": "readonly",
+        "depth0": "readonly",
         "helpers": "readonly",
         "partials": "readonly",
-        "data": "readonly",
-        "alias1": "readonly",
-        "alias2": "readonly",
-        "container": "readonly",
-        "depth0": "readonly"
+        "data": "readonly"
       }
     },
     rules: {

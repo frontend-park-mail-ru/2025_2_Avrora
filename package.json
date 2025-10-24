@@ -2,14 +2,20 @@
   "name": "homa",
   "version": "1.0.0",
   "description": "Homa Frontend",
+  "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "dev": "vite",
+    "build": "npm run compile-hbs && vite build",
+    "preview": "vite preview",
     "lint": "eslint . --color",
     "lint:report": "eslint . --format stylish",
     "lint:fix": "eslint . --fix",
     "docs": "jsdoc -c jsdoc.json",
-    "compile-hbs": "handlebars public/templates/Authorization.hbs public/templates/Complex.hbs public/templates/ComplexesList.hbs public/templates/Header.hbs public/templates/Offer.hbs public/templates/OffersList.hbs public/templates/Search.hbs -f public/templates/compiled/templates.js"
+    "build-css": "sass public/styles/index.scss public/styles/index.css",
+    "watch-css": "sass --watch public/styles/index.scss public/styles/index.css",
+    "build-css-prod": "sass public/styles/index.scss public/styles/index.css --style=compressed",
+    "compile-hbs": "node compile-templates.js"
   },
   "keywords": [
     "spa",
@@ -26,8 +32,11 @@
     "handlebars": "^4.7.8"
   },
   "devDependencies": {
+    "esbuild": "^0.25.11",
     "eslint": "^9.36.0",
-    "jsdoc": "^4.0.4"
+    "jsdoc": "^4.0.4",
+    "sass": "^1.93.2",
+    "vite": "^7.1.12"
   },
   "engines": {
     "node": ">=14.0.0"
