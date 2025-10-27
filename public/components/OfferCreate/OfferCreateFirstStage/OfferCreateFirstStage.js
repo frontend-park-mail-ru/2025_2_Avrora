@@ -68,7 +68,7 @@ export class OfferCreateFirstStage {
     block.className = 'create-ad__choice-block';
 
     const title = document.createElement('h1');
-    title.className = 'create-ad__choice-title';
+    title.className = 'create-ad__form-label';
     title.textContent = titleText;
 
     const group = document.createElement('div');

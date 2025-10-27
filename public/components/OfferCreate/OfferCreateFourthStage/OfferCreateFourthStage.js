@@ -70,7 +70,7 @@ export class OfferCreateFourthStage {
     group.className = 'create-ad__form-group';
 
     const label = document.createElement('h1');
-    label.className = 'create-ad__choice-title';
+    label.className = 'create-ad__form-label';
     label.textContent = labelText;
 
     const input = document.createElement('input');

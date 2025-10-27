@@ -13,8 +13,8 @@ export class OfferCreateSecondStage {
     const addressBlock = document.createElement('div');
     addressBlock.className = 'create-ad__choice-block';
 
-    const addressTitle = document.createElement('h1');
-    addressTitle.className = 'create-ad__choice-title';
+    const addressTitle = document.createElement('h2');
+    addressTitle.className = 'create-ad__form-label';
     addressTitle.textContent = 'Адрес';
 
     const addressGroup = document.createElement('div');
@@ -47,8 +47,8 @@ export class OfferCreateSecondStage {
     const complexBlock = document.createElement('div');
     complexBlock.className = 'create-ad__choice-block';
 
-    const complexTitle = document.createElement('h1');
-    complexTitle.className = 'create-ad__choice-title';
+    const complexTitle = document.createElement('h2');
+    complexTitle.className = 'create-ad__form-label';
     complexTitle.textContent = 'Название жилищного комплекса';
 
     const complexGroup = document.createElement('div');
@@ -72,7 +72,7 @@ export class OfferCreateSecondStage {
     const progress = document.createElement('div');
     progress.className = 'create-ad__progress';
 
-    const title = document.createElement('h1');
+    const title = document.createElement('h2');
     title.className = 'create-ad__progress-title';
     title.textContent = titleText;
 
@@ -105,8 +105,8 @@ export class OfferCreateSecondStage {
     const group = document.createElement('div');
     group.className = 'create-ad__form-group';
 
-    const label = document.createElement('h1');
-    label.className = 'create-ad__choice-title';
+    const label = document.createElement('h2');
+    label.className = 'create-ad__form-label';
     label.textContent = labelText;
 
     const input = this.createInput(placeholder);
@@ -120,12 +120,12 @@ export class OfferCreateSecondStage {
     const block = document.createElement('div');
     block.className = 'create-ad__choice-block';
 
-    const title = document.createElement('h1');
-    title.className = 'create-ad__choice-title';
+    const title = document.createElement('h2');
+    title.className = 'create-ad__form-label';
     title.textContent = titleText;
 
     const group = document.createElement('div');
-    group.className = 'create-ad__choice-group';
+    group.className = 'create-ad__form-label';
 
     labels.forEach((label) => {
       const button = document.createElement('button');

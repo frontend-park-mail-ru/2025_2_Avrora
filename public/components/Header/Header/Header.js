@@ -107,7 +107,15 @@ export class Header {
         if (addObjectButton) {
             this.addEventListener(addObjectButton, 'click', (e) => {
                 e.preventDefault();
-                this.handleAddObjectClick();
+                if (this.state.user) {
+                    if (this.app.isProfileComplete()) {
+                        this.app.router.navigate("/create-ad");
+                    } else {
+                        this.app.showProfileCompletionModal();
+                    }
+                } else {
+                    this.app.router.navigate("/login");
+                }
             });
         }
 

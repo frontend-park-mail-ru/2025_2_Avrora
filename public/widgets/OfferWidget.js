@@ -62,8 +62,7 @@ export class OfferWidget {
             price: this.formatPrice(apiData.price),
             userName: apiData.user_full_name,
             description: apiData.description,
-            images: Array.isArray(apiData.images) ? apiData.images : 
-                   (apiData.image_url ? [apiData.image_url] : []),
+            images: Array.isArray(apiData.images) ? apiData.images : [],
             characteristics: this.getCharacteristics(apiData),
             offerType: apiData.offer_type,
             deposit: apiData.deposit || 0,
@@ -85,7 +84,6 @@ export class OfferWidget {
         const types = {
             'flat': 'квартиры',
             'house': 'дома',
-            'commercial': 'коммерческой недвижимости'
         };
         return types[propertyType] || 'недвижимости';
     }
@@ -111,20 +109,19 @@ export class OfferWidget {
 
     getCharacteristics(apiData) {
         return [
-            { title: 'Общая площадь', value: `${apiData.area || '—'} м²`, icon: 'area' },
-            { title: 'Жилая площадь', value: `${apiData.living_area || '—'} м²`, icon: 'living' },
-            { title: 'Площадь кухни', value: `${apiData.kitchen_area || '—'} м²`, icon: 'kitchen' },
-            { title: 'Этаж', value: `${apiData.floor || '—'}/${apiData.total_floors || '—'}`, icon: 'floor' },
-            { title: 'Комнат', value: apiData.rooms || '—', icon: 'rooms' },
-            { title: 'Тип', value: this.getPropertyTypeDisplay(apiData.property_type), icon: 'type' }
+            { title: 'Жилая площадь', value: `${apiData.area || '—'} м²`, icon: 'living' },
+            { title: 'Площадь кухни', value: `${apiData.living_area || '—'} м²`, icon: 'kitchen' },
+            { title: 'Тип жилья', value: `${apiData.kitchen_area || '—'}`, icon: 'live' },
+            { title: 'В составе ЖК', value: `${apiData.floor || '—'}/${apiData.total_floors || '—'}`, icon: 'gk' },
+            { title: 'Количество комнат', value: apiData.rooms || '—', icon: 'rooms' },
+            { title: 'Этаж', value: this.getPropertyTypeDisplay(apiData.property_type), icon: 'floor' }
         ];
     }
 
     getPropertyTypeDisplay(propertyType) {
         const types = {
             'flat': 'Квартира',
-            'house': 'Дом',
-            'commercial': 'Коммерческая'
+            'house': 'Дом'
         };
         return types[propertyType] || 'Не указано';
     }

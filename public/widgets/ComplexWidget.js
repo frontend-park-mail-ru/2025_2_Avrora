@@ -45,6 +45,7 @@ export class ComplexWidget {
 
             const complexData = await this.loadComplex();
             await this.renderContent(complexData);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
             console.error("Error rendering complex detail:", error);
             this.renderError("Не удалось загрузить информацию о ЖК");
@@ -146,8 +147,8 @@ export class ComplexWidget {
 
         const images = sliderContainer.querySelectorAll('.slider__image');
         const dots = sliderContainer.querySelectorAll('.slider__dot');
-        const prevBtn = sliderContainer.querySelector('.slider__btn_prev');
         const nextBtn = sliderContainer.querySelector('.slider__btn_next');
+        const prevBtn = sliderContainer.querySelector('.slider__btn_prev');
 
         console.log('Complex slider elements:', { images: images.length, dots: dots.length, prevBtn: !!prevBtn, nextBtn: !!nextBtn });
 
@@ -207,10 +208,6 @@ export class ComplexWidget {
         dots[index].classList.add('slider__dot_active');
 
         this.currentSlide = index;
-    }
-
-    attachEventListeners() {
-        // Дополнительные обработчики если нужны
     }
 
     renderLoading() {

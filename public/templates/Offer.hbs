@@ -60,16 +60,26 @@
 
             {{#if isRent}}
             <div class="offer__rent-info">
-                <ul class="offer__rent-list">
-                    {{#if deposit}}
-                    <li class="offer__rent-item">Залог ............................................................ {{formattedDeposit}}</li>
-                    {{/if}}
-                    <li class="offer__rent-item">Комиссия .............................................................. {{#if commission}}{{commission}}%{{else}}нет{{/if}}</li>
-                    <li class="offer__rent-item">Предоплата ................................................... 1 месяц</li>
-                    {{#if rentalPeriod}}
-                    <li class="offer__rent-item">Срок аренды ................................................. {{rentalPeriod}}</li>
-                    {{/if}}
-                </ul>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Оплата ЖКХ</span>
+                    <span class="offer__rent-value">включена (без счётчиков)</span>
+                </div>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Залог</span>
+                    <span class="offer__rent-value">{{formattedDeposit}}</span>
+                </div>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Комиссия</span>
+                    <span class="offer__rent-value">{{#if commission}}{{commission}}%{{else}}нет{{/if}}</span>
+                </div>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Предоплата</span>
+                    <span class="offer__rent-value">1 месяц</span>
+                </div>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Срок аренды</span>
+                    <span class="offer__rent-value">от года</span>
+                </div>
             </div>
             {{/if}}
 
@@ -100,13 +110,15 @@
 
     <div class="offer__section">
         <h2 class="offer__section-title">Характеристики</h2>
-        <div class="offer__features">
+        <div class="offer__features-grid">
             {{#each characteristics}}
-            <div class="offer__feature">
-                <img class="offer__feature-icon" src="../images/{{icon}}_icon.png" alt="{{title}}">
-                <div class="offer__feature-content">
-                    <h3 class="offer__feature-title">{{title}}</h3>
-                    <p class="offer__feature-value">{{value}}</p>
+            <div class="offer__feature-item">
+                <div class="offer__feature-icon-wrapper">
+                    <img src="../images/{{icon}}_icon.png" alt="{{title}}" class="offer__feature-icon">
+                </div>
+                <div class="offer__feature-info">
+                    <div class="offer__feature-title">{{title}}</div>
+                    <div class="offer__feature-value">{{value}}</div>
                 </div>
             </div>
             {{/each}}

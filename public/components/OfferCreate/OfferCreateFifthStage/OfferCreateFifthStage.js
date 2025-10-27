@@ -15,7 +15,7 @@ export class OfferCreateFifthStage {
     descBlock.className = 'create-ad__choice-block';
 
     const descTitle = document.createElement('h1');
-    descTitle.className = 'create-ad__choice-title';
+    descTitle.className = 'create-ad__form-label';
     descTitle.textContent = 'Описание';
 
     const descInput = document.createElement('textarea');

@@ -14,6 +14,12 @@ export default defineConfig({
   build: {
     outDir: '../dist',
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: 'public/index.html',
+        sw: 'public/sw.js'
+      }
+    }
   },
   optimizeDeps: {
     include: ['handlebars']

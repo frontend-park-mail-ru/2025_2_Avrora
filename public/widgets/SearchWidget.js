@@ -24,7 +24,6 @@ export class SearchWidget {
             { key: 'type', placeholder: 'Тип недвижимости', items: [
                 { label: 'Квартира', value: 'flat' },
                 { label: 'Дом', value: 'house' },
-                { label: 'Коммерческая', value: 'commercial' }
             ] }
         ];
 
