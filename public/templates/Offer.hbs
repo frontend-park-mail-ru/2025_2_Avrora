@@ -1,0 +1,137 @@
+<div class="offer">
+    <div class="offer__header">
+        <h1 class="offer__title">{{title}}</h1>
+        <div class="offer__info">
+            <span class="offer__info-desc">{{infoDesc}}</span>
+            {{#if metro}}
+            <span class="offer__metro">
+                <img src="../images/metro.png" alt="Метро">
+                {{metro}}
+            </span>
+            {{/if}}
+            <span class="offer__address">{{address}}</span>
+        </div>
+    </div>
+
+    <div class="offer__main">
+        <div class="offer__gallery">
+            {{#each images}}
+            <img class="slider__image {{#if @first}}slider__image_active{{/if}}" 
+                 src="{{this}}" 
+                 alt="Фото объявления {{@index}}"
+                 loading="lazy">
+            {{/each}}
+
+            {{#if multipleImages}}
+            <button class="slider__btn slider__btn_prev">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2"></path>
+                </svg>
+            </button>
+            <button class="slider__btn slider__btn_next">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2"></path>
+                </svg>
+            </button>
+
+            <div class="slider__dots">
+                {{#each images}}
+                <button class="slider__dot {{#if @first}}slider__dot_active{{/if}}"></button>
+                {{/each}}
+            </div>
+            {{/if}}
+
+            {{#if images.length}}
+            <button class="slider__fullscreen-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 3H5C4.44772 3 4 3.44772 4 4V7M20 7V4C20 3.44772 19.5523 3 19 3H16M16 21H19C19.5523 21 20 20.5523 20 20V17M4 17V20C4 20.5523 4.44772 21 5 21H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+            {{/if}}
+        </div>
+
+        <div class="offer__sidebar">
+            <div class="offer__price-container">
+                <h3 class="offer__price">{{price}}</h3>
+                <button class="offer__like-btn">
+                    <img src="../images/like.png" alt="Добавить в избранное">
+                </button>
+            </div>
+
+            {{#if isRent}}
+            <div class="offer__rent-info">
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Оплата ЖКХ</span>
+                    <span class="offer__rent-value">включена (без счётчиков)</span>
+                </div>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Залог</span>
+                    <span class="offer__rent-value">{{formattedDeposit}}</span>
+                </div>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Комиссия</span>
+                    <span class="offer__rent-value">{{#if commission}}{{commission}}%{{else}}нет{{/if}}</span>
+                </div>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Предоплата</span>
+                    <span class="offer__rent-value">1 месяц</span>
+                </div>
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Срок аренды</span>
+                    <span class="offer__rent-value">от года</span>
+                </div>
+            </div>
+            {{/if}}
+
+            {{#if showOwnerActions}}
+            <div class="offer__owner-actions">
+                <button class="offer__edit-btn">Изменить</button>
+                <button class="offer__delete-btn">Удалить</button>
+            </div>
+            {{else}}
+                {{#if showPhone}}
+                <div class="offer__phone-display">
+                    <span class="offer__phone-label">Телефон:</span>
+                    <span class="offer__phone-number">{{userPhone}}</span>
+                </div>
+                {{else}}
+                    {{#if showContactBtn}}
+                    <button class="offer__contact-btn">Позвонить</button>
+                    {{/if}}
+                {{/if}}
+            {{/if}}
+
+            <div class="offer__user">
+                <img src="../images/user.png" alt="Пользователь">
+                <span class="offer__user-name">{{userName}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="offer__section">
+        <h2 class="offer__section-title">Характеристики</h2>
+        <div class="offer__features-grid">
+            {{#each characteristics}}
+            <div class="offer__feature-item">
+                <div class="offer__feature-icon-wrapper">
+                    <img src="../images/{{icon}}_icon.png" alt="{{title}}" class="offer__feature-icon">
+                </div>
+                <div class="offer__feature-info">
+                    <div class="offer__feature-title">{{title}}</div>
+                    <div class="offer__feature-value">{{value}}</div>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+
+    <div class="offer__section">
+        <h2 class="offer__section-title">Описание</h2>
+        <p class="offer__description">{{description}}</p>
+    </div>
+
+    <div class="offer__section">
+        <h2 class="offer__section-title">Местоположение на карте</h2>
+        <div class="offer__map"></div>
+    </div>
+</div>
