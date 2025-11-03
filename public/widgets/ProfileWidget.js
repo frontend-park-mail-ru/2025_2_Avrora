@@ -3,7 +3,6 @@ import { Profile } from '../components/Profile/Profile/Profile.js';
 import { Safety } from '../components/Profile/Safety/Safety.js';
 import { MyAdvertisements } from '../components/Profile/MyAdvertisements/MyAdvertisements.js';
 
-
 export class ProfileWidget {
   constructor(parent, state, app, options = {}) {
     this.parent = parent;
@@ -113,28 +112,53 @@ export class ProfileWidget {
     return sidebar;
   }
 
-  createUserBlock() {
-    const block = document.createElement("div");
-    block.className = "profile__sidebar-block";
+createUserBlock() {
+  const block = document.createElement("div");
+  block.className = "profile__sidebar-block";
 
-    const userSection = document.createElement("div");
-    userSection.className = "profile__sidebar-user";
+  const userSection = document.createElement("div");
+  userSection.className = "profile__sidebar-user";
 
-    const avatar = document.createElement("img");
-    avatar.className = "profile__sidebar-avatar";
-    avatar.src = this.state.user?.avatar || "../images/user.png";
-    avatar.alt = "Аватар";
+  const avatar = document.createElement("img");
+  avatar.className = "profile__sidebar-avatar";
 
-    const name = document.createElement("span");
-    name.className = "profile__sidebar-name";
-    name.textContent = this.state.user?.name || "Иван Иванов";
+  // Используем актуальные данные пользователя
+  const userAvatar = this.app.state.user?.avatar ||
+                    this.app.state.user?.photo_url ||
+                    this.app.state.user?.AvatarURL ||
+                    "../../images/user.png";
+  avatar.src = userAvatar;
+  avatar.alt = "Аватар";
+  avatar.onerror = () => {
+    avatar.src = "../../images/user.png";
+  };
 
-    userSection.appendChild(avatar);
-    userSection.appendChild(name);
-    block.appendChild(userSection);
+  const name = document.createElement("span");
+  name.className = "profile__sidebar-name";
 
-    return block;
+  // Используем реальное имя пользователя из app.state
+  let userName = "Пользователь";
+  const user = this.app.state.user;
+  if (user) {
+    if (user.firstName && user.lastName) {
+      userName = `${user.firstName} ${user.lastName}`;
+    } else if (user.first_name && user.last_name) {
+      userName = `${user.first_name} ${user.last_name}`;
+    } else if (user.FirstName && user.LastName) {
+      userName = `${user.FirstName} ${user.LastName}`;
+    } else if (user.name) {
+      userName = user.name;
+    }
   }
+
+  name.textContent = userName;
+
+  userSection.appendChild(avatar);
+  userSection.appendChild(name);
+  block.appendChild(userSection);
+
+  return block;
+}
 
   createNavBlock() {
     const block = document.createElement("div");
@@ -144,7 +168,6 @@ export class ProfileWidget {
       { key: "summary", text: "Сводка", path: "/profile" },
       { key: "profile", text: "Профиль", path: "/profile/edit" },
       { key: "myads", text: "Мои объявления", path: "/profile/myoffers" },
-      { key: "fav", text: "Избранное", path: "/profile" },
       { key: "safety", text: "Безопасность", path: "/profile/security" }
     ];
 

@@ -1,3 +1,4 @@
+// OfferCreateSecondStage.js
 export class OfferCreateSecondStage {
     constructor({ state, app, dataManager, isEditing = false, editOfferId = null } = {}) {
         this.state = state;
@@ -19,11 +20,14 @@ export class OfferCreateSecondStage {
 
         const addressTitle = document.createElement('h2');
         addressTitle.className = 'create-ad__form-label';
-        addressTitle.textContent = 'Адрес';
+        addressTitle.textContent = 'Адрес *';
 
         const addressGroup = document.createElement('div');
         addressGroup.className = 'create-ad__choice-group';
-        addressGroup.appendChild(this.createInput('Адрес', 'address'));
+
+        const addressInput = this.createInput('Введите адрес...', 'address');
+        addressInput.required = true;
+        addressGroup.appendChild(addressInput);
 
         addressBlock.appendChild(addressTitle);
         addressBlock.appendChild(addressGroup);
@@ -87,8 +91,13 @@ export class OfferCreateSecondStage {
         input.className = 'create-ad__input';
         input.placeholder = placeholder;
         input.dataset.field = fieldName;
+        input.required = fieldName === 'address';
 
         input.addEventListener('input', () => {
+            this.saveFormData();
+        });
+
+        input.addEventListener('blur', () => {
             this.saveFormData();
         });
 
@@ -113,6 +122,10 @@ export class OfferCreateSecondStage {
             this.saveFormData();
         });
 
+        input.addEventListener('blur', () => {
+            this.saveFormData();
+        });
+
         group.appendChild(label);
         group.appendChild(input);
         return group;
@@ -124,11 +137,13 @@ export class OfferCreateSecondStage {
         const inputs = this.root.querySelectorAll('.create-ad__input[data-field]');
         inputs.forEach(input => {
             const value = input.value.trim();
+            const fieldName = input.dataset.field;
+
             if (value) {
-                formData[input.dataset.field] = input.type === 'number' ?
-                    parseInt(value) : value;
+                formData[fieldName] = input.type === 'number' ?
+                    parseInt(value) || null : value;
             } else {
-                formData[input.dataset.field] = null;
+                formData[fieldName] = null;
             }
         });
 

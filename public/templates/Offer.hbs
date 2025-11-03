@@ -20,6 +20,11 @@
                  src="{{this}}" 
                  alt="Фото объявления {{@index}}"
                  loading="lazy">
+            {{else}}
+            <img class="slider__image slider__image_active"
+                 src="../images/default_offer.jpg"
+                 alt="Фото объявления"
+                 loading="lazy">
             {{/each}}
 
             {{#if multipleImages}}
@@ -64,22 +69,33 @@
                     <span class="offer__rent-label">Оплата ЖКХ</span>
                     <span class="offer__rent-value">включена (без счётчиков)</span>
                 </div>
+                {{#if deposit}}
                 <div class="offer__rent-item">
                     <span class="offer__rent-label">Залог</span>
                     <span class="offer__rent-value">{{formattedDeposit}}</span>
                 </div>
+                {{/if}}
+                {{#if commission}}
                 <div class="offer__rent-item">
                     <span class="offer__rent-label">Комиссия</span>
-                    <span class="offer__rent-value">{{#if commission}}{{commission}}%{{else}}нет{{/if}}</span>
+                    <span class="offer__rent-value">{{formattedCommission}}</span>
                 </div>
+                {{/if}}
                 <div class="offer__rent-item">
                     <span class="offer__rent-label">Предоплата</span>
                     <span class="offer__rent-value">1 месяц</span>
                 </div>
+                {{#if rentalPeriod}}
+                <div class="offer__rent-item">
+                    <span class="offer__rent-label">Срок аренды</span>
+                    <span class="offer__rent-value">{{rentalPeriod}}</span>
+                </div>
+                {{else}}
                 <div class="offer__rent-item">
                     <span class="offer__rent-label">Срок аренды</span>
                     <span class="offer__rent-value">от года</span>
                 </div>
+                {{/if}}
             </div>
             {{/if}}
 
@@ -125,10 +141,12 @@
         </div>
     </div>
 
+    {{#if description}}
     <div class="offer__section">
         <h2 class="offer__section-title">Описание</h2>
         <p class="offer__description">{{description}}</p>
     </div>
+    {{/if}}
 
     <div class="offer__section">
         <h2 class="offer__section-title">Местоположение на карте</h2>

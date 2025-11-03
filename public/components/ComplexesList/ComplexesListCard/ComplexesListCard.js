@@ -37,14 +37,21 @@ export default class ComplexesListCard {
 
         if (this.imageEl) {
             this.imageEl.addEventListener('error', () => {
-                this.imageEl.src = 'https://via.placeholder.com/300x200?text=No+Image';
+                this.imageEl.src = '../images/default_complex.jpg';
                 this.imageEl.alt = 'Изображение недоступно';
             });
         }
     }
 
     onCardClick(e) {
-        const path = `/complexes/${this.data.id}`;
+        // Безопасное извлечение ID из данных
+        const complexId = this.data.id || this.data.ID;
+        if (!complexId) {
+            console.error('Complex ID is missing');
+            return;
+        }
+
+        const path = `/complexes/${complexId}`;
         if (this.navigate) {
             this.navigate(path);
             return;

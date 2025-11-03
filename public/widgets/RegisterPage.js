@@ -90,7 +90,7 @@ export class RegisterPage {
 
     async submitSignup(e) {
         e.preventDefault();
-        
+
         this.clearValidationErrors();
 
         const emailStr = this.inputs.email.getValue();
@@ -118,22 +118,86 @@ export class RegisterPage {
         this.setButtonLoading(true);
 
         try {
-            const result = await API.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, { 
-                email: emailStr, 
-                password: passStr 
+            // Шаг 1: Регистрация пользователя
+            const registerResult = await API.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, {
+                email: emailStr,
+                password: passStr
             });
-            
-            if (result.ok) {
-                this.app.setUser(result.data.user, result.data.token);
+
+            if (registerResult.ok) {
+                console.log('Registration successful, attempting auto-login...');
+
+                // Шаг 2: Автоматический вход после успешной регистрации
+                const loginResult = await API.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
+                    email: emailStr,
+                    password: passStr
+                });
+
+                if (loginResult.ok && loginResult.data && loginResult.data.token) {
+                    console.log('Auto-login successful:', loginResult.data);
+
+                    // Декодируем JWT токен чтобы получить ID пользователя
+                    const decoded = this.decodeJWT(loginResult.data.token);
+                    const userId = decoded?.userID;
+
+                    // Создаем полный объект пользователя с ID
+                    const user = {
+                        id: userId,
+                        email: loginResult.data.email || emailStr,
+                        avatar: '../../images/user.png',
+                        firstName: '',
+                        lastName: '',
+                        phone: ''
+                    };
+
+                    // Сохраняем пользователя в приложении
+                    this.app.setUser(user, loginResult.data.token);
+
+                    // Показываем успешное сообщение
+                    this.showFormError("Регистрация и вход выполнены успешно!");
+                    this.errorElement.style.color = 'green';
+
+                } else {
+                    console.warn('Auto-login failed:', loginResult);
+                    // Если автоматический вход не удался, но регистрация успешна
+                    this.showFormError("Регистрация успешна! Теперь вы можете войти в систему.");
+                    this.setButtonErrorState(false);
+                    this.clearAllVisualStates();
+
+                    // Через 2 секунды перенаправляем на страницу входа
+                    setTimeout(() => {
+                        this.app.router.navigate("/login");
+                    }, 2000);
+                }
             } else {
-                const errorMessage = result.error || "Ошибка регистрации";
+                let errorMessage = "Ошибка регистрации";
+
+                // Обрабатываем специфические ошибки от бэкенда
+                if (registerResult.data) {
+                    if (registerResult.data.error) {
+                        if (registerResult.data.error.includes("уже существует") ||
+                            registerResult.data.error.includes("already exists")) {
+                            errorMessage = "Пользователь с таким email уже существует";
+                        } else if (registerResult.data.error.includes("неправильный формат") ||
+                                 registerResult.data.error.includes("invalid format")) {
+                            errorMessage = "Некорректный формат email";
+                        } else {
+                            errorMessage = registerResult.data.error;
+                        }
+                    } else if (registerResult.data.message) {
+                        errorMessage = registerResult.data.message;
+                    }
+                } else if (registerResult.error) {
+                    errorMessage = registerResult.error;
+                }
+
                 this.showFormError(errorMessage);
                 this.setButtonErrorState(true);
                 this.clearAllVisualStates();
             }
         } catch (error) {
             console.error('Register error:', error);
-            this.showFormError("Ошибка сети. Попробуйте позже.");
+            this.showFormError("Ошибка сети. Проверьте подключение и попробуйте позже.");
             this.setButtonErrorState(true);
             this.clearAllVisualStates();
         } finally {
@@ -141,12 +205,29 @@ export class RegisterPage {
         }
     }
 
+    decodeJWT(token) {
+        try {
+            if (!token) return null;
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            return JSON.parse(jsonPayload);
+        } catch (error) {
+            console.error('Error decoding JWT:', error);
+            return null;
+        }
+    }
+
+
     clearValidationErrors() {
         Object.values(this.inputs).forEach(input => {
             input.clearError();
             input.resetValidation();
         });
-        
+
         this.clearFormError();
         this.setButtonErrorState(false);
     }
@@ -160,17 +241,20 @@ export class RegisterPage {
     showFormError(message) {
         this.errorElement.textContent = message;
         this.errorElement.classList.add('auth-form__error--visible');
+        // Сбрасываем цвет на стандартный (красный для ошибок)
+        this.errorElement.style.color = '';
     }
 
     clearFormError() {
         this.errorElement.textContent = '';
         this.errorElement.classList.remove('auth-form__error--visible');
+        this.errorElement.style.color = '';
     }
 
     setButtonLoading(isLoading) {
         if (isLoading) {
             this.button.disabled = true;
-            this.button.textContent = 'Загрузка...';
+            this.button.textContent = 'Регистрация...';
             this.button.classList.add('auth-button--loading');
         } else {
             this.button.disabled = false;
@@ -201,6 +285,11 @@ export class RegisterPage {
         return () => {
             input.clearVisualState();
             this.setButtonErrorState(false);
+
+            // Динамическая валидация повторного пароля при изменении основного пароля
+            if (input === this.inputs.password && this.inputs.repassword.getValue()) {
+                this.inputs.repassword.validate();
+            }
         };
     }
 

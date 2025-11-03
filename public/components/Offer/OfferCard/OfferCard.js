@@ -1,22 +1,23 @@
 export class OfferCard {
     constructor(data = {}, state = {}, app = null) {
+        // Обрабатываем разные форматы данных от бэкенда
         this.data = {
-            id: data.id || 0,
-            title: data.title || "",
+            id: data.id || data.ID || 0,
+            title: data.title || data.Title || "",
             infoDesc: data.infoDesc || "",
             metro: data.metro || "",
-            address: data.address || "",
+            address: data.address || data.Address || "",
             price: data.price || "",
-            userName: data.userName || "",
-            description: data.description || "",
+            userName: data.userName || "Продавец",
+            description: data.description || data.Description || "",
             images: Array.isArray(data.images) ? data.images : [],
             characteristics: Array.isArray(data.characteristics) ? data.characteristics : [],
-            offerType: data.offerType || "sale",
+            offerType: data.offerType || data.OfferType || "sale",
             deposit: data.deposit || 0,
             commission: data.commission || 0,
             rentalPeriod: data.rentalPeriod || "",
-            userId: data.userId || 0,
-            userPhone: data.userPhone || ""
+            userId: data.userId || data.UserID || 0,
+            userPhone: data.userPhone || "+7 XXX XXX-XX-XX"
         };
 
         this.state = state;
@@ -36,12 +37,14 @@ export class OfferCard {
                 ...this.data,
                 multipleImages: this.data.images.length > 1,
                 isRent: this.data.offerType === 'rent',
-                isOwner: this.state.user && this.state.user.id === this.data.userId,
+                isOwner: this.state.user && (this.state.user.id === this.data.userId || this.state.user.ID === this.data.userId),
                 isAuthenticated: !!this.state.user,
-                showContactBtn: !this.state.user || (this.state.user && this.state.user.id !== this.data.userId),
-                showPhone: this.state.user && this.state.user.id !== this.data.userId && this.isPhoneVisible,
-                showOwnerActions: this.state.user && this.state.user.id === this.data.userId,
-                formattedDeposit: this.formatCurrency(this.data.deposit)
+                showContactBtn: !this.state.user || (this.state.user && this.state.user.id !== this.data.userId && this.state.user.ID !== this.data.userId),
+                showPhone: this.state.user && this.state.user.id !== this.data.userId && this.state.user.ID !== this.data.userId && this.isPhoneVisible,
+                showOwnerActions: this.state.user && (this.state.user.id === this.data.userId || this.state.user.ID === this.data.userId),
+                formattedDeposit: this.formatCurrency(this.data.deposit),
+                formattedCommission: this.formatCurrency(this.data.commission),
+                hasAdditionalCosts: this.data.deposit > 0 || this.data.commission > 0
             };
 
             const html = template(templateData);
@@ -81,6 +84,8 @@ export class OfferCard {
 
         if (this.data.images.length <= 1) {
             this.hideSliderControls();
+        } else {
+            this.showSlide(0); // Инициализируем первый слайд
         }
     }
 
@@ -141,22 +146,34 @@ export class OfferCard {
             });
         }
 
-        dots.forEach((dot, index) => {
-            dot.addEventListener('click', () => this.showSlide(index));
-        });
+        if (dots) {
+            dots.forEach((dot, index) => {
+                dot.addEventListener('click', () => this.showSlide(index));
+            });
+        }
     }
 
     showSlide(index) {
         const { images, dots } = this.sliderElements;
 
-        if (!images || !images[index] || !dots || !dots[index]) return;
+        if (!images || images.length === 0 || !dots || dots.length === 0) return;
         if (index === this.currentSlide) return;
 
-        images[this.currentSlide].classList.remove('slider__image_active');
-        dots[this.currentSlide].classList.remove('slider__dot_active');
+        // Скрываем текущий слайд
+        if (images[this.currentSlide]) {
+            images[this.currentSlide].classList.remove('slider__image_active');
+        }
+        if (dots[this.currentSlide]) {
+            dots[this.currentSlide].classList.remove('slider__dot_active');
+        }
 
-        images[index].classList.add('slider__image_active');
-        dots[index].classList.add('slider__dot_active');
+        // Показываем новый слайд
+        if (images[index]) {
+            images[index].classList.add('slider__image_active');
+        }
+        if (dots[index]) {
+            dots[index].classList.add('slider__dot_active');
+        }
 
         this.currentSlide = index;
     }
@@ -195,7 +212,7 @@ export class OfferCard {
             const img = document.createElement('img');
             img.className = `fullscreen-image ${index === this.fullscreenCurrentSlide ? 'fullscreen-image-active' : ''}`;
             img.src = imageSrc;
-            img.alt = `Фото объявления ${index}`;
+            img.alt = `Фото объявления ${index + 1}`;
             imageContainer.appendChild(img);
         });
 
@@ -257,11 +274,8 @@ export class OfferCard {
 
         document.addEventListener('keydown', keyHandler);
 
-        const originalClose = overlay.close;
-        overlay.close = () => {
-            document.removeEventListener('keydown', keyHandler);
-            if (originalClose) originalClose();
-        };
+        // Сохраняем ссылку на обработчик для последующего удаления
+        overlay._keyHandler = keyHandler;
     }
 
     handleCall() {
@@ -276,11 +290,11 @@ export class OfferCard {
 
         const contactBtn = this.rootEl.querySelector('.offer__contact-btn');
         const phoneDisplay = this.rootEl.querySelector('.offer__phone-display');
-        
+
         if (contactBtn) {
             contactBtn.style.display = 'none';
         }
-        
+
         if (phoneDisplay) {
             phoneDisplay.style.display = 'block';
         } else {
@@ -354,13 +368,19 @@ export class OfferCard {
         modal.appendChild(modalFooter);
         modalOverlay.appendChild(modal);
 
-        const closeModal = () => modalOverlay.remove();
+        const closeModal = () => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        };
 
         closeBtn.addEventListener('click', closeModal);
         cancelBtn.addEventListener('click', closeModal);
         loginBtn.addEventListener('click', () => {
             closeModal();
-            this.app.router.navigate('/login');
+            if (this.app?.router?.navigate) {
+                this.app.router.navigate('/login');
+            }
         });
 
         modalOverlay.addEventListener('click', (e) => {
@@ -417,7 +437,11 @@ export class OfferCard {
         modal.appendChild(modalFooter);
         modalOverlay.appendChild(modal);
 
-        const closeModal = () => modalOverlay.remove();
+        const closeModal = () => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        };
 
         closeBtn.addEventListener('click', closeModal);
         cancelBtn.addEventListener('click', closeModal);
@@ -445,7 +469,10 @@ export class OfferCard {
     async handleDelete() {
         try {
             console.log('Deleting offer:', this.data.id);
-            this.app.router.navigate('/');
+            // Здесь должен быть API вызов для удаления
+            if (this.app?.router?.navigate) {
+                this.app.router.navigate('/');
+            }
         } catch (error) {
             console.error('Error deleting offer:', error);
         }

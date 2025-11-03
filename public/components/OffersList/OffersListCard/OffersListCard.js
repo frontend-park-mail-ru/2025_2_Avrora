@@ -13,9 +13,14 @@ export class OffersListCard {
         try {
             const template = Handlebars.templates['OffersList.hbs'];
 
+            // Обрабатываем разные форматы изображений
+            const images = Array.isArray(this.offerData.images) ? this.offerData.images :
+                          this.offerData.image_url ? [this.offerData.image_url] : [];
+
             const formattedOffer = {
                 ...this.offerData,
-                multipleImages: this.offerData.images && this.offerData.images.length > 1,
+                images: images,
+                multipleImages: images.length > 1,
                 likeClass: this.offerData.isLiked ? 'liked' : '',
                 likeIcon: this.offerData.isLiked ? '../../images/active__like.png' : '../../images/like.png',
                 formattedPrice: this.formatPrice(this.offerData.price)
@@ -51,14 +56,16 @@ export class OffersListCard {
             next: gallery.querySelector('.slider__btn_next')
         };
 
-        console.log('Offer card slider elements:', { 
+        console.log('Offer card slider elements:', {
             images: this.sliderElements.images.length,
             dots: this.sliderElements.dots.length,
             hasPrev: !!this.sliderElements.prev,
             hasNext: !!this.sliderElements.next
         });
 
-        if (this.offerData.images.length <= 1) {
+        // Обрабатываем случаи, когда изображений нет или только одно
+        const imageCount = this.offerData.images ? this.offerData.images.length : 0;
+        if (imageCount <= 1) {
             this.hideSliderControls();
         } else {
             this.attachSliderEvents();
@@ -100,12 +107,14 @@ export class OffersListCard {
             });
         }
 
-        dots.forEach((dot, index) => {
-            this.addEventListener(dot, 'click', (e) => {
-                e.stopPropagation();
-                this.showSlide(index);
+        if (dots) {
+            dots.forEach((dot, index) => {
+                this.addEventListener(dot, 'click', (e) => {
+                    e.stopPropagation();
+                    this.showSlide(index);
+                });
             });
-        });
+        }
     }
 
     showSlide(index) {
@@ -128,8 +137,11 @@ export class OffersListCard {
             if (e.target.closest('.slider__btn') || e.target.closest('.slider__dot') || e.target.closest('.offer-card__like')) {
                 return;
             }
-            
-            const path = `/offers/${this.offerData.id}`;
+
+            // Убедитесь, что ID корректно обрабатывается
+            const offerId = this.offerData.id || this.offerData.ID;
+            const path = `/offers/${offerId}`;
+
             if (this.app?.router?.navigate) {
                 this.app.router.navigate(path);
             } else {
@@ -149,6 +161,7 @@ export class OffersListCard {
 
     handleLike() {
         console.log('Like button clicked for offer:', this.offerData.id);
+        // TODO: Implement like functionality with API call
     }
 
     formatPrice(price) {

@@ -94,6 +94,7 @@ export class OfferCreateFifthStage {
         return this.root;
     }
 
+    // OfferCreateFifthStage.js
     async handleFileUpload(files, uploadedImagesContainer, progressContainer) {
         this.isUploading = true;
         this.updateUploadState(true);
@@ -102,45 +103,63 @@ export class OfferCreateFifthStage {
             progressContainer.style.display = 'block';
             progressContainer.textContent = 'Загрузка изображений...';
 
+            // Валидируем файлы
             const validFiles = files.filter(file => {
                 try {
                     MediaService.validateImage(file);
                     return true;
                 } catch (error) {
+                    console.warn('File validation failed:', error.message);
                     Modal.show({
                         title: 'Ошибка валидации',
-                        message: error.message,
+                        message: `Файл "${file.name}": ${error.message}`,
                         type: 'error'
                     });
                     return false;
                 }
             });
 
-            if (validFiles.length === 0) return;
+            if (validFiles.length === 0) {
+                Modal.show({
+                    title: 'Внимание',
+                    message: 'Нет валидных файлов для загрузки',
+                    type: 'info'
+                });
+                return;
+            }
 
+            // Загружаем файлы
             const uploadResults = await MediaService.uploadMultipleImages(validFiles);
 
+            // Обрабатываем результаты
             uploadResults.forEach(result => {
-                this.images.push({
-                    filename: result.filename,
-                    url: result.url
-                });
-                this.createImagePreview(result, uploadedImagesContainer);
+                if (result && result.filename) {
+                    this.images.push({
+                        filename: result.filename,
+                        url: MediaService.getImageUrl(result.filename)
+                    });
+                    this.createImagePreview({
+                        filename: result.filename,
+                        url: MediaService.getImageUrl(result.filename)
+                    }, uploadedImagesContainer);
+                }
             });
 
             this.saveFormData();
 
-            Modal.show({
-                title: 'Успех',
-                message: `Успешно загружено ${uploadResults.length} изображений`,
-                type: 'info'
-            });
+            if (uploadResults.length > 0) {
+                Modal.show({
+                    title: 'Успех',
+                    message: `Успешно загружено ${uploadResults.length} изображений`,
+                    type: 'success'
+                });
+            }
 
         } catch (error) {
             console.error('Error uploading images:', error);
             Modal.show({
                 title: 'Ошибка загрузки',
-                message: error.message || 'Не удалось загрузить изображения',
+                message: error.message || 'Не удалось загрузить изображения. Проверьте подключение к интернету.',
                 type: 'error'
             });
         } finally {
@@ -150,12 +169,14 @@ export class OfferCreateFifthStage {
         }
     }
 
+    // OfferCreateFifthStage.js
     createImagePreview(imageData, container) {
         const imgWrap = document.createElement('div');
         imgWrap.className = 'create-ad__uploaded-image';
 
         const img = document.createElement('img');
-        img.src = imageData.url;
+        // Используем URL из imageData или генерируем его
+        img.src = imageData.url || MediaService.getImageUrl(imageData.filename);
         img.alt = `Загруженное изображение ${imageData.filename}`;
         img.loading = 'lazy';
 

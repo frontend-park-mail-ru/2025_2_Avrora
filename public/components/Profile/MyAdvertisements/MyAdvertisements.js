@@ -1,5 +1,6 @@
 import { ProfileService } from '../../../utils/ProfileService.js';
 import { Modal } from '../../../components/OfferCreate/Modal/Modal.js';
+import { API_CONFIG } from '../../../config.js';
 
 export class MyAdvertisements {
   constructor(state, app) {
@@ -82,7 +83,7 @@ export class MyAdvertisements {
 
     const img = document.createElement("img");
     img.className = "profile__ad-image";
-    img.src = offerData.image_url || "http://37.139.40.252:8080/api/v1/image/default_offer.jpg";
+    img.src = offerData.image_url || `${API_CONFIG.BASE_URL}/image/default_offer.jpg`;
     img.alt = "Объявление";
     img.loading = "lazy";
 
@@ -142,13 +143,15 @@ export class MyAdvertisements {
     const types = {
       'flat': 'кв.',
       'house': 'дом',
-      'garage': 'гараж'
+      'garage': 'гараж',
+      'apartment': 'апартаменты',
+      'studio': 'студия'
     };
     return types[propertyType] || 'недвижимость';
   }
 
   formatPrice(price) {
-    if (!price) return 'цена не указана';
+    if (!price || price === 0) return 'цена не указана';
     return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
   }
 
@@ -167,8 +170,7 @@ export class MyAdvertisements {
         const { API } = await import('../../../utils/API.js');
         const { API_CONFIG } = await import('../../../config.js');
 
-        const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.BY_ID}/${offerId}`;
-        const result = await API.delete(endpoint);
+        const result = await API.delete(`${API_CONFIG.ENDPOINTS.OFFERS.DELETE}${offerId}`);
 
         if (result.ok) {
           Modal.show({
@@ -176,6 +178,7 @@ export class MyAdvertisements {
             message: 'Объявление успешно удалено',
             type: 'info',
             onConfirm: () => {
+              // Перезагружаем список объявлений
               this.render().then(newContent => {
                 const currentContent = document.querySelector('.profile__content');
                 if (currentContent && currentContent.parentNode) {
@@ -185,7 +188,7 @@ export class MyAdvertisements {
             }
           });
         } else {
-          throw new Error(result.error);
+          throw new Error(result.error || 'Не удалось удалить объявление');
         }
       }
     } catch (error) {

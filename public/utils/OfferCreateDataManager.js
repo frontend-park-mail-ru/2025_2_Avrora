@@ -1,3 +1,4 @@
+// OfferCreateDataManager.js
 export class OfferCreateDataManager {
     constructor() {
         this.data = {
@@ -28,12 +29,16 @@ export class OfferCreateDataManager {
         if (data.category !== undefined) this.data.category = data.category;
         if (data.offer_type !== undefined) this.data.offer_type = data.offer_type;
         if (data.property_type !== undefined) this.data.property_type = data.property_type;
+
+        console.log('Stage 1 updated:', this.data);
     }
 
     updateStage2(data) {
         if (data.address !== undefined) this.data.address = data.address;
         if (data.floor !== undefined) this.data.floor = data.floor;
         if (data.total_floors !== undefined) this.data.total_floors = data.total_floors;
+
+        console.log('Stage 2 updated:', this.data);
     }
 
     updateStage3(data) {
@@ -41,6 +46,8 @@ export class OfferCreateDataManager {
         if (data.area !== undefined) this.data.area = data.area;
         if (data.living_area !== undefined) this.data.living_area = data.living_area;
         if (data.kitchen_area !== undefined) this.data.kitchen_area = data.kitchen_area;
+
+        console.log('Stage 3 updated:', this.data);
     }
 
     updateStage4(data) {
@@ -48,11 +55,15 @@ export class OfferCreateDataManager {
         if (data.deposit !== undefined) this.data.deposit = data.deposit;
         if (data.commission !== undefined) this.data.commission = data.commission;
         if (data.rental_period !== undefined) this.data.rental_period = data.rental_period;
+
+        console.log('Stage 4 updated:', this.data);
     }
 
     updateStage5(data) {
         if (data.description !== undefined) this.data.description = data.description;
         if (data.images !== undefined) this.data.images = data.images;
+
+        console.log('Stage 5 updated:', this.data);
     }
 
     getData() {
@@ -99,5 +110,7 @@ export class OfferCreateDataManager {
             description: apiData.description || null,
             images: apiData.images || []
         };
+
+        console.log('Data populated from API:', this.data);
     }
 }

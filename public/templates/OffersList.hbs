@@ -11,6 +11,11 @@
                      src="{{this}}" 
                      alt="Фото объявления {{@index}}"
                      loading="lazy">
+                {{else}}
+                <img class="slider__image slider__image_active"
+                     src="../images/default_offer.jpg"
+                     alt="Фото объявления"
+                     loading="lazy">
                 {{/each}}
 
                 {{#if multipleImages}}
@@ -39,9 +44,21 @@
             </div>
 
             <span class="offer-card__price">{{formattedPrice}} ₽</span>
-            <span class="offer-card__description">{{rooms}}-комн. · {{area}}м²</span>
+            <span class="offer-card__description">
+                {{#if rooms}}
+                    {{rooms}}-комн.
+                {{else}}
+                    Студия
+                {{/if}}
+                · {{area}}м²
+            </span>
             <span class="offer-card__metro">
-                <img src="../../images/metro.png" alt="Метро"> {{metro}}
+                <img src="../images/metro.png" alt="Метро">
+                {{#if metro}}
+                    {{metro}}
+                {{else}}
+                    Метро не указано
+                {{/if}}
             </span>
             <span class="offer-card__address">{{address}}</span>
         </div>

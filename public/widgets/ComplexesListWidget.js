@@ -37,14 +37,37 @@ export class ComplexesListWidget {
         }
     }
 
+    async renderWithComplexes(complexes) {
+        try {
+            this.renderLoading();
+            await this.renderContent(complexes);
+        } catch (error) {
+            console.error("Error rendering complexes list:", error);
+            this.renderError("Не удалось отобразить список ЖК");
+        }
+    }
+
     async loadComplexes() {
         const result = await API.get(API_CONFIG.ENDPOINTS.COMPLEXES.LIST, {
             limit: this.limit,
             isMainPage: this.isMainPage
         });
 
-        if (result.ok && result.data && Array.isArray(result.data.complexes)) {
-            return result.data.complexes;
+        // Обрабатываем разные форматы ответа от бэкенда
+        if (result.ok && result.data) {
+            const responseData = result.data || result;
+
+            // Поддерживаем разные форматы ответа
+            let complexes = [];
+            if (Array.isArray(responseData.Complexes)) {
+                complexes = responseData.Complexes;
+            } else if (Array.isArray(responseData.complexes)) {
+                complexes = responseData.complexes;
+            } else if (Array.isArray(responseData.data)) {
+                complexes = responseData.data;
+            }
+
+            return complexes;
         }
         throw new Error(result.error || "Ошибка загрузки списка ЖК");
     }
@@ -69,19 +92,28 @@ export class ComplexesListWidget {
     }
 
     formatComplex(apiData) {
+        // Обрабатываем разные форматы полей от бэкенда
+        const complexId = apiData.id || apiData.ID;
+        const name = apiData.name || apiData.Name || apiData.title || "Название не указано";
+        const address = apiData.address || apiData.Address || "Адрес не указан";
+        const metro = apiData.metro || apiData.Metro || "Метро не указано";
+        const imageUrl = apiData.image_url || apiData.ImageURL || apiData.imageUrl;
+        const startingPrice = apiData.starting_price || apiData.StartingPrice;
+
         return {
-            id: apiData.id,
-            title: apiData.title,
-            status: apiData.status || "Строится",
-            metro: apiData.metro || "Метро не указано",
-            address: apiData.address,
-            imageUrl: apiData.image_url
+            id: complexId,
+            title: name,
+            status: "Строится", // Статус по умолчанию, так как бэкенд его не возвращает
+            metro: metro,
+            address: address,
+            imageUrl: imageUrl,
+            startingPrice: startingPrice ? this.formatPrice(startingPrice) : "Цена не указана"
         };
     }
 
     initializeComplexCards(complexes) {
         const complexElements = this.parent.querySelectorAll('.complexes-list__item');
-        
+
         this.complexCards = Array.from(complexElements).map((element, index) => {
             const complexData = complexes[index];
             const card = new ComplexesListCard(element, complexData, {
@@ -94,10 +126,15 @@ export class ComplexesListWidget {
                     }
                 }
             });
-            
+
             card.render();
             return card;
         });
+    }
+
+    formatPrice(price) {
+        if (!price) return '0';
+        return new Intl.NumberFormat('ru-RU').format(price);
     }
 
     renderLoading() {

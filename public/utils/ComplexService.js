@@ -6,8 +6,17 @@ export class ComplexService {
         try {
             const result = await API.get(API_CONFIG.ENDPOINTS.COMPLEXES.NAMES);
 
-            if (result.ok && Array.isArray(result.data)) {
-                return result.data;
+            // Обрабатываем разные форматы ответа
+            if (result.ok && result.data) {
+                const responseData = result.data || result;
+
+                if (Array.isArray(responseData)) {
+                    return responseData;
+                } else if (Array.isArray(responseData.complexes)) {
+                    return responseData.complexes;
+                } else if (Array.isArray(responseData.Complexes)) {
+                    return responseData.Complexes;
+                }
             }
 
             throw new Error(result.error || "Ошибка загрузки названий ЖК");
@@ -21,8 +30,25 @@ export class ComplexService {
         try {
             const result = await API.get(API_CONFIG.ENDPOINTS.COMPLEXES.LIST, params);
 
-            if (result.ok && result.data && Array.isArray(result.data.complexes)) {
-                return result.data;
+            // Обрабатываем разные форматы ответа
+            if (result.ok && result.data) {
+                const responseData = result.data || result;
+
+                let complexes = [];
+                let meta = {};
+
+                if (Array.isArray(responseData.Complexes)) {
+                    complexes = responseData.Complexes;
+                    meta = responseData.Meta || {};
+                } else if (Array.isArray(responseData.complexes)) {
+                    complexes = responseData.complexes;
+                    meta = responseData.meta || {};
+                } else if (Array.isArray(responseData.data)) {
+                    complexes = responseData.data;
+                    meta = responseData.meta || {};
+                }
+
+                return { complexes, meta };
             }
 
             throw new Error(result.error || "Ошибка загрузки списка ЖК");
@@ -34,7 +60,7 @@ export class ComplexService {
 
     static async getComplexById(complexId) {
         try {
-            const endpoint = `${API_CONFIG.ENDPOINTS.COMPLEXES.BY_ID}/${complexId}`;
+            const endpoint = `${API_CONFIG.ENDPOINTS.COMPLEXES.LIST}/${complexId}`;
             const result = await API.get(endpoint);
 
             if (result.ok && result.data) {
@@ -51,9 +77,10 @@ export class ComplexService {
     static async searchComplexes(searchTerm) {
         try {
             const complexes = await this.getComplexNames();
-            return complexes.filter(complex =>
-                complex.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+            return complexes.filter(complex => {
+                const name = complex.name || complex.Name || complex.title || "";
+                return name.toLowerCase().includes(searchTerm.toLowerCase());
+            });
         } catch (error) {
             console.error('Error searching complexes:', error);
             return [];

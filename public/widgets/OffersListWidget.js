@@ -54,8 +54,8 @@ export class OffersListWidget {
             this.isLoading = true;
             this.renderLoading();
 
-            this.allOffers = offers;
-            this.totalPages = Math.ceil(offers.length / this.limit);
+            this.allOffers = offers || [];
+            this.totalPages = Math.ceil((offers?.length || 0) / this.limit);
 
             const paginatedOffers = this.getPaginatedOffers();
             await this.renderContent(paginatedOffers, { total_pages: this.totalPages }, showTitle);
@@ -70,22 +70,55 @@ export class OffersListWidget {
     getPaginatedOffers() {
         const startIndex = (this.currentPage - 1) * this.limit;
         const endIndex = startIndex + this.limit;
-        return this.allOffers.slice(startIndex, endIndex);
+        return (this.allOffers || []).slice(startIndex, endIndex);
     }
 
     async loadOffers(params = {}) {
-        const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, {
-            page: this.currentPage,
-            limit: this.limit,
-            ...params
-        });
-        if (result.ok && result.data && Array.isArray(result.data.offers)) {
+        try {
+            const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, {
+                page: this.currentPage,
+                limit: this.limit,
+                ...params
+            });
+
+            if (!result.ok) {
+                throw new Error(result.error || `HTTP ${result.status}`);
+            }
+
+            // Обрабатываем разные форматы ответа от бэкенда
+            const responseData = result.data || result;
+
+            let offers = [];
+            let meta = {};
+
+            // Поддерживаем разные форматы ответа
+            if (Array.isArray(responseData.Offers)) {
+                offers = responseData.Offers;
+                meta = responseData.Meta || {};
+            } else if (Array.isArray(responseData.offers)) {
+                offers = responseData.offers;
+                meta = responseData.meta || {};
+            } else if (Array.isArray(responseData.data)) {
+                offers = responseData.data;
+                meta = responseData.meta || {};
+            } else if (responseData.Offers && Array.isArray(responseData.Offers)) {
+                offers = responseData.Offers;
+                meta = responseData.Meta || {};
+            }
+
+            console.log('Processed offers data:', { offers, meta });
+
             return {
-                offers: result.data.offers,
-                meta: result.data.meta
+                offers: offers,
+                meta: {
+                    total_pages: Math.ceil((meta.Total || meta.total || offers.length) / this.limit) || 1,
+                    total: meta.Total || meta.total || offers.length
+                }
             };
+        } catch (error) {
+            console.error('Error loading offers:', error);
+            throw new Error(`Не удалось загрузить объявления: ${error.message}`);
         }
-        throw new Error(result.error || "Ошибка загрузки объявлений");
     }
 
     async renderContent(offers, meta = null, showTitle = true) {
@@ -116,21 +149,43 @@ export class OffersListWidget {
     }
 
     formatOffer(apiData) {
-        const isLiked = this.state.user?.likedOffers?.includes(apiData.id) || false;
+        const isLiked = this.state.user?.likedOffers?.includes(apiData.id || apiData.ID) || false;
+
+        // Обрабатываем разные форматы изображений от бэкенда
+        let images = [];
+        if (Array.isArray(apiData.images)) {
+            images = apiData.images;
+        } else if (apiData.image_url) {
+            images = [apiData.image_url];
+        } else if (apiData.imageURLs) {
+            images = apiData.imageURLs;
+        } else if (apiData.ImageURL) {
+            images = [apiData.ImageURL];
+        }
+
+        // Обрабатываем разные форматы ID
+        const offerId = apiData.id || apiData.ID;
+
+        // Обрабатываем разные форматы цены
+        const price = apiData.price || apiData.Price || 0;
+
+        // Обрабатываем разные форматы адреса и метро
+        const address = apiData.address || apiData.Address || "Адрес не указан";
+        const metro = apiData.metro || apiData.Metro || "Метро не указано";
 
         return {
-            id: apiData.id,
-            title: apiData.title,
-            price: apiData.price,
-            area: apiData.area,
-            rooms: apiData.rooms,
-            address: apiData.address,
-            metro: apiData.metro || "Метро не указано",
-            images: Array.isArray(apiData.images) ? apiData.images : [],
-            multipleImages: Array.isArray(apiData.images) && apiData.images.length > 1,
+            id: offerId,
+            title: apiData.title || "Без названия",
+            price: price,
+            area: apiData.area || apiData.Area || 0,
+            rooms: apiData.rooms || apiData.Rooms || 0,
+            address: address,
+            metro: metro,
+            images: images,
+            multipleImages: images.length > 1,
             likeClass: isLiked ? "liked" : "",
             likeIcon: isLiked ? "../../images/active__like.png" : "../../images/like.png",
-            formattedPrice: this.formatPrice(apiData.price)
+            formattedPrice: this.formatPrice(price)
         };
     }
 
@@ -139,12 +194,21 @@ export class OffersListWidget {
 
         this.offerCards = Array.from(offerElements).map((element, index) => {
             const offerData = offers[index];
+
+            // Валидация обязательных полей
+            if (!offerData || !offerData.id) {
+                console.warn('Invalid offer data at index:', index, offerData);
+                return null;
+            }
+
             const card = new OffersListCard(element, offerData, this.state, this.app);
             return card;
-        });
+        }).filter(card => card !== null);
 
         for (const card of this.offerCards) {
-            await card.render();
+            if (card && card.render) {
+                await card.render();
+            }
         }
     }
 
@@ -163,7 +227,11 @@ export class OffersListWidget {
         prevButton.addEventListener('click', () => {
             if (this.currentPage > 1) {
                 this.currentPage--;
-                this.renderWithOffers(this.allOffers, false);
+                if (this.allOffers.length > 0) {
+                    this.renderWithOffers(this.allOffers, false);
+                } else {
+                    this.render();
+                }
             }
         });
 
@@ -176,7 +244,11 @@ export class OffersListWidget {
             pageButton.textContent = i;
             pageButton.addEventListener('click', () => {
                 this.currentPage = i;
-                this.renderWithOffers(this.allOffers, false);
+                if (this.allOffers.length > 0) {
+                    this.renderWithOffers(this.allOffers, false);
+                } else {
+                    this.render();
+                }
             });
             pagesContainer.appendChild(pageButton);
         }
@@ -188,7 +260,11 @@ export class OffersListWidget {
         nextButton.addEventListener('click', () => {
             if (this.currentPage < this.totalPages) {
                 this.currentPage++;
-                this.renderWithOffers(this.allOffers, false);
+                if (this.allOffers.length > 0) {
+                    this.renderWithOffers(this.allOffers, false);
+                } else {
+                    this.render();
+                }
             }
         });
 
@@ -201,7 +277,7 @@ export class OffersListWidget {
 
     renderLoading() {
         this.cleanup();
-        
+
         const loadingDiv = document.createElement("div");
         loadingDiv.className = "offers__loading";
         loadingDiv.textContent = "Загрузка объявлений...";
@@ -267,10 +343,10 @@ export class OffersListWidget {
 
     cleanup() {
         this.removeEventListeners();
-        
+
         if (this.offerCards) {
             this.offerCards.forEach(card => {
-                if (card.cleanup) card.cleanup();
+                if (card && card.cleanup) card.cleanup();
             });
             this.offerCards = [];
         }

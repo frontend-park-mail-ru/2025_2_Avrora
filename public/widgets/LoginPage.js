@@ -78,7 +78,7 @@ export class LoginPage {
 
     async submitLogin(e) {
         e.preventDefault();
-        
+
         this.clearValidationErrors();
 
         const emailStr = this.inputs.email.getValue();
@@ -102,13 +102,27 @@ export class LoginPage {
         this.setButtonLoading(true);
 
         try {
-            const result = await API.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, { 
-                email: emailStr, 
-                password: passStr 
+            const result = await API.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
+                email: emailStr,
+                password: passStr
             });
-            
+
             if (result.ok) {
-                this.app.setUser(result.data.user, result.data.token);
+                // Декодируем JWT токен чтобы получить ID пользователя
+                const decoded = this.decodeJWT(result.data.token);
+                const userId = decoded?.userID;
+
+                // Создаем объект пользователя с ID
+                const user = {
+                    id: userId,
+                    email: result.data.email,
+                    avatar: '../../images/user.png',
+                    firstName: '',
+                    lastName: '',
+                    phone: ''
+                };
+
+                this.app.setUser(user, result.data.token);
             } else {
                 const errorMessage = result.error || "Ошибка авторизации";
                 this.showFormError(errorMessage);
@@ -122,6 +136,22 @@ export class LoginPage {
             this.clearAllVisualStates();
         } finally {
             this.setButtonLoading(false);
+        }
+    }
+
+    decodeJWT(token) {
+        try {
+            if (!token) return null;
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            return JSON.parse(jsonPayload);
+        } catch (error) {
+            console.error('Error decoding JWT:', error);
+            return null;
         }
     }
 

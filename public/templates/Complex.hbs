@@ -2,14 +2,22 @@
     <div class="complex__slider">
         <div class="complex__slider-group">
             <span class="complex__slider-title">{{title}}</span>
+            {{#if price}}
             <span class="complex__slider-price">{{price}}</span>
+            {{/if}}
         </div>
-        
+
         <div class="complex__slider-images">
             {{#each images}}
-            <img class="slider__image {{#if @first}}slider__image_active{{/if}}" 
-                 src="{{this}}" 
-                 alt="Фото комплекса {{@index}}">
+            <img class="slider__image {{#if @first}}slider__image_active{{/if}}"
+                 src="{{this}}"
+                 alt="Фото комплекса {{@index}}"
+                 loading="lazy">
+            {{else}}
+            <img class="slider__image slider__image_active"
+                 src="../images/default_complex.jpg"
+                 alt="Фото комплекса"
+                 loading="lazy">
             {{/each}}
 
             {{#if multipleImages}}
@@ -38,19 +46,37 @@
     <div class="complex__block">
         <span class="complex__suptitle">Адрес</span>
         <h1 class="complex__title">{{address}}</h1>
+        {{#if metro}}
         <span class="complex__metro">
             <img src="../images/metro.png" alt="Метро"> {{metro}}
         </span>
+        {{/if}}
+        {{#if developer}}
+        <div class="complex__info-item">
+            <span class="complex__info-label">Застройщик:</span>
+            <span class="complex__info-value">{{developer}}</span>
+        </div>
+        {{/if}}
+        {{#if yearBuilt}}
+        <div class="complex__info-item">
+            <span class="complex__info-label">Год постройки:</span>
+            <span class="complex__info-value">{{yearBuilt}}</span>
+        </div>
+        {{/if}}
+        {{#if description}}
         <p class="complex__desc">{{description}}</p>
+        {{/if}}
     </div>
 
     <div class="complex__block">
         <h2 class="complex__title">Доступные апартаменты</h2>
         <div class="complex__apartments">
+            <p class="complex__empty">Нет доступных апартаментов</p>
         </div>
     </div>
 
     <div class="complex__block">
+        <h2 class="complex__title">Местоположение на карте</h2>
         <div class="complex__map"></div>
     </div>
 </div>

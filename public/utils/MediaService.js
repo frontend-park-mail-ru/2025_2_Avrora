@@ -2,25 +2,24 @@ import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 
 export class MediaService {
-  static async uploadImage(file) {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+    static async uploadImage(file) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
 
-      const result = await API.post(API_CONFIG.ENDPOINTS.MEDIA.UPLOAD, {
-        file: file
-      });
+        // Передаем formData напрямую, а не оборачиваем в объект
+        const result = await API.post(API_CONFIG.ENDPOINTS.MEDIA.UPLOAD, formData);
 
-      if (result.ok && result.data) {
-        return result.data;
+        if (result.ok && result.data) {
+          return result.data;
+        }
+
+        throw new Error(result.error || "Ошибка загрузки изображения");
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        throw error;
       }
-
-      throw new Error(result.error || "Ошибка загрузки изображения");
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      throw error;
     }
-  }
 
   static getImageUrl(filename) {
     if (!filename) {

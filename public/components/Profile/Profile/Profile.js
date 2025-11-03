@@ -7,6 +7,7 @@ export class Profile {
         this.app = app;
         this.currentAvatarUrl = null;
         this.isLoading = false;
+        this.profileData = null;
     }
 
     async render() {
@@ -22,13 +23,21 @@ export class Profile {
             return content;
         }
 
-        const userSection = await this.createUserSection();
-        const dataSection = this.createDataSection();
+        try {
+            // Загружаем данные профиля
+            this.profileData = await ProfileService.getProfile();
 
-        block.appendChild(userSection);
-        block.appendChild(dataSection);
+            const userSection = await this.createUserSection();
+            const dataSection = this.createDataSection();
+
+            block.appendChild(userSection);
+            block.appendChild(dataSection);
+        } catch (error) {
+            console.error('Error rendering profile:', error);
+            block.appendChild(this.createErrorSection(error.message));
+        }
+
         content.appendChild(block);
-
         return content;
     }
 
@@ -37,26 +46,25 @@ export class Profile {
         userSection.className = "profile__user-section";
 
         try {
-            const profileData = await ProfileService.getProfile();
-
             const avatar = document.createElement("img");
             avatar.className = "profile__avatar";
-            avatar.src = profileData.photo_url || "../../../images/user.png";
+            avatar.src = this.profileData.photo_url || "../../../images/user.png";
             avatar.alt = "Аватар";
             avatar.id = "profile-avatar";
 
             const name = document.createElement("span");
             name.className = "profile__user-name";
-            const fullName = `${profileData.first_name} ${profileData.last_name}`;
+            const fullName = `${this.profileData.first_name} ${this.profileData.last_name}`.trim() || "Пользователь";
             name.textContent = fullName;
 
             userSection.appendChild(avatar);
             userSection.appendChild(name);
 
-            this.currentAvatarUrl = profileData.photo_url;
+            this.currentAvatarUrl = this.profileData.photo_url;
 
         } catch (error) {
-            console.error('Error loading profile:', error);
+            console.error('Error creating user section:', error);
+            // Fallback на данные из state
             const avatar = document.createElement("img");
             avatar.className = "profile__avatar";
             avatar.src = this.state.user?.avatar || "../../../images/user.png";
@@ -65,7 +73,9 @@ export class Profile {
 
             const name = document.createElement("span");
             name.className = "profile__user-name";
-            const fullName = this.state.user?.name || "Иван Иванов";
+            const fullName = this.state.user?.firstName && this.state.user?.lastName
+                ? `${this.state.user.firstName} ${this.state.user.lastName}`
+                : (this.state.user?.name || "Пользователь");
             name.textContent = fullName;
 
             userSection.appendChild(avatar);
@@ -107,15 +117,29 @@ export class Profile {
                 try {
                     this.showLoading(true);
 
-                    const { MediaService } = await import('../../../utils/MediaService.js');
-                    MediaService.validateImage(file);
+                    // Валидация файла
+                    if (file.size > 10 * 1024 * 1024) {
+                        throw new Error("Размер файла не должен превышать 10MB");
+                    }
+
+                    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!validTypes.includes(file.type)) {
+                        throw new Error("Недопустимый формат изображения");
+                    }
 
                     const avatarUrl = await ProfileService.uploadAvatar(file);
 
+                    // Обновляем аватар в UI
                     const img = document.getElementById("profile-avatar");
                     if (img) {
                         img.src = avatarUrl;
                         this.currentAvatarUrl = avatarUrl;
+                    }
+
+                    // Обновляем состояние пользователя
+                    if (this.state.user) {
+                        this.state.user.avatar = avatarUrl;
+                        localStorage.setItem("userData", JSON.stringify(this.state.user));
                     }
 
                     this.showLoading(false);
@@ -175,20 +199,39 @@ export class Profile {
             input.placeholder = placeholder;
             input.dataset.field = key;
 
-            const userData = this.state.user || {};
-            switch (key) {
-                case 'first_name':
-                    input.value = userData.firstName || "";
-                    break;
-                case 'last_name':
-                    input.value = userData.lastName || "";
-                    break;
-                case 'phone':
-                    input.value = userData.phone || "";
-                    break;
-                case 'email':
-                    input.value = userData.email || "";
-                    break;
+            // Заполняем данные из загруженного профиля или из state
+            if (this.profileData) {
+                switch (key) {
+                    case 'first_name':
+                        input.value = this.profileData.first_name || "";
+                        break;
+                    case 'last_name':
+                        input.value = this.profileData.last_name || "";
+                        break;
+                    case 'phone':
+                        input.value = this.profileData.phone || "";
+                        break;
+                    case 'email':
+                        input.value = this.profileData.email || "";
+                        break;
+                }
+            } else {
+                // Fallback на данные из state
+                const userData = this.state.user || {};
+                switch (key) {
+                    case 'first_name':
+                        input.value = userData.firstName || "";
+                        break;
+                    case 'last_name':
+                        input.value = userData.lastName || "";
+                        break;
+                    case 'phone':
+                        input.value = userData.phone || "";
+                        break;
+                    case 'email':
+                        input.value = userData.email || "";
+                        break;
+                }
             }
 
             fieldContainer.appendChild(labelElement);
@@ -221,7 +264,7 @@ export class Profile {
                 last_name: inputs[1]?.value.trim() || "",
                 phone: inputs[2]?.value.trim() || "",
                 email: inputs[3]?.value.trim() || "",
-                photo_url: this.currentAvatarUrl || this.state.user?.avatar
+                avatar_url: this.currentAvatarUrl || this.profileData?.photo_url || this.state.user?.avatar
             };
 
             const validation = ProfileService.validateProfile(profileData);
@@ -229,30 +272,41 @@ export class Profile {
                 throw new Error(validation.errors.join(', '));
             }
 
-            const result = await ProfileService.updateProfile(profileData);
+            await ProfileService.updateProfile(profileData);
 
+            // Обновляем состояние пользователя
             const updatedUser = {
                 ...this.state.user,
-                id: this.state.user?.id || 1,
+                id: this.state.user?.id || ProfileService.getCurrentUserId(),
                 firstName: profileData.first_name,
                 lastName: profileData.last_name,
                 email: profileData.email,
                 phone: profileData.phone,
                 name: `${profileData.first_name} ${profileData.last_name}`,
-                avatar: profileData.photo_url
+                avatar: profileData.avatar_url
             };
 
             this.state.user = updatedUser;
             localStorage.setItem("userData", JSON.stringify(updatedUser));
 
+            // Обновляем данные профиля
+            this.profileData = {
+                ...this.profileData,
+                ...profileData
+            };
+
             this.showLoading(false);
 
             Modal.show({
                 title: 'Успех',
-                message: result.message || 'Профиль успешно сохранен!',
+                message: 'Профиль успешно сохранен!',
                 type: 'info',
                 onConfirm: () => {
-                    this.app.header?.render();
+                    // Обновляем шапку и сайдбар
+                    if (this.app.header) {
+                        this.app.header.render();
+                    }
+                    // Перерисовываем текущую страницу чтобы обновить данные
                     if (this.app.currentPage && typeof this.app.currentPage.render === 'function') {
                         this.app.currentPage.render();
                     }
@@ -262,9 +316,12 @@ export class Profile {
         } catch (error) {
             this.showLoading(false);
             console.error('Error saving profile:', error);
+
+            let errorMessage = error.message || 'Не удалось сохранить профиль';
+
             Modal.show({
                 title: 'Ошибка',
-                message: error.message || 'Не удалось сохранить профиль',
+                message: errorMessage,
                 type: 'error'
             });
         }
@@ -275,6 +332,30 @@ export class Profile {
         loadingDiv.className = "profile__loading";
         loadingDiv.textContent = "Загрузка...";
         return loadingDiv;
+    }
+
+    createErrorSection(message) {
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "profile__error";
+
+        const errorText = document.createElement("p");
+        errorText.textContent = message || "Произошла ошибка при загрузке профиля";
+        errorDiv.appendChild(errorText);
+
+        const retryButton = document.createElement("button");
+        retryButton.className = "profile__retry-button";
+        retryButton.textContent = "Попробовать снова";
+        retryButton.addEventListener("click", () => {
+            this.render().then(newContent => {
+                const currentContent = document.querySelector('.profile__content');
+                if (currentContent && currentContent.parentNode) {
+                    currentContent.parentNode.replaceChild(newContent, currentContent);
+                }
+            });
+        });
+        errorDiv.appendChild(retryButton);
+
+        return errorDiv;
     }
 
     showLoading(show) {

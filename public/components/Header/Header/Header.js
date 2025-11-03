@@ -15,10 +15,13 @@ export class Header {
         const isLoginPage = window.location.pathname === '/login';
         const isRegisterPage = window.location.pathname === '/register';
 
+        // Правильная обработка аватара пользователя
+        const userAvatar = this.state.user?.avatar || '../../images/user.png';
+
         const templateData = {
             isAuthenticated: !!this.state.user,
             user: {
-                avatar: this.state.user?.avatar || '../images/user.png'
+                avatar: userAvatar
             },
             isLoginPage,
             isRegisterPage
@@ -107,15 +110,7 @@ export class Header {
         if (addObjectButton) {
             this.addEventListener(addObjectButton, 'click', (e) => {
                 e.preventDefault();
-                if (this.state.user) {
-                    if (this.app.isProfileComplete()) {
-                        this.app.router.navigate("/create-ad");
-                    } else {
-                        this.app.showProfileCompletionModal();
-                    }
-                } else {
-                    this.app.router.navigate("/login");
-                }
+                this.app.navigateToCreateAd();
             });
         }
 
@@ -131,18 +126,6 @@ export class Header {
     handleLikeClick() {
         if (this.state.user) {
             this.app.router.navigate("/profile");
-        } else {
-            this.app.router.navigate("/login");
-        }
-    }
-
-    handleAddObjectClick() {
-        if (this.state.user) {
-            if (this.app.isProfileComplete()) {
-                this.app.router.navigate("/create-ad");
-            } else {
-                this.app.showProfileCompletionModal();
-            }
         } else {
             this.app.router.navigate("/login");
         }

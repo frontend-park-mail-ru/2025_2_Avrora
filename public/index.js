@@ -65,6 +65,8 @@ class App {
         this.initializeComponents();
 
         this.router = new Router(this);
+        // В методе init замените регистрацию маршрутов для создания и редактирования объявлений:
+
         this.router.register("/", this.pages.main);
         this.router.register("/login", this.pages.login);
         this.router.register("/register", this.pages.register);
@@ -74,16 +76,21 @@ class App {
         this.router.register("/profile/myoffers", this.pages.profileMyAds);
         this.router.register("/complexes", this.pages.complexesList);
         this.router.register("/complexes/:id", this.pages.complexesDetail);
-        this.router.register('/create-ad', this.pages.createAdStep1);
-        this.router.register('/create-ad/step-1', this.pages.createAdStep1);
-        this.router.register('/create-ad/step-2', this.pages.createAdStep2);
-        this.router.register('/create-ad/step-3', this.pages.createAdStep3);
-        this.router.register('/create-ad/step-4', this.pages.createAdStep4);
-        this.router.register('/create-ad/step-5', this.pages.createAdStep5);
+
+        // Используем единый экземпляр для всех этапов создания
+        this.router.register('/create-ad', this.pages.createAd);
+        this.router.register('/create-ad/step-1', this.pages.createAd);
+        this.router.register('/create-ad/step-2', this.pages.createAd);
+        this.router.register('/create-ad/step-3', this.pages.createAd);
+        this.router.register('/create-ad/step-4', this.pages.createAd);
+        this.router.register('/create-ad/step-5', this.pages.createAd);
+
         this.router.register("/offers", this.pages.offersList);
         this.router.register("/offers/:id", this.pages.offerDetail);
         this.router.register("/search-ads", this.pages.searchAds);
         this.router.register("/search-map", this.pages.searchMap);
+
+        // Используем единый экземпляр для всех этапов редактирования
         this.router.register("/edit-offer/:id", this.pages.editOffer);
         this.router.register("/edit-offer/:id/step-1", this.pages.editOffer);
         this.router.register("/edit-offer/:id/step-2", this.pages.editOffer);
@@ -105,40 +112,86 @@ class App {
         root.appendChild(this.mainElement);
     }
 
-    initializeComponents() {
-        this.pages.main = new MainPage(this.mainElement, this.state, this);
-        this.pages.login = new LoginPage(this.mainElement, this.state, this);
-        this.pages.register = new RegisterPage(this.mainElement, this.state, this);
-        this.pages.profileSummary = new ProfileWidget(this.mainElement, this.state, this, { view: "summary" });
-        this.pages.profileEdit = new ProfileWidget(this.mainElement, this.state, this, { view: "profile" });
-        this.pages.profileSafety = new ProfileWidget(this.mainElement, this.state, this, { view: "safety" });
-        this.pages.profileMyAds = new ProfileWidget(this.mainElement, this.state, this, { view: "myads" });
-        this.pages.complexesList = new ComplexesListWidget(this.mainElement, this.state, this);
-        this.pages.complexesDetail = new ComplexWidget(this.mainElement, this.state, this);
-        this.pages.createAdStep1 = new OfferCreateWidget(this.mainElement, this.state, this, { step: 1 });
-        this.pages.createAdStep2 = new OfferCreateWidget(this.mainElement, this.state, this, { step: 2 });
-        this.pages.createAdStep3 = new OfferCreateWidget(this.mainElement, this.state, this, { step: 3 });
-        this.pages.createAdStep4 = new OfferCreateWidget(this.mainElement, this.state, this, { step: 4 });
-        this.pages.createAdStep5 = new OfferCreateWidget(this.mainElement, this.state, this, { step: 5 });
-        this.pages.offersList = new SearchOffersWidget(this.mainElement, this.state, this);
-        this.pages.offerDetail = new OfferWidget(this.mainElement, this.state, this);
-        this.pages.searchAds = new SearchOffersWidget(this.mainElement, this.state, this);
-        this.pages.searchMap = new SearchMapWidget(this.mainElement, this.state, this);
-        this.pages.editOffer = new OfferCreateWidget(this.mainElement, this.state, this, { isEditing: true });
+// index.js - в методе initializeComponents замените создание виджетов:
 
-        this.header = new Header(this.headerElement, this.state, this);
-    }
+initializeComponents() {
+    this.pages.main = new MainPage(this.mainElement, this.state, this);
+    this.pages.login = new LoginPage(this.mainElement, this.state, this);
+    this.pages.register = new RegisterPage(this.mainElement, this.state, this);
+    this.pages.profileSummary = new ProfileWidget(this.mainElement, this.state, this, { view: "summary" });
+    this.pages.profileEdit = new ProfileWidget(this.mainElement, this.state, this, { view: "profile" });
+    this.pages.profileSafety = new ProfileWidget(this.mainElement, this.state, this, { view: "safety" });
+    this.pages.profileMyAds = new ProfileWidget(this.mainElement, this.state, this, { view: "myads" });
+    this.pages.complexesList = new ComplexesListWidget(this.mainElement, this.state, this);
+    this.pages.complexesDetail = new ComplexWidget(this.mainElement, this.state, this);
+
+    // Создаем единый экземпляр для всех этапов создания объявления
+    this.pages.createAd = new OfferCreateWidget(this.mainElement, this.state, this);
+
+    this.pages.offersList = new SearchOffersWidget(this.mainElement, this.state, this);
+    this.pages.offerDetail = new OfferWidget(this.mainElement, this.state, this);
+    this.pages.searchAds = new SearchOffersWidget(this.mainElement, this.state, this);
+    this.pages.searchMap = new SearchMapWidget(this.mainElement, this.state, this);
+
+    // Создаем единый экземпляр для редактирования объявления
+    this.pages.editOffer = new OfferCreateWidget(this.mainElement, this.state, this, { isEditing: true });
+
+    this.header = new Header(this.headerElement, this.state, this);
+}
 
     setUser(user, token) {
-        this.state.user = user;
-        if (user && typeof user === 'object') {
-            localStorage.setItem('userData', JSON.stringify(user));
+      console.log('Setting user:', user);
+
+      if (!user.id && token) {
+        try {
+          const decoded = this.decodeJWT(token);
+          if (decoded && decoded.userID) {
+            user.id = decoded.userID;
+          }
+        } catch (error) {
+          console.error('Error decoding JWT to get user ID:', error);
         }
-        if (token) {
-            localStorage.setItem('authToken', token);
+      }
+
+      this.state.user = user;
+      if (user && typeof user === 'object') {
+        localStorage.setItem('userData', JSON.stringify(user));
+      }
+      if (token) {
+        localStorage.setItem('authToken', token);
+      }
+
+      // Принудительно перерисовываем шапку
+      if (this.header) {
+        this.header.render();
+      }
+
+      // Если мы на странице профиля, перерисовываем её
+      if (this.currentPage && this.currentPage.cleanup) {
+        this.currentPage.cleanup();
+      }
+      if (this.currentPage && this.currentPage.render) {
+        this.currentPage.render();
+      }
+
+      this.router.navigate("/");
+    }
+
+    // Добавляем метод декодирования JWT в класс App
+    decodeJWT(token) {
+        try {
+            if (!token) return null;
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+
+            return JSON.parse(jsonPayload);
+        } catch (error) {
+            console.error('Error decoding JWT:', error);
+            return null;
         }
-        this.header?.render();
-        this.router.navigate("/");
     }
 
     async logout() {

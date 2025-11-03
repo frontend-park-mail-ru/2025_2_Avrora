@@ -1,3 +1,4 @@
+// OfferCreateFirstStage.js
 export class OfferCreateFirstStage {
     constructor({ state, app, dataManager, isEditing = false, editOfferId = null } = {}) {
         this.state = state;
@@ -30,7 +31,7 @@ export class OfferCreateFirstStage {
 
         this.root.appendChild(
             this.createChoiceBlock('Тип недвижимости', [
-                this.makeButton('Квартира', 'property_type', 'flat'),
+                this.makeButton('Квартира', 'property_type', 'apartment'), // ИЗМЕНЕНО: 'flat' → 'apartment'
                 this.makeButton('Дом', 'property_type', 'house'),
                 this.makeButton('Гараж', 'property_type', 'garage')
             ], 'property_type')
@@ -95,17 +96,21 @@ export class OfferCreateFirstStage {
         btn.dataset.field = field;
         btn.dataset.value = value;
 
+        // Восстанавливаем активное состояние при рендере
         const currentData = this.dataManager.getData();
         if (currentData[field] === value) {
             btn.classList.add('active');
         }
 
         btn.addEventListener('click', () => {
+            // Снимаем активный класс со всех кнопок этой группы
             const siblings = this.root.querySelectorAll(`.create-ad__choice-button[data-field="${field}"]`);
             siblings.forEach(sibling => sibling.classList.remove('active'));
 
+            // Добавляем активный класс к выбранной кнопке
             btn.classList.add('active');
 
+            // Сохраняем данные
             const update = {};
             update[field] = value;
             this.dataManager.updateStage1(update);

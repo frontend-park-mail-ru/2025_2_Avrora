@@ -61,13 +61,14 @@ export class ComplexWidget {
             throw new Error("Complex ID is required");
         }
 
+        // Используем правильный endpoint для получения комплекса по ID
         const endpoint = `${API_CONFIG.ENDPOINTS.COMPLEXES.BY_ID}/${this.complexId}`;
         console.log('API endpoint:', endpoint);
-        
+
         const result = await API.get(endpoint);
-        
+
         if (result.ok && result.data) {
-            console.log('Complex data loaded:', result.data.name);
+            console.log('Complex data loaded:', result.data);
             return this.formatComplexData(result.data);
         }
 
@@ -79,71 +80,60 @@ export class ComplexWidget {
     }
 
     formatComplexData(apiData) {
+        // Обрабатываем разные форматы полей от бэкенда
+        const complexId = apiData.id || apiData.ID;
+        const name = apiData.name || apiData.Name || "Название не указано";
+        const description = apiData.description || apiData.Description || "";
+        const address = apiData.address || apiData.Address || "Адрес не указан";
+        const developer = apiData.developer || apiData.Developer || "";
+        const yearBuilt = apiData.year_built || apiData.YearBuilt;
+        const startingPrice = apiData.starting_price || apiData.StartingPrice;
+
+        // Обрабатываем изображения
+        let images = [];
+        if (Array.isArray(apiData.images)) {
+            images = apiData.images;
+        } else if (Array.isArray(apiData.ImageURLs)) {
+            images = apiData.ImageURLs;
+        } else if (apiData.image_url) {
+            images = [apiData.image_url];
+        } else if (apiData.imageURLs) {
+            images = apiData.imageURLs;
+        }
+
         const formatPrice = (price) => {
             if (!price) return "—";
             return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
         };
 
-        const calculateMinPrice = (apartments) => {
-            if (!apartments || apartments.length === 0) return null;
-            const prices = apartments.map(apt => apt.price).filter(price => price);
-            return prices.length > 0 ? Math.min(...prices) : null;
-        };
-
-        const minPrice = calculateMinPrice(apiData.apartments);
-
         return {
-            id: apiData.id,
-            title: apiData.name,
-            price: formatPrice(minPrice),
-            address: apiData.address,
-            metro: apiData.metro,
-            description: apiData.description,
-            images: Array.isArray(apiData.images) ? apiData.images : [],
-            multipleImages: Array.isArray(apiData.images) && apiData.images.length > 1,
-            apartments: apiData.apartments || []
+            id: complexId,
+            title: name,
+            price: formatPrice(startingPrice),
+            address: address,
+            metro: "Метро не указано", // Бэкенд не возвращает metro для детальной страницы
+            description: description,
+            developer: developer,
+            yearBuilt: yearBuilt,
+            images: images,
+            multipleImages: images.length > 1
         };
     }
 
     async renderContent(complexData) {
         this.cleanup();
-        
+
         const template = await this.loadTemplate();
         const html = template(complexData);
-        
+
         const container = document.createElement('div');
         container.innerHTML = html;
         this.parent.appendChild(container.firstElementChild);
 
         this.initializeComplexSlider();
-        
-        await this.renderApartments(complexData.apartments);
-    }
 
-    async renderApartments(apartments) {
-        if (!apartments || apartments.length === 0) {
-            this.renderEmptyApartments();
-            return;
-        }
-
-        const apartmentsContainer = this.parent.querySelector('.complex__apartments');
-        if (!apartmentsContainer) return;
-
-        const offers = apartments.map(apartment => ({
-            id: apartment.id,
-            title: apartment.title,
-            price: apartment.price,
-            area: apartment.area,
-            rooms: apartment.rooms,
-            address: apartment.address,
-            metro: apartment.metro,
-            images: apartment.images || [],
-            floor: typeof apartment.floor === 'string' ? apartment.floor.split('/')[0] : apartment.floor,
-            total_floors: typeof apartment.floor === 'string' ? apartment.floor.split('/')[1] : null
-        }));
-
-        this.offersWidget = new OffersListWidget(apartmentsContainer, this.state, this.app);
-        await this.offersWidget.renderWithOffers(offers, false);
+        // Убираем рендер апартаментов, так как бэкенд их не возвращает
+        this.renderEmptyApartments();
     }
 
     renderEmptyApartments() {

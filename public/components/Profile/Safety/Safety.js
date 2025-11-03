@@ -37,7 +37,7 @@ export class Safety {
 
   createPasswordFields() {
     const fields = [
-      { label: "Текущий пароль", placeholder: "Введите текущий пароль", field: "current_password" },
+      { label: "Текущий пароль", placeholder: "Введите текущий пароль", field: "old_password" },
       { label: "Новый пароль", placeholder: "Введите новый пароль", field: "new_password" },
       { label: "Подтвердите пароль", placeholder: "Повторите новый пароль", field: "confirm_password" }
     ];
@@ -115,12 +115,18 @@ export class Safety {
         passwordData[input.dataset.field] = input.value;
       });
 
+      // Переименовываем confirm_password для бэкенда
+      const backendPasswordData = {
+        old_password: passwordData.old_password,
+        new_password: passwordData.new_password
+      };
+
       const validation = ProfileService.validatePassword(passwordData);
       if (!validation.isValid) {
         throw new Error(validation.errors.join(', '));
       }
 
-      const result = await ProfileService.changePassword(passwordData);
+      await ProfileService.changePassword(backendPasswordData);
 
       this.showLoading(false);
 
@@ -129,6 +135,7 @@ export class Safety {
         message: 'Пароль успешно изменен!',
         type: 'info',
         onConfirm: () => {
+          // Очищаем поля после успешного изменения
           inputs.forEach(input => {
             input.value = '';
           });

@@ -37,10 +37,14 @@ export class Summary {
         button.textContent = "Добавить объявление";
 
         button.addEventListener("click", () => {
-            if (this.app.isProfileComplete()) {
-                this.app.router.navigate("/create-ad");
+            if (this.state.user) {
+                if (this.app.isProfileComplete()) {
+                    this.app.router.navigate("/create-ad");
+                } else {
+                    this.app.showProfileCompletionModal();
+                }
             } else {
-                this.app.showProfileCompletionModal();
+                this.app.router.navigate("/login");
             }
         });
 
@@ -52,88 +56,92 @@ export class Summary {
     }
 
     createMyAdsBlock() {
-        const block = document.createElement("div");
-        block.className = "profile__block";
+      const block = document.createElement("div");
+      block.className = "profile__block";
 
-        const title = document.createElement("h1");
-        title.className = "profile__title";
-        title.textContent = "Мои объявления";
+      const title = document.createElement("h1");
+      title.className = "profile__title";
+      title.textContent = "Мои объявления";
 
-        const ad = this.createAd(
-            "http://37.139.40.252:8080/api/v1/image/default_offer.jpg",
-            "Аренда 3-комн. кв., 86 000 ₽",
-            "Пролетарский проспект, 27, Москва"
-        );
+      // Создаем объявление без изображения
+      const ad = this.createAd(
+        null, // передаем null вместо пути к изображению
+        "У вас пока нет объявлений",
+        "Создайте первое объявление, чтобы оно появилось здесь"
+      );
 
-        const link = document.createElement("button");
-        link.type = "button";
-        link.className = "profile__link";
-        link.textContent = "Все мои объявления";
+      const link = document.createElement("button");
+      link.type = "button";
+      link.className = "profile__link";
+      link.textContent = "Все мои объявления";
 
-        link.addEventListener("click", () => {
-            this.app.router.navigate("/profile/myoffers");
-        });
+      link.addEventListener("click", () => {
+        this.app.router.navigate("/profile/myoffers");
+      });
 
-        block.appendChild(title);
-        block.appendChild(ad);
-        block.appendChild(link);
+      block.appendChild(title);
+      block.appendChild(ad);
+      block.appendChild(link);
 
-        return block;
+      return block;
     }
 
     createFavoritesBlock() {
-        const block = document.createElement("div");
-        block.className = "profile__block";
+      const block = document.createElement("div");
+      block.className = "profile__block";
 
-        const title = document.createElement("h1");
-        title.className = "profile__title";
-        title.textContent = "Избранное";
+      const title = document.createElement("h1");
+      title.className = "profile__title";
+      title.textContent = "Избранное";
 
-        const favorite = this.createAd(
-            "http://37.139.40.252:8080/api/v1/image/default_offer.jpg",
-            "Аренда 3-комн. кв., 86 000 ₽",
-            "Пролетарский проспект, 27, Москва"
-        );
+      const favorite = this.createAd(
+        null, // передаем null вместо пути к изображению
+        "В избранном пока пусто",
+        "Добавляйте объявления в избранное, чтобы они появились здесь"
+      );
 
-        const link = document.createElement("button");
-        link.type = "button";
-        link.className = "profile__link";
-        link.textContent = "Все избранные объявления";
+      const link = document.createElement("button");
+      link.type = "button";
+      link.className = "profile__link";
+      link.textContent = "Все избранные объявления";
 
-        block.appendChild(title);
-        block.appendChild(favorite);
-        block.appendChild(link);
+      block.appendChild(title);
+      block.appendChild(favorite);
+      block.appendChild(link);
 
-        return block;
+      return block;
     }
 
     createAd(imgSrc, titleText, description) {
-        const ad = document.createElement("div");
-        ad.className = "profile__ad";
+      const ad = document.createElement("div");
+      ad.className = "profile__ad";
 
+      // Добавляем изображение только если оно передано
+      if (imgSrc) {
         const img = document.createElement("img");
         img.className = "profile__ad-image";
         img.src = imgSrc;
         img.alt = "Объявление";
-
-        const info = document.createElement("div");
-        info.className = "profile__ad-info";
-
-        const title = document.createElement("h1");
-        title.className = "profile__ad-title";
-        title.textContent = titleText;
-
-        const text = document.createElement("span");
-        text.className = "profile__ad-text";
-        text.textContent = description;
-
-        info.appendChild(title);
-        info.appendChild(text);
-
         ad.appendChild(img);
-        ad.appendChild(info);
+      }
 
-        return ad;
+      const info = document.createElement("div");
+      info.className = "profile__ad-info";
+
+      const title = document.createElement("h1");
+      title.className = "profile__ad-title";
+      title.textContent = titleText;
+
+      const text = document.createElement("span");
+      text.className = "profile__ad-text";
+      text.textContent = description;
+
+      info.appendChild(title);
+      info.appendChild(text);
+
+      ad.appendChild(info);
+
+      return ad;
     }
 
     cleanup() {
