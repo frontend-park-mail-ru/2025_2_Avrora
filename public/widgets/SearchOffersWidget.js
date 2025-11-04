@@ -379,8 +379,6 @@ export class SearchOffersWidget {
             <p>Загрузка объявлений...</p>
         `;
         this.parent.appendChild(loadingDiv);
-
-        this.addSearchStyles();
     }
 
     renderError(message) {
@@ -399,8 +397,6 @@ export class SearchOffersWidget {
         errorDiv.appendChild(retryButton);
 
         this.parent.appendChild(errorDiv);
-
-        this.addSearchStyles();
     }
 
     renderEmptyState(container) {
@@ -435,154 +431,6 @@ export class SearchOffersWidget {
         }
 
         container.appendChild(emptyDiv);
-
-        this.addSearchStyles();
-    }
-
-    addSearchStyles() {
-        if (document.querySelector('#search-results-styles')) return;
-
-        const styles = `
-            .search-results__loading {
-                text-align: center;
-                padding: 60px 20px;
-                color: #666;
-            }
-
-            .loading-spinner {
-                width: 40px;
-                height: 40px;
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #007bff;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 20px;
-            }
-
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-
-            .search-results__error {
-                text-align: center;
-                padding: 40px 20px;
-                color: #dc3545;
-            }
-
-            .search-results__retry-btn {
-                background: #007bff;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                cursor: pointer;
-                margin-top: 15px;
-            }
-
-            .search-results__empty {
-                text-align: center;
-                padding: 60px 20px;
-                color: #666;
-            }
-
-            .empty-icon {
-                font-size: 48px;
-                margin-bottom: 20px;
-                opacity: 0.5;
-            }
-
-            .empty-text {
-                font-size: 18px;
-                margin-bottom: 20px;
-            }
-
-            .search-results__reset-btn {
-                background: #6c757d;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-
-            .active-filters {
-                background: #f8f9fa;
-                border-radius: 8px;
-                padding: 16px;
-                margin-bottom: 20px;
-                border: 1px solid #e9ecef;
-            }
-
-            .active-filters__title {
-                font-weight: 600;
-                margin-bottom: 12px;
-                color: #495057;
-            }
-
-            .active-filters__list {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                margin-bottom: 12px;
-            }
-
-            .active-filters__item {
-                display: flex;
-                align-items: center;
-                background: white;
-                border: 1px solid #dee2e6;
-                border-radius: 20px;
-                padding: 6px 12px;
-                font-size: 14px;
-            }
-
-            .active-filters__text {
-                margin-right: 8px;
-            }
-
-            .active-filters__remove {
-                background: none;
-                border: none;
-                color: #6c757d;
-                cursor: pointer;
-                font-size: 16px;
-                line-height: 1;
-                padding: 0;
-                width: 16px;
-                height: 16px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .active-filters__remove:hover {
-                color: #dc3545;
-            }
-
-            .active-filters__clear-all {
-                background: #dc3545;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-            }
-
-            .active-filters__clear-all:hover {
-                background: #c82333;
-            }
-
-            .search-widget-container {
-                margin-bottom: 30px;
-            }
-        `;
-
-        const styleSheet = document.createElement('style');
-        styleSheet.id = 'search-results-styles';
-        styleSheet.textContent = styles;
-        document.head.appendChild(styleSheet);
     }
 
     formatPrice(price) {

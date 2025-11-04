@@ -1,6 +1,8 @@
+// Profile.js - с добавленной валидацией
 import { ProfileService } from '../../../utils/ProfileService.js';
 import { MediaService } from '../../../utils/MediaService.js';
 import { Modal } from '../../OfferCreate/Modal/Modal.js';
+import { validEmail, validName, validPhone } from '../../../utils/auth.js';
 
 export class Profile {
     constructor(state, app) {
@@ -10,6 +12,8 @@ export class Profile {
         this.isLoading = false;
         this.profileData = null;
         this.originalEmail = '';
+        this.inputs = {};
+        this.eventListeners = [];
     }
 
     async render() {
@@ -237,13 +241,13 @@ export class Profile {
 
     createInputFields() {
         const fields = [
-            { label: "Имя", key: "first_name", placeholder: "Введите имя" },
-            { label: "Фамилия", key: "last_name", placeholder: "Введите фамилию" },
-            { label: "Телефон", key: "phone", placeholder: "Введите телефон" },
-            { label: "Email", key: "email", placeholder: "Введите email" }
+            { label: "Имя", key: "first_name", placeholder: "Введите имя", type: "text", validator: validName },
+            { label: "Фамилия", key: "last_name", placeholder: "Введите фамилию", type: "text", validator: validName },
+            { label: "Телефон", key: "phone", placeholder: "Введите телефон", type: "text", validator: validPhone },
+            { label: "Email", key: "email", placeholder: "Введите email", type: "email", validator: validEmail }
         ];
 
-        return fields.map(({ label, key, placeholder }) => {
+        return fields.map(({ label, key, placeholder, type, validator }) => {
             const fieldContainer = document.createElement("div");
             fieldContainer.className = "profile__field";
 
@@ -251,9 +255,12 @@ export class Profile {
             labelElement.className = "profile__field-label";
             labelElement.textContent = label;
 
+            const inputContainer = document.createElement("div");
+            inputContainer.className = "profile__input-container";
+
             const input = document.createElement("input");
             input.className = "profile__field-input";
-            input.type = "text";
+            input.type = type;
             input.placeholder = placeholder;
             input.dataset.field = key;
 
@@ -292,11 +299,69 @@ export class Profile {
                 }
             }
 
+            // Добавляем обработчики валидации
+            this.setupInputValidation(input, validator);
+
+            const errorElement = document.createElement("div");
+            errorElement.className = "profile__field-error";
+
+            inputContainer.appendChild(input);
+            inputContainer.appendChild(errorElement);
+
             fieldContainer.appendChild(labelElement);
-            fieldContainer.appendChild(input);
+            fieldContainer.appendChild(inputContainer);
+
+            // Сохраняем ссылку на input для доступа извне
+            this.inputs[key] = { input, errorElement, validator };
 
             return fieldContainer;
         });
+    }
+
+    setupInputValidation(input, validator) {
+        if (!validator) return;
+
+        let hasInteracted = false;
+
+        const validate = () => {
+            const value = input.value.trim();
+            const error = validator(value);
+
+            const errorElement = input.parentElement.querySelector('.profile__field-error');
+            if (error) {
+                input.classList.add('profile__field-input--error');
+                input.classList.remove('profile__field-input--valid');
+                if (errorElement) {
+                    errorElement.textContent = error;
+                    errorElement.classList.add('profile__field-error--visible');
+                }
+                return false;
+            } else {
+                input.classList.remove('profile__field-input--error');
+                input.classList.add('profile__field-input--valid');
+                if (errorElement) {
+                    errorElement.textContent = '';
+                    errorElement.classList.remove('profile__field-error--visible');
+                }
+                return true;
+            }
+        };
+
+        // Валидация при потере фокуса
+        input.addEventListener('blur', () => {
+            hasInteracted = true;
+            validate();
+        });
+
+        // Валидация при вводе (только после первого взаимодействия)
+        input.addEventListener('input', () => {
+            if (hasInteracted) {
+                validate();
+            }
+        });
+
+        // Валидация при отправке формы
+        this.addEventListener(input, 'validation', validate);
     }
 
     createSaveButton() {
@@ -314,14 +379,28 @@ export class Profile {
 
     async handleSave() {
         try {
+            // Валидация всех полей перед отправкой
+            let isValid = true;
+            Object.values(this.inputs).forEach(({ input, validator }) => {
+                if (validator) {
+                    const fieldValid = this.validateField(input, validator);
+                    if (!fieldValid) {
+                        isValid = false;
+                    }
+                }
+            });
+
+            if (!isValid) {
+                throw new Error("Пожалуйста, исправьте ошибки в форме");
+            }
+
             this.showLoading(true);
 
-            const inputs = document.querySelectorAll('.profile__field-input');
             const profileData = {
-                first_name: inputs[0]?.value.trim() || "",
-                last_name: inputs[1]?.value.trim() || "",
-                phone: inputs[2]?.value.trim() || "",
-                email: inputs[3]?.value.trim() || "",
+                first_name: this.inputs.first_name.input.value.trim() || "",
+                last_name: this.inputs.last_name.input.value.trim() || "",
+                phone: this.inputs.phone.input.value.trim() || "",
+                email: this.inputs.email.input.value.trim() || "",
                 avatar_url: this.currentAvatarUrl || this.profileData?.photo_url || this.state.user?.avatar
             };
 
@@ -393,6 +472,30 @@ export class Profile {
         }
     }
 
+    validateField(input, validator) {
+        const value = input.value.trim();
+        const error = validator(value);
+
+        const errorElement = input.parentElement.querySelector('.profile__field-error');
+        if (error) {
+            input.classList.add('profile__field-input--error');
+            input.classList.remove('profile__field-input--valid');
+            if (errorElement) {
+                errorElement.textContent = error;
+                errorElement.classList.add('profile__field-error--visible');
+            }
+            return false;
+        } else {
+            input.classList.remove('profile__field-input--error');
+            input.classList.add('profile__field-input--valid');
+            if (errorElement) {
+                errorElement.textContent = '';
+                errorElement.classList.remove('profile__field-error--visible');
+            }
+            return true;
+        }
+    }
+
     createLoading() {
         const loadingDiv = document.createElement("div");
         loadingDiv.className = "profile__loading";
@@ -431,5 +534,19 @@ export class Profile {
             saveButton.disabled = show;
             saveButton.textContent = show ? 'Сохранение...' : 'Сохранить изменения';
         }
+    }
+
+    addEventListener(element, event, handler) {
+        if (element) {
+            element.addEventListener(event, handler);
+            this.eventListeners.push({ element, event, handler });
+        }
+    }
+
+    cleanup() {
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
     }
 }

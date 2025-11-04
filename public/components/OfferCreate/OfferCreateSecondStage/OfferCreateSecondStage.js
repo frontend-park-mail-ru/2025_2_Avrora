@@ -47,10 +47,27 @@ export class OfferCreateSecondStage {
         floorsBlock.appendChild(floorsGroup);
         this.root.appendChild(floorsBlock);
 
-        const map = document.createElement('div');
-        map.className = 'create-ad__map';
-        map.innerHTML = '<p style="padding: 20px; text-align: center; color: #666;">Карта будет отображаться здесь</p>';
-        this.root.appendChild(map);
+        // Заменяем карту на плейсхолдер
+        const mapSection = document.createElement('div');
+        mapSection.className = 'create-ad__section';
+
+        const mapTitle = document.createElement('h2');
+        mapTitle.className = 'create-ad__form-label';
+        mapTitle.textContent = 'Местоположение на карте';
+        mapSection.appendChild(mapTitle);
+
+        const mapPlaceholder = document.createElement('div');
+        mapPlaceholder.className = 'map-placeholder';
+        mapPlaceholder.innerHTML = `
+            <div class="map-placeholder__icon">🗺️</div>
+            <h3 class="map-placeholder__title">Карта находится в разработке</h3>
+            <p class="map-placeholder__description">
+                Функционал карты будет доступен в ближайшее время.
+            </p>
+        `;
+        mapSection.appendChild(mapPlaceholder);
+
+        this.root.appendChild(mapSection);
 
         this.root.appendChild(this.createNav({ prev: true, next: true }));
 

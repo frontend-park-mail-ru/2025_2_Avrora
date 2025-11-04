@@ -17,7 +17,7 @@
         <div class="offer__gallery">
             {{#each images}}
             <img class="slider__image {{#if @first}}slider__image_active{{/if}}"
-                 src="{{this}}" 
+                 src="{{this}}"
                  alt="Фото объявления {{@index}}"
                  loading="lazy">
             {{else}}
@@ -150,6 +150,12 @@
 
     <div class="offer__section">
         <h2 class="offer__section-title">Местоположение на карте</h2>
-        <div class="offer__map"></div>
+        <div class="offer__map-placeholder">
+            <div class="offer__map-icon">🗺️</div>
+            <h3 class="offer__map-title">Карта находится в разработке</h3>
+            <p class="offer__map-description">
+                Функционал карты будет доступен в ближайшее время.
+            </p>
+        </div>
     </div>
 </div>

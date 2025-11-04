@@ -5,7 +5,6 @@ import { ProfileService } from "../../../utils/ProfileService.js";
 
 export class OfferCard {
     constructor(data = {}, state = {}, app = null) {
-        // Обрабатываем разные форматы данных от бэкенда
         this.data = {
             id: data.id || data.ID || 0,
             title: data.title || data.Title || "",
@@ -38,28 +37,26 @@ export class OfferCard {
 
     async render() {
         try {
-            // Загружаем данные продавца если есть userId
             if (this.data.userId) {
                 await this.loadSellerData();
             }
 
             const template = Handlebars.templates['Offer.hbs'];
 
-            // Используем MediaService для правильных URL изображений
-            const processedImages = this.data.images.map(img => 
+            const processedImages = this.data.images.map(img =>
                 img.startsWith('http') ? img : MediaService.getImageUrl(img)
             );
 
             const templateData = {
                 ...this.data,
                 images: processedImages.length > 0 ? processedImages : [MediaService.getImageUrl('default_offer.jpg')],
-                userAvatar: this.sellerData?.photo_url ? 
-                    (this.sellerData.photo_url.startsWith('http') ? 
-                        this.sellerData.photo_url : 
-                        MediaService.getImageUrl(this.sellerData.photo_url)) : 
+                userAvatar: this.sellerData?.photo_url ?
+                    (this.sellerData.photo_url.startsWith('http') ?
+                        this.sellerData.photo_url :
+                        MediaService.getImageUrl(this.sellerData.photo_url)) :
                     MediaService.getImageUrl('user.png'),
-                userName: this.sellerData ? 
-                    `${this.sellerData.first_name || ''} ${this.sellerData.last_name || ''}`.trim() || "Продавец" : 
+                userName: this.sellerData ?
+                    `${this.sellerData.first_name || ''} ${this.sellerData.last_name || ''}`.trim() || "Продавец" :
                     "Продавец",
                 userPhone: this.sellerData?.phone || "+7 XXX XXX-XX-XX",
                 multipleImages: processedImages.length > 1,
@@ -70,8 +67,7 @@ export class OfferCard {
                 showPhone: this.state.user && this.state.user.id !== this.data.userId && this.state.user.ID !== this.data.userId && this.isPhoneVisible,
                 showOwnerActions: this.state.user && (this.state.user.id === this.data.userId || this.state.user.ID === this.data.userId),
                 formattedDeposit: this.formatCurrency(this.data.deposit),
-                formattedCommission: this.formatCurrency(this.data.commission),
-                hasAdditionalCosts: this.data.deposit > 0 || this.data.commission > 0
+                formattedCommission: this.formatCurrency(this.data.commission)
             };
 
             const html = template(templateData);
@@ -100,7 +96,6 @@ export class OfferCard {
     async loadSellerData() {
         try {
             this.sellerData = await ProfileService.getProfile(this.data.userId);
-            console.log('Loaded seller data:', this.sellerData);
         } catch (error) {
             console.error('Error loading seller data:', error);
             this.sellerData = null;
@@ -122,7 +117,7 @@ export class OfferCard {
         if (this.data.images.length <= 1) {
             this.hideSliderControls();
         } else {
-            this.showSlide(0); // Инициализируем первый слайд
+            this.showSlide(0);
         }
     }
 
@@ -196,7 +191,6 @@ export class OfferCard {
         if (!images || images.length === 0 || !dots || dots.length === 0) return;
         if (index === this.currentSlide) return;
 
-        // Скрываем текущий слайд
         if (images[this.currentSlide]) {
             images[this.currentSlide].classList.remove('slider__image_active');
         }
@@ -204,7 +198,6 @@ export class OfferCard {
             dots[this.currentSlide].classList.remove('slider__dot_active');
         }
 
-        // Показываем новый слайд
         if (images[index]) {
             images[index].classList.add('slider__image_active');
         }
@@ -248,7 +241,6 @@ export class OfferCard {
         this.data.images.forEach((imageSrc, index) => {
             const img = document.createElement('img');
             img.className = `fullscreen-image ${index === this.fullscreenCurrentSlide ? 'fullscreen-image-active' : ''}`;
-            // Используем MediaService для правильного URL
             img.src = imageSrc.startsWith('http') ? imageSrc : MediaService.getImageUrl(imageSrc);
             img.alt = `Фото объявления ${index + 1}`;
             imageContainer.appendChild(img);
@@ -311,8 +303,6 @@ export class OfferCard {
         };
 
         document.addEventListener('keydown', keyHandler);
-
-        // Сохраняем ссылку на обработчик для последующего удаления
         overlay._keyHandler = keyHandler;
     }
 
@@ -366,45 +356,19 @@ export class OfferCard {
         const modal = document.createElement('div');
         modal.className = 'modal';
 
-        const modalHeader = document.createElement('div');
-        modalHeader.className = 'modal__header';
-
-        const modalTitle = document.createElement('h3');
-        modalTitle.textContent = 'Авторизуйтесь, чтобы увидеть номер';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'modal__close';
-        closeBtn.innerHTML = '&times;';
-
-        modalHeader.appendChild(modalTitle);
-        modalHeader.appendChild(closeBtn);
-
-        const modalBody = document.createElement('div');
-        modalBody.className = 'modal__body';
-
-        const modalText = document.createElement('p');
-        modalText.textContent = 'Войдите в свой аккаунт, чтобы получить контактные данные продавца.';
-
-        modalBody.appendChild(modalText);
-
-        const modalFooter = document.createElement('div');
-        modalFooter.className = 'modal__footer';
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'modal__btn modal__btn--cancel';
-        cancelBtn.textContent = 'Отменить';
-
-        const loginBtn = document.createElement('button');
-        loginBtn.className = 'modal__btn modal__btn--login';
-        loginBtn.textContent = 'Войти';
-
-        modalFooter.appendChild(cancelBtn);
-        modalFooter.appendChild(loginBtn);
-
-        modal.appendChild(modalHeader);
-        modal.appendChild(modalBody);
-        modal.appendChild(modalFooter);
-        modalOverlay.appendChild(modal);
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3>Авторизуйтесь, чтобы увидеть номер</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>Войдите в свой аккаунт, чтобы получить контактные данные продавца.</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--cancel">Отменить</button>
+                <button class="modal__btn modal__btn--login">Войти</button>
+            </div>
+        `;
 
         const closeModal = () => {
             if (modalOverlay.parentNode) {
@@ -412,9 +376,9 @@ export class OfferCard {
             }
         };
 
-        closeBtn.addEventListener('click', closeModal);
-        cancelBtn.addEventListener('click', closeModal);
-        loginBtn.addEventListener('click', () => {
+        modal.querySelector('.modal__close').addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--cancel').addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--login').addEventListener('click', () => {
             closeModal();
             if (this.app?.router?.navigate) {
                 this.app.router.navigate('/login');
@@ -425,6 +389,7 @@ export class OfferCard {
             if (e.target === modalOverlay) closeModal();
         });
 
+        modalOverlay.appendChild(modal);
         document.body.appendChild(modalOverlay);
     }
 
@@ -435,45 +400,19 @@ export class OfferCard {
         const modal = document.createElement('div');
         modal.className = 'modal';
 
-        const modalHeader = document.createElement('div');
-        modalHeader.className = 'modal__header';
-
-        const modalTitle = document.createElement('h3');
-        modalTitle.textContent = 'Удаление объявления';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'modal__close';
-        closeBtn.innerHTML = '&times;';
-
-        modalHeader.appendChild(modalTitle);
-        modalHeader.appendChild(closeBtn);
-
-        const modalBody = document.createElement('div');
-        modalBody.className = 'modal__body';
-
-        const modalText = document.createElement('p');
-        modalText.textContent = 'Вы уверены, что хотите удалить объявление?';
-
-        modalBody.appendChild(modalText);
-
-        const modalFooter = document.createElement('div');
-        modalFooter.className = 'modal__footer';
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'modal__btn modal__btn--cancel';
-        cancelBtn.textContent = 'Отменить';
-
-        const confirmBtn = document.createElement('button');
-        confirmBtn.className = 'modal__btn modal__btn--confirm';
-        confirmBtn.textContent = 'Да';
-
-        modalFooter.appendChild(cancelBtn);
-        modalFooter.appendChild(confirmBtn);
-
-        modal.appendChild(modalHeader);
-        modal.appendChild(modalBody);
-        modal.appendChild(modalFooter);
-        modalOverlay.appendChild(modal);
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3>Удаление объявления</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>Вы уверены, что хотите удалить объявление?</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--cancel">Отменить</button>
+                <button class="modal__btn modal__btn--confirm">Да</button>
+            </div>
+        `;
 
         const closeModal = () => {
             if (modalOverlay.parentNode) {
@@ -481,9 +420,9 @@ export class OfferCard {
             }
         };
 
-        closeBtn.addEventListener('click', closeModal);
-        cancelBtn.addEventListener('click', closeModal);
-        confirmBtn.addEventListener('click', () => {
+        modal.querySelector('.modal__close').addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--cancel').addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--confirm').addEventListener('click', () => {
             this.handleDelete();
             closeModal();
         });
@@ -492,6 +431,7 @@ export class OfferCard {
             if (e.target === modalOverlay) closeModal();
         });
 
+        modalOverlay.appendChild(modal);
         document.body.appendChild(modalOverlay);
     }
 
@@ -506,11 +446,9 @@ export class OfferCard {
 
     async handleDelete() {
         try {
-            console.log('Deleting offer:', this.data.id);
             const result = await API.delete(`${API_CONFIG.ENDPOINTS.OFFERS.DELETE}${this.data.id}`);
 
             if (result.ok) {
-                console.log('Offer deleted successfully');
                 this.showSuccess('Объявление успешно удалено!');
 
                 setTimeout(() => {
@@ -519,11 +457,9 @@ export class OfferCard {
                     }
                 }, 1500);
             } else {
-                console.error('Failed to delete offer:', result.error);
                 this.showError('Не удалось удалить объявление. Попробуйте позже.');
             }
         } catch (error) {
-            console.error('Error deleting offer:', error);
             this.showError('Произошла ошибка при удалении объявления.');
         }
     }
@@ -535,41 +471,18 @@ export class OfferCard {
         const modal = document.createElement('div');
         modal.className = 'modal';
 
-        const modalHeader = document.createElement('div');
-        modalHeader.className = 'modal__header';
-
-        const modalTitle = document.createElement('h3');
-        modalTitle.textContent = 'Успех';
-        modalTitle.style.color = '#4CAF50';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'modal__close';
-        closeBtn.innerHTML = '&times;';
-
-        modalHeader.appendChild(modalTitle);
-        modalHeader.appendChild(closeBtn);
-
-        const modalBody = document.createElement('div');
-        modalBody.className = 'modal__body';
-
-        const modalText = document.createElement('p');
-        modalText.textContent = message;
-
-        modalBody.appendChild(modalText);
-
-        const modalFooter = document.createElement('div');
-        modalFooter.className = 'modal__footer';
-
-        const okBtn = document.createElement('button');
-        okBtn.className = 'modal__btn modal__btn--confirm';
-        okBtn.textContent = 'OK';
-
-        modalFooter.appendChild(okBtn);
-
-        modal.appendChild(modalHeader);
-        modal.appendChild(modalBody);
-        modal.appendChild(modalFooter);
-        modalOverlay.appendChild(modal);
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3 style="color: #4CAF50;">Успех</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>${message}</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--confirm">OK</button>
+            </div>
+        `;
 
         const closeModal = () => {
             if (modalOverlay.parentNode) {
@@ -577,13 +490,14 @@ export class OfferCard {
             }
         };
 
-        closeBtn.addEventListener('click', closeModal);
-        okBtn.addEventListener('click', closeModal);
+        modal.querySelector('.modal__close').addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--confirm').addEventListener('click', closeModal);
 
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) closeModal();
         });
 
+        modalOverlay.appendChild(modal);
         document.body.appendChild(modalOverlay);
     }
 
@@ -594,41 +508,18 @@ export class OfferCard {
         const modal = document.createElement('div');
         modal.className = 'modal';
 
-        const modalHeader = document.createElement('div');
-        modalHeader.className = 'modal__header';
-
-        const modalTitle = document.createElement('h3');
-        modalTitle.textContent = 'Ошибка';
-        modalTitle.style.color = '#f44336';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'modal__close';
-        closeBtn.innerHTML = '&times;';
-
-        modalHeader.appendChild(modalTitle);
-        modalHeader.appendChild(closeBtn);
-
-        const modalBody = document.createElement('div');
-        modalBody.className = 'modal__body';
-
-        const modalText = document.createElement('p');
-        modalText.textContent = message;
-
-        modalBody.appendChild(modalText);
-
-        const modalFooter = document.createElement('div');
-        modalFooter.className = 'modal__footer';
-
-        const okBtn = document.createElement('button');
-        okBtn.className = 'modal__btn modal__btn--confirm';
-        okBtn.textContent = 'OK';
-
-        modalFooter.appendChild(okBtn);
-
-        modal.appendChild(modalHeader);
-        modal.appendChild(modalBody);
-        modal.appendChild(modalFooter);
-        modalOverlay.appendChild(modal);
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3 style="color: #f44336;">Ошибка</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>${message}</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--confirm">OK</button>
+            </div>
+        `;
 
         const closeModal = () => {
             if (modalOverlay.parentNode) {
@@ -636,13 +527,14 @@ export class OfferCard {
             }
         };
 
-        closeBtn.addEventListener('click', closeModal);
-        okBtn.addEventListener('click', closeModal);
+        modal.querySelector('.modal__close').addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--confirm').addEventListener('click', closeModal);
 
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) closeModal();
         });
 
+        modalOverlay.appendChild(modal);
         document.body.appendChild(modalOverlay);
     }
 

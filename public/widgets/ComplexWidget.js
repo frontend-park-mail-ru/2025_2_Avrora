@@ -239,73 +239,109 @@ export class ComplexWidget {
         }
     }
 
-    initializeComplexSlider() {
-        const sliderContainer = this.parent.querySelector('.complex__slider-images');
-        if (!sliderContainer) return;
+initializeComplexSlider() {
+    const sliderContainer = this.parent.querySelector('.complex__slider-images');
+    if (!sliderContainer) return;
 
-        const images = sliderContainer.querySelectorAll('.slider__image');
-        const dots = sliderContainer.querySelectorAll('.slider__dot');
-        const nextBtn = sliderContainer.querySelector('.slider__btn_next');
-        const prevBtn = sliderContainer.querySelector('.slider__btn_prev');
+    // Используем правильные классы для Complex
+    const images = sliderContainer.querySelectorAll('.complex__slider-image');
+    const dots = sliderContainer.querySelectorAll('.complex__slider-dot');
+    const nextBtn = sliderContainer.querySelector('.complex__slider-btn_next');
+    const prevBtn = sliderContainer.querySelector('.complex__slider-btn_prev');
 
-        console.log('Complex slider elements:', { images: images.length, dots: dots.length, prevBtn: !!prevBtn, nextBtn: !!nextBtn });
+    console.log('Complex slider elements:', {
+        images: images.length,
+        dots: dots.length,
+        prevBtn: !!prevBtn,
+        nextBtn: !!nextBtn
+    });
 
-        if (images.length <= 1) {
-            if (prevBtn) prevBtn.style.display = 'none';
-            if (nextBtn) nextBtn.style.display = 'none';
-            if (dots.length > 0) {
-                const dotsContainer = dots[0].parentElement;
-                if (dotsContainer) dotsContainer.style.display = 'none';
-            }
-            return;
-        }
-
-        if (images.length > 0) {
-            images[0].classList.add('slider__image_active');
-        }
+    if (images.length <= 1) {
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
         if (dots.length > 0) {
-            dots[0].classList.add('slider__dot_active');
+            const dotsContainer = dots[0].parentElement;
+            if (dotsContainer) dotsContainer.style.display = 'none';
         }
+        return;
+    }
 
-        if (prevBtn) {
-            this.addEventListener(prevBtn, 'click', (e) => {
-                e.stopPropagation();
-                this.showComplexSlide((this.currentSlide - 1 + images.length) % images.length);
-            });
-        }
+    // Инициализируем первый слайд
+    if (images.length > 0) {
+        images[0].classList.add('complex__slider-image_active');
+    }
+    if (dots.length > 0) {
+        dots[0].classList.add('complex__slider-dot_active');
+    }
 
-        if (nextBtn) {
-            this.addEventListener(nextBtn, 'click', (e) => {
-                e.stopPropagation();
-                this.showComplexSlide((this.currentSlide + 1) % images.length);
-            });
-        }
-
-        dots.forEach((dot, index) => {
-            this.addEventListener(dot, 'click', (e) => {
-                e.stopPropagation();
-                this.showComplexSlide(index);
-            });
+    // Добавляем обработчики для кнопок
+    if (prevBtn) {
+        this.addEventListener(prevBtn, 'click', (e) => {
+            e.stopPropagation();
+            this.showComplexSlide((this.currentSlide - 1 + images.length) % images.length);
         });
     }
 
-    showComplexSlide(index) {
-        const sliderContainer = this.parent.querySelector('.complex__slider-images');
-        if (!sliderContainer) return;
-
-        const images = sliderContainer.querySelectorAll('.slider__image');
-        const dots = sliderContainer.querySelectorAll('.slider__dot');
-
-        if (!images[index] || !dots[index] || index === this.currentSlide) return;
-
-        images[this.currentSlide].classList.remove('slider__image_active');
-        dots[this.currentSlide].classList.remove('slider__dot_active');
-
-        images[index].classList.add('slider__image_active');
-        dots[index].classList.add('slider__dot_active');
-
-        this.currentSlide = index;
+    if (nextBtn) {
+        this.addEventListener(nextBtn, 'click', (e) => {
+            e.stopPropagation();
+            this.showComplexSlide((this.currentSlide + 1) % images.length);
+        });
     }
+
+    // Добавляем обработчики для точек
+    dots.forEach((dot, index) => {
+        this.addEventListener(dot, 'click', (e) => {
+            e.stopPropagation();
+            this.showComplexSlide(index);
+        });
+    });
+
+    // Добавляем обработчики клавиатуры
+    this.addEventListener(document, 'keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            this.showComplexSlide((this.currentSlide - 1 + images.length) % images.length);
+        } else if (e.key === 'ArrowRight') {
+            this.showComplexSlide((this.currentSlide + 1) % images.length);
+        }
+    });
+}
+
+showComplexSlide(index) {
+    const sliderContainer = this.parent.querySelector('.complex__slider-images');
+    if (!sliderContainer) return;
+
+    // Используем правильные классы для Complex
+    const images = sliderContainer.querySelectorAll('.complex__slider-image');
+    const dots = sliderContainer.querySelectorAll('.complex__slider-dot');
+
+    console.log('Changing slide:', {
+        from: this.currentSlide,
+        to: index,
+        images: images.length,
+        dots: dots.length
+    });
+
+    if (!images[index] || !dots[index] || index === this.currentSlide) return;
+
+    // Убираем активный класс с текущего слайда
+    if (images[this.currentSlide]) {
+        images[this.currentSlide].classList.remove('complex__slider-image_active');
+    }
+    if (dots[this.currentSlide]) {
+        dots[this.currentSlide].classList.remove('complex__slider-dot_active');
+    }
+
+    // Добавляем активный класс к новому слайду
+    if (images[index]) {
+        images[index].classList.add('complex__slider-image_active');
+    }
+    if (dots[index]) {
+        dots[index].classList.add('complex__slider-dot_active');
+    }
+
+    this.currentSlide = index;
+}
 
     renderLoading() {
         this.cleanup();

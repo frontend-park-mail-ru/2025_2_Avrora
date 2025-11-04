@@ -5,6 +5,7 @@
     align-items: center;
     min-height: 100vh;
     position: relative;
+    overflow: hidden; // Добавляем чтобы избежать скролла
 
     &__background {
         position: absolute;
@@ -14,21 +15,37 @@
         bottom: 0;
         background-image: url("../../images/background__authorization.png");
         background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
         z-index: 1;
+
+        // Добавляем затемнение для лучшей читаемости формы
+        &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1;
+        }
     }
 
     &__form-container {
         position: relative;
         z-index: 2;
         background: white;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 40px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         width: 100%;
         max-width: 400px;
+        margin: 20px; // Добавляем отступы для мобильных устройств
     }
 }
 
+// Остальные стили остаются без изменений
 .auth-form {
     text-align: center;
 
