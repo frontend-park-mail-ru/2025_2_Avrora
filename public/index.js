@@ -58,14 +58,21 @@ class App {
         this.init();
     }
 
-    init() {
+    async init() {
         initializeHandlebarsHelpers();
 
         this.createDOMStructure();
         this.initializeComponents();
 
+        if (this.state.user && this.state.user.id) {
+            try {
+                await this.loadUserProfile(this.state.user.id);
+            } catch (error) {
+                console.error('Failed to load user profile on init:', error);
+            }
+        }
+
         this.router = new Router(this);
-        // В методе init замените регистрацию маршрутов для создания и редактирования объявлений:
 
         this.router.register("/", this.pages.main);
         this.router.register("/login", this.pages.login);
@@ -77,7 +84,6 @@ class App {
         this.router.register("/complexes", this.pages.complexesList);
         this.router.register("/complexes/:id", this.pages.complexesDetail);
 
-        // Используем единый экземпляр для всех этапов создания
         this.router.register('/create-ad', this.pages.createAd);
         this.router.register('/create-ad/step-1', this.pages.createAd);
         this.router.register('/create-ad/step-2', this.pages.createAd);
@@ -90,7 +96,6 @@ class App {
         this.router.register("/search-ads", this.pages.searchAds);
         this.router.register("/search-map", this.pages.searchMap);
 
-        // Используем единый экземпляр для всех этапов редактирования
         this.router.register("/edit-offer/:id", this.pages.editOffer);
         this.router.register("/edit-offer/:id/step-1", this.pages.editOffer);
         this.router.register("/edit-offer/:id/step-2", this.pages.editOffer);
@@ -112,72 +117,161 @@ class App {
         root.appendChild(this.mainElement);
     }
 
-// index.js - в методе initializeComponents замените создание виджетов:
+    initializeComponents() {
+        this.pages.main = new MainPage(this.mainElement, this.state, this);
+        this.pages.login = new LoginPage(this.mainElement, this.state, this);
+        this.pages.register = new RegisterPage(this.mainElement, this.state, this);
+        this.pages.profileSummary = new ProfileWidget(this.mainElement, this.state, this, { view: "summary" });
+        this.pages.profileEdit = new ProfileWidget(this.mainElement, this.state, this, { view: "profile" });
+        this.pages.profileSafety = new ProfileWidget(this.mainElement, this.state, this, { view: "safety" });
+        this.pages.profileMyAds = new ProfileWidget(this.mainElement, this.state, this, { view: "myads" });
+        this.pages.complexesList = new ComplexesListWidget(this.mainElement, this.state, this);
+        this.pages.complexesDetail = new ComplexWidget(this.mainElement, this.state, this);
 
-initializeComponents() {
-    this.pages.main = new MainPage(this.mainElement, this.state, this);
-    this.pages.login = new LoginPage(this.mainElement, this.state, this);
-    this.pages.register = new RegisterPage(this.mainElement, this.state, this);
-    this.pages.profileSummary = new ProfileWidget(this.mainElement, this.state, this, { view: "summary" });
-    this.pages.profileEdit = new ProfileWidget(this.mainElement, this.state, this, { view: "profile" });
-    this.pages.profileSafety = new ProfileWidget(this.mainElement, this.state, this, { view: "safety" });
-    this.pages.profileMyAds = new ProfileWidget(this.mainElement, this.state, this, { view: "myads" });
-    this.pages.complexesList = new ComplexesListWidget(this.mainElement, this.state, this);
-    this.pages.complexesDetail = new ComplexWidget(this.mainElement, this.state, this);
+        this.pages.createAd = new OfferCreateWidget(this.mainElement, this.state, this);
 
-    // Создаем единый экземпляр для всех этапов создания объявления
-    this.pages.createAd = new OfferCreateWidget(this.mainElement, this.state, this);
+        this.pages.offersList = new SearchOffersWidget(this.mainElement, this.state, this);
+        this.pages.offerDetail = new OfferWidget(this.mainElement, this.state, this);
+        this.pages.searchAds = new SearchOffersWidget(this.mainElement, this.state, this);
+        this.pages.searchMap = new SearchMapWidget(this.mainElement, this.state, this);
 
-    this.pages.offersList = new SearchOffersWidget(this.mainElement, this.state, this);
-    this.pages.offerDetail = new OfferWidget(this.mainElement, this.state, this);
-    this.pages.searchAds = new SearchOffersWidget(this.mainElement, this.state, this);
-    this.pages.searchMap = new SearchMapWidget(this.mainElement, this.state, this);
+        this.pages.editOffer = new OfferCreateWidget(this.mainElement, this.state, this, { isEditing: true });
 
-    // Создаем единый экземпляр для редактирования объявления
-    this.pages.editOffer = new OfferCreateWidget(this.mainElement, this.state, this, { isEditing: true });
-
-    this.header = new Header(this.headerElement, this.state, this);
-}
-
-    setUser(user, token) {
-      console.log('Setting user:', user);
-
-      if (!user.id && token) {
-        try {
-          const decoded = this.decodeJWT(token);
-          if (decoded && decoded.userID) {
-            user.id = decoded.userID;
-          }
-        } catch (error) {
-          console.error('Error decoding JWT to get user ID:', error);
-        }
-      }
-
-      this.state.user = user;
-      if (user && typeof user === 'object') {
-        localStorage.setItem('userData', JSON.stringify(user));
-      }
-      if (token) {
-        localStorage.setItem('authToken', token);
-      }
-
-      // Принудительно перерисовываем шапку
-      if (this.header) {
-        this.header.render();
-      }
-
-      // Если мы на странице профиля, перерисовываем её
-      if (this.currentPage && this.currentPage.cleanup) {
-        this.currentPage.cleanup();
-      }
-      if (this.currentPage && this.currentPage.render) {
-        this.currentPage.render();
-      }
-
-      this.router.navigate("/");
+        this.header = new Header(this.headerElement, this.state, this);
     }
 
-    // Добавляем метод декодирования JWT в класс App
+    async setUser(user, token) {
+        console.log('Setting user:', user);
+
+        if (!user.id && token) {
+            try {
+                const decoded = this.decodeJWT(token);
+                if (decoded && decoded.user_id) {
+                    user.id = decoded.user_id;
+                }
+            } catch (error) {
+                console.error('Error decoding JWT to get user ID:', error);
+            }
+        }
+
+        this.state.user = {
+            ...user,
+            id: user.id,
+            firstName: user.FirstName || user.firstName || user.first_name || '',
+            lastName: user.LastName || user.lastName || user.last_name || '',
+            email: user.Email || user.email || '',
+            phone: user.Phone || user.phone || '',
+            avatar: user.AvatarURL || user.avatar || user.avatar_url || user.photo_url || '../../images/user.png'
+        };
+
+        if (this.state.user && typeof this.state.user === 'object') {
+            localStorage.setItem('userData', JSON.stringify(this.state.user));
+        }
+        if (token) {
+            localStorage.setItem('authToken', token);
+        }
+
+        if (user.id) {
+            try {
+                await this.loadUserProfile(user.id);
+            } catch (error) {
+                console.error('Failed to load user profile:', error);
+            }
+        }
+
+        if (this.header) {
+            this.header.render();
+        }
+
+        if (this.currentPage && this.currentPage.cleanup) {
+            this.currentPage.cleanup();
+        }
+        if (this.currentPage && this.currentPage.render) {
+            this.currentPage.render();
+        }
+
+        this.router.navigate("/");
+    }
+
+    // Новый метод для проверки владения объявлением
+    async checkOfferOwnership(offerId) {
+        if (!this.state.user) return false;
+
+        try {
+            const response = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.BY_ID}${offerId}`);
+
+            if (response.ok && response.data) {
+                const offer = response.data;
+                const currentUserId = this.state.user.id || this.state.user.ID;
+                const offerUserId = offer.user_id || offer.UserID || offer.creator_id || offer.CreatorID;
+
+                return currentUserId === offerUserId;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error checking offer ownership:', error);
+            return false;
+        }
+    }
+
+    // Обновленный метод для проверки возможности создания/редактирования
+    async canManageOffers() {
+        if (!this.state.user) {
+            this.router.navigate("/login");
+            return false;
+        }
+
+        if (!this.isProfileComplete()) {
+            this.showProfileCompletionModal();
+            return false;
+        }
+
+        return true;
+    }
+
+    isOfferOwner(offer) {
+        if (!this.state.user || !offer) return false;
+
+        const currentUserId = this.state.user.id || this.state.user.ID;
+        const offerUserId = offer.user_id || offer.UserID || offer.creator_id || offer.CreatorID;
+
+        return currentUserId === offerUserId;
+    }
+
+    async loadUserProfile(userId) {
+        try {
+            const response = await API.get(`${API_CONFIG.ENDPOINTS.PROFILE.GET}${userId}`);
+
+            if (response.ok && response.data) {
+                const profileData = response.data;
+                const currentUser = this.state.user || {};
+
+                this.state.user = {
+                    ...currentUser,
+                    ...profileData,
+                    id: userId,
+                    firstName: profileData.FirstName || currentUser.firstName,
+                    lastName: profileData.LastName || currentUser.lastName,
+                    email: profileData.Email || currentUser.email,
+                    phone: profileData.Phone || currentUser.phone,
+                    avatar: profileData.AvatarURL || currentUser.avatar
+                };
+
+                localStorage.setItem('userData', JSON.stringify(this.state.user));
+
+                console.log('User profile loaded successfully:', this.state.user);
+
+                if (this.header) {
+                    this.header.render();
+                }
+            } else {
+                console.warn('Failed to load user profile:', response.error);
+            }
+        } catch (error) {
+            console.error('Error loading user profile:', error);
+        }
+    }
+
     decodeJWT(token) {
         try {
             if (!token) return null;
@@ -204,7 +298,18 @@ initializeComponents() {
             localStorage.removeItem('authToken');
             this.state.user = null;
             this.state.offers = [];
-            this.header?.render();
+
+            if (this.header) {
+                this.header.render();
+            }
+
+            if (this.currentPage && this.currentPage.cleanup) {
+                this.currentPage.cleanup();
+            }
+            if (this.currentPage && this.currentPage.render) {
+                this.currentPage.render();
+            }
+
             history.replaceState({}, "", "/");
             this.router.loadRoute("/");
         }
@@ -214,27 +319,46 @@ initializeComponents() {
         const user = this.state.user;
         if (!user) return false;
 
+        const firstName = user.FirstName || user.firstName || user.first_name || '';
+        const lastName = user.LastName || user.lastName || user.last_name || '';
+        const phone = user.Phone || user.phone || '';
+        const email = user.Email || user.email || '';
+        const avatar = user.AvatarURL || user.avatar || user.avatar_url || user.photo_url || '';
+
+        console.log('Profile completeness check:', {
+            firstName, lastName, phone, email, avatar,
+            userData: user
+        });
+
         const requiredFields = ['firstName', 'lastName', 'phone', 'email'];
+        const fieldValues = { firstName, lastName, phone, email };
+
         for (const field of requiredFields) {
-            if (!user[field] || user[field].trim() === '') {
+            const value = fieldValues[field];
+            if (!value || value.trim() === '') {
+                console.log(`Profile incomplete: missing ${field}`, value);
                 return false;
             }
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(user.email)) {
+        if (!emailRegex.test(email)) {
+            console.log('Profile incomplete: invalid email', email);
             return false;
         }
 
-        const phoneDigits = user.phone.replace(/\D/g, '');
+        const phoneDigits = phone.replace(/\D/g, '');
         if (phoneDigits.length < 10) {
+            console.log('Profile incomplete: invalid phone', phone);
             return false;
         }
 
-        if (!user.avatar || user.avatar === '../images/user.png') {
+        if (!avatar || avatar === '../images/user.png' || avatar === '../../images/user.png') {
+            console.log('Profile incomplete: missing avatar', avatar);
             return false;
         }
 
+        console.log('Profile is complete');
         return true;
     }
 
@@ -296,13 +420,20 @@ initializeComponents() {
     }
 
     navigateToCreateAd() {
+        console.log('navigateToCreateAd called, user:', this.state.user);
+
         if (this.state.user) {
-            if (this.isProfileComplete()) {
+            const isComplete = this.isProfileComplete();
+            console.log('Profile complete:', isComplete);
+
+            if (isComplete) {
                 this.router.navigate("/create-ad");
             } else {
+                console.log('Profile incomplete, showing modal');
                 this.showProfileCompletionModal();
             }
         } else {
+            console.log('No user, redirecting to login');
             this.router.navigate("/login");
         }
     }

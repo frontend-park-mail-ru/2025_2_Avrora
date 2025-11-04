@@ -110,19 +110,34 @@ export class LoginPage {
             if (result.ok) {
                 // Декодируем JWT токен чтобы получить ID пользователя
                 const decoded = this.decodeJWT(result.data.token);
-                const userId = decoded?.userID;
 
-                // Создаем объект пользователя с ID
+                // Ищем user_id в разных возможных полях токена
+                const userId = decoded?.user_id || decoded?.userID || decoded?.id || decoded?.userId;
+
+                if (!userId) {
+                    console.error('JWT payload:', decoded);
+                    throw new Error('Не удалось получить ID пользователя из токена. Доступные поля: ' + JSON.stringify(decoded));
+                }
+
+                console.log('Login successful, user ID:', userId);
+
+                // Создаем базовый объект пользователя с ID
                 const user = {
                     id: userId,
-                    email: result.data.email,
-                    avatar: '../../images/user.png',
+                    email: emailStr,
+                    avatar: '../../images/user.png', // временный аватар
                     firstName: '',
                     lastName: '',
                     phone: ''
                 };
 
-                this.app.setUser(user, result.data.token);
+                // Устанавливаем пользователя в приложение (это вызовет загрузку профиля)
+                await this.app.setUser(user, result.data.token);
+
+                // Показываем успешное сообщение
+                this.showFormError("Вход выполнен успешно!");
+                this.errorElement.style.color = 'green';
+
             } else {
                 const errorMessage = result.error || "Ошибка авторизации";
                 this.showFormError(errorMessage);
@@ -131,7 +146,7 @@ export class LoginPage {
             }
         } catch (error) {
             console.error('Login error:', error);
-            this.showFormError("Ошибка сети. Попробуйте позже.");
+            this.showFormError(error.message || "Ошибка сети. Попробуйте позже.");
             this.setButtonErrorState(true);
             this.clearAllVisualStates();
         } finally {
@@ -160,7 +175,7 @@ export class LoginPage {
             input.clearError();
             input.resetValidation();
         });
-        
+
         this.clearFormError();
         this.setButtonErrorState(false);
     }
@@ -174,11 +189,14 @@ export class LoginPage {
     showFormError(message) {
         this.errorElement.textContent = message;
         this.errorElement.classList.add('auth-form__error--visible');
+        // Сбрасываем цвет на стандартный
+        this.errorElement.style.color = '';
     }
 
     clearFormError() {
         this.errorElement.textContent = '';
         this.errorElement.classList.remove('auth-form__error--visible');
+        this.errorElement.style.color = '';
     }
 
     setButtonLoading(isLoading) {

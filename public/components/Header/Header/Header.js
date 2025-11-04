@@ -15,8 +15,20 @@ export class Header {
         const isLoginPage = window.location.pathname === '/login';
         const isRegisterPage = window.location.pathname === '/register';
 
-        // Правильная обработка аватара пользователя
-        const userAvatar = this.state.user?.avatar || '../../images/user.png';
+        // Правильная обработка аватара пользователя - В ПЕРВУЮ ОЧЕРЕДЬ AvatarURL
+        const user = this.state.user;
+        let userAvatar = "../../images/user.png";
+
+        if (user) {
+            userAvatar = user.AvatarURL ||
+                        user.avatar ||
+                        user.photo_url ||
+                        user.avatarUrl ||
+                        "../../images/user.png";
+        }
+
+        console.log('Header user data:', user);
+        console.log('Header avatar URL:', userAvatar);
 
         const templateData = {
             isAuthenticated: !!this.state.user,

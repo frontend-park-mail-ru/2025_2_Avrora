@@ -138,20 +138,29 @@ export class RegisterPage {
 
                     // Декодируем JWT токен чтобы получить ID пользователя
                     const decoded = this.decodeJWT(loginResult.data.token);
-                    const userId = decoded?.userID;
 
-                    // Создаем полный объект пользователя с ID
+                    // Ищем user_id в разных возможных полях токена
+                    const userId = decoded?.user_id || decoded?.userID || decoded?.id || decoded?.userId;
+
+                    if (!userId) {
+                        console.error('JWT payload:', decoded);
+                        throw new Error('Не удалось получить ID пользователя из токена. Доступные поля: ' + JSON.stringify(decoded));
+                    }
+
+                    console.log('User ID from token:', userId);
+
+                    // Создаем базовый объект пользователя с ID
                     const user = {
                         id: userId,
                         email: loginResult.data.email || emailStr,
-                        avatar: '../../images/user.png',
+                        avatar: '../../images/user.png', // временный аватар
                         firstName: '',
                         lastName: '',
                         phone: ''
                     };
 
-                    // Сохраняем пользователя в приложении
-                    this.app.setUser(user, loginResult.data.token);
+                    // Сохраняем пользователя в приложении (это вызовет загрузку профиля)
+                    await this.app.setUser(user, loginResult.data.token);
 
                     // Показываем успешное сообщение
                     this.showFormError("Регистрация и вход выполнены успешно!");
@@ -161,6 +170,7 @@ export class RegisterPage {
                     console.warn('Auto-login failed:', loginResult);
                     // Если автоматический вход не удался, но регистрация успешна
                     this.showFormError("Регистрация успешна! Теперь вы можете войти в систему.");
+                    this.errorElement.style.color = 'green';
                     this.setButtonErrorState(false);
                     this.clearAllVisualStates();
 
@@ -197,7 +207,7 @@ export class RegisterPage {
             }
         } catch (error) {
             console.error('Register error:', error);
-            this.showFormError("Ошибка сети. Проверьте подключение и попробуйте позже.");
+            this.showFormError(error.message || "Ошибка сети. Проверьте подключение и попробуйте позже.");
             this.setButtonErrorState(true);
             this.clearAllVisualStates();
         } finally {
@@ -220,7 +230,6 @@ export class RegisterPage {
             return null;
         }
     }
-
 
     clearValidationErrors() {
         Object.values(this.inputs).forEach(input => {

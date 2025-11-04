@@ -51,37 +51,88 @@ export class Profile {
         try {
             const avatar = document.createElement("img");
             avatar.className = "profile__avatar";
+
+            // Используем актуальные данные пользователя - В ПЕРВУЮ ОЧЕРЕДЬ AvatarURL
+            const user = this.app.state.user;
+            let avatarUrl = "../../../images/user.png";
+
+            if (user) {
+                avatarUrl = user.AvatarURL ||
+                           user.avatar ||
+                           user.photo_url ||
+                           user.avatarUrl ||
+                           "../../../images/user.png";
+            }
+
+            console.log('Profile user data:', user);
+            console.log('Profile avatar URL:', avatarUrl);
+
             // Используем MediaService для получения правильного URL аватара
-            const avatarUrl = this.profileData.photo_url || "../../../images/user.png";
             avatar.src = avatarUrl.startsWith('http') ? avatarUrl : MediaService.getImageUrl(avatarUrl);
             avatar.alt = "Аватар";
             avatar.id = "profile-avatar";
+            avatar.onerror = () => {
+                console.log('Profile avatar failed to load, using fallback');
+                avatar.src = "../../../images/user.png";
+            };
 
             const name = document.createElement("span");
             name.className = "profile__user-name";
-            const fullName = `${this.profileData.first_name} ${this.profileData.last_name}`.trim() || "Пользователь";
+
+            let fullName = "Пользователь";
+            if (user) {
+                // Используем поля с заглавной буквы в первую очередь
+                if (user.FirstName && user.LastName) {
+                    fullName = `${user.FirstName} ${user.LastName}`;
+                } else if (user.firstName && user.lastName) {
+                    fullName = `${user.firstName} ${user.lastName}`;
+                } else if (user.first_name && user.last_name) {
+                    fullName = `${user.first_name} ${user.last_name}`;
+                } else if (user.name) {
+                    fullName = user.name;
+                } else if (user.email) {
+                    fullName = user.email.split('@')[0];
+                }
+            }
+
             name.textContent = fullName;
 
             userSection.appendChild(avatar);
             userSection.appendChild(name);
 
-            this.currentAvatarUrl = this.profileData.photo_url;
+            this.currentAvatarUrl = avatarUrl;
 
         } catch (error) {
             console.error('Error creating user section:', error);
             // Fallback на данные из state
             const avatar = document.createElement("img");
             avatar.className = "profile__avatar";
-            const avatarUrl = this.state.user?.avatar || "../../../images/user.png";
+            const user = this.state.user;
+            let avatarUrl = "../../../images/user.png";
+
+            if (user) {
+                avatarUrl = user.AvatarURL || user.avatar || "../../../images/user.png";
+            }
+
             avatar.src = avatarUrl.startsWith('http') ? avatarUrl : MediaService.getImageUrl(avatarUrl);
             avatar.alt = "Аватар";
             avatar.id = "profile-avatar";
+            avatar.onerror = () => {
+                avatar.src = "../../../images/user.png";
+            };
 
             const name = document.createElement("span");
             name.className = "profile__user-name";
-            const fullName = this.state.user?.firstName && this.state.user?.lastName
-                ? `${this.state.user.firstName} ${this.state.user.lastName}`
-                : (this.state.user?.name || "Пользователь");
+            let fullName = "Пользователь";
+            if (user) {
+                if (user.FirstName && user.LastName) {
+                    fullName = `${user.FirstName} ${user.LastName}`;
+                } else if (user.firstName && user.lastName) {
+                    fullName = `${user.firstName} ${user.lastName}`;
+                } else if (user.name) {
+                    fullName = user.name;
+                }
+            }
             name.textContent = fullName;
 
             userSection.appendChild(avatar);

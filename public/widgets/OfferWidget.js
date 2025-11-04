@@ -3,6 +3,7 @@ import { API_CONFIG } from "../config.js";
 import { MediaService } from "../utils/MediaService.js";
 import { ProfileService } from "../utils/ProfileService.js";
 import { OfferCard } from "../components/Offer/OfferCard/OfferCard.js";
+import { Modal } from '../components/OfferCreate/Modal/Modal.js';
 
 export class OfferWidget {
     constructor(parent, state, app) {
@@ -107,16 +108,16 @@ export class OfferWidget {
         }
 
         // Данные продавца
-        const sellerName = sellerData ? 
-            `${sellerData.first_name || ''} ${sellerData.last_name || ''}`.trim() || "Продавец" : 
+        const sellerName = sellerData ?
+            `${sellerData.first_name || ''} ${sellerData.last_name || ''}`.trim() || "Продавец" :
             "Продавец";
-            
-        const sellerPhone = sellerData ? 
-            (sellerData.phone || "+7 XXX XXX-XX-XX") : 
+
+        const sellerPhone = sellerData ?
+            (sellerData.phone || "+7 XXX XXX-XX-XX") :
             "+7 XXX XXX-XX-XX";
-            
-        const sellerAvatar = sellerData && sellerData.photo_url ? 
-            MediaService.getImageUrl(sellerData.photo_url) : 
+
+        const sellerAvatar = sellerData && sellerData.photo_url ?
+            MediaService.getImageUrl(sellerData.photo_url) :
             MediaService.getImageUrl('user.png');
 
         return {

@@ -85,7 +85,7 @@ export class MyAdvertisements {
 
     const img = document.createElement("img");
     img.className = "profile__ad-image";
-    
+
     // Используем MediaService для получения правильного URL изображения
     let imageUrl = offerData.image_url || offerData.images?.[0];
     if (imageUrl && !imageUrl.startsWith('http')) {
@@ -93,7 +93,7 @@ export class MyAdvertisements {
     } else if (!imageUrl) {
       imageUrl = MediaService.getImageUrl('default_offer.jpg');
     }
-    
+
     img.src = imageUrl;
     img.alt = "Объявление";
     img.loading = "lazy";

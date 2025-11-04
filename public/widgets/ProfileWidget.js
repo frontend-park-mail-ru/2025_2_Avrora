@@ -112,53 +112,63 @@ export class ProfileWidget {
     return sidebar;
   }
 
-createUserBlock() {
-  const block = document.createElement("div");
-  block.className = "profile__sidebar-block";
+  createUserBlock() {
+    const block = document.createElement("div");
+    block.className = "profile__sidebar-block";
 
-  const userSection = document.createElement("div");
-  userSection.className = "profile__sidebar-user";
+    const userSection = document.createElement("div");
+    userSection.className = "profile__sidebar-user";
 
-  const avatar = document.createElement("img");
-  avatar.className = "profile__sidebar-avatar";
+    const avatar = document.createElement("img");
+    avatar.className = "profile__sidebar-avatar";
 
-  // Используем актуальные данные пользователя
-  const userAvatar = this.app.state.user?.avatar ||
-                    this.app.state.user?.photo_url ||
-                    this.app.state.user?.AvatarURL ||
-                    "../../images/user.png";
-  avatar.src = userAvatar;
-  avatar.alt = "Аватар";
-  avatar.onerror = () => {
-    avatar.src = "../../images/user.png";
-  };
+    // Используем актуальные данные пользователя из состояния приложения
+    const user = this.app.state.user;
+    let userAvatar = "../../images/user.png";
+    let userName = "Пользователь";
 
-  const name = document.createElement("span");
-  name.className = "profile__sidebar-name";
+    if (user) {
+      // В ПЕРВУЮ ОЧЕРЕДЬ используем AvatarURL, который приходит с бэкенда
+      userAvatar = user.AvatarURL ||
+                   user.avatar ||
+                   user.photo_url ||
+                   user.avatarUrl ||
+                   "../../images/user.png";
 
-  // Используем реальное имя пользователя из app.state
-  let userName = "Пользователь";
-  const user = this.app.state.user;
-  if (user) {
-    if (user.firstName && user.lastName) {
-      userName = `${user.firstName} ${user.lastName}`;
-    } else if (user.first_name && user.last_name) {
-      userName = `${user.first_name} ${user.last_name}`;
-    } else if (user.FirstName && user.LastName) {
-      userName = `${user.FirstName} ${user.LastName}`;
-    } else if (user.name) {
-      userName = user.name;
+      // Формируем имя пользователя из разных возможных полей
+      if (user.FirstName && user.LastName) {
+        userName = `${user.FirstName} ${user.LastName}`;
+      } else if (user.firstName && user.lastName) {
+        userName = `${user.firstName} ${user.lastName}`;
+      } else if (user.first_name && user.last_name) {
+        userName = `${user.first_name} ${user.last_name}`;
+      } else if (user.name) {
+        userName = user.name;
+      } else if (user.email) {
+        userName = user.email.split('@')[0];
+      }
     }
+
+    console.log('ProfileWidget user data:', user);
+    console.log('ProfileWidget avatar URL:', userAvatar);
+
+    avatar.src = userAvatar;
+    avatar.alt = "Аватар";
+    avatar.onerror = () => {
+      console.log('Avatar failed to load, using fallback');
+      avatar.src = "../../images/user.png";
+    };
+
+    const name = document.createElement("span");
+    name.className = "profile__sidebar-name";
+    name.textContent = userName;
+
+    userSection.appendChild(avatar);
+    userSection.appendChild(name);
+    block.appendChild(userSection);
+
+    return block;
   }
-
-  name.textContent = userName;
-
-  userSection.appendChild(avatar);
-  userSection.appendChild(name);
-  block.appendChild(userSection);
-
-  return block;
-}
 
   createNavBlock() {
     const block = document.createElement("div");

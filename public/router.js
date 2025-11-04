@@ -43,16 +43,24 @@ export class Router {
         this.loadRoute(path);
     }
 
-    loadRoute(path) {
+    async loadRoute(path) {
         if (path === "/logout") {
             return;
         }
-        
+
+        // Проверка авторизации для защищенных маршрутов
         if (this.protectedRoutes.includes(path) && !this.app.state.user) {
             this.navigate("/login");
             return;
         }
-        
+
+        // Проверка заполненности профиля для маршрутов создания/редактирования объявлений
+        if ((path.startsWith('/create-ad') || path.startsWith('/edit-offer')) &&
+            this.app.state.user && !this.app.isProfileComplete()) {
+            this.app.showProfileCompletionModal();
+            return;
+        }
+
         let matchedRoute = this.routes[path];
         let routeParams = {};
 
@@ -62,7 +70,7 @@ export class Router {
                 if (route.includes(':')) {
                     const routePattern = new RegExp('^' + route.replace(/:\w+/g, '([^/]+)') + '$');
                     const match = path.match(routePattern);
-                    
+
                     if (match) {
                         const paramNames = route.match(/:\w+/g)?.map(name => name.slice(1)) || [];
                         routeParams = {};
@@ -79,39 +87,32 @@ export class Router {
         if (!matchedRoute) {
             matchedRoute = this.routes["/"];
         }
-        
+
+        // Проверка владения объявлением для маршрутов редактирования
+        if (path.startsWith('/edit-offer/') && routeParams.id) {
+            const isOwner = await this.app.checkOfferOwnership(routeParams.id);
+            if (!isOwner) {
+                console.warn('Attempt to edit foreign offer');
+                this.navigate("/");
+                return;
+            }
+        }
+
         if (this.app.currentPage?.cleanup) {
             this.app.currentPage.cleanup();
         }
-        
+
         this.app.currentPage = matchedRoute;
 
         if (!this.initialHeaderRendered) {
             this.app.header?.render();
             this.initialHeaderRendered = true;
         }
-        
+
         if (matchedRoute.renderWithParams) {
             matchedRoute.renderWithParams(routeParams);
         } else {
             matchedRoute.render();
         }
-    }
-
-    start() {
-        window.addEventListener("popstate", (event) => {
-            console.log("popstate detected, path:", location.pathname);
-            this.loadRoute(location.pathname);
-        });
-
-        this.loadRoute(location.pathname);
-    }
-
-    navigate(path) {
-        console.log("Navigating to:", path);
-        if (location.pathname !== path) {
-            history.pushState({}, "", path);
-        }
-        this.loadRoute(path);
     }
 }
