@@ -1,4 +1,3 @@
-// SearchWidget.js
 import { Dropdown } from "/components/Search/Dropdown/Dropdown.js";
 import { RangeDropdown } from "/components/Search/RangeDropdown/RangeDropdown.js";
 import { Button } from "/components/Search/Button/Button.js";
@@ -309,18 +308,19 @@ export class SearchWidget {
         return url.pathname + url.search;
     }
 
-    handleSearch(type = 'list') {
+handleSearch(type = 'list') {
         const params = this.buildSearchParams();
         const path = type === 'map' ? '/search-map' : '/search-ads';
         const target = this.buildUrl(path, params);
 
-        console.log('Search params:', params);
-        console.log('Navigating to:', target);
+        console.log('SearchWidget - Search params:', params);
+        console.log('SearchWidget - Navigating to:', target);
 
         if (this.navigate) {
             this.navigate(target);
         } else {
-            window.history.pushState({}, '', target);
+            // Fallback навигация
+            window.history.pushState({}, "", target);
             window.dispatchEvent(new PopStateEvent('popstate'));
         }
 

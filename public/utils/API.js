@@ -6,10 +6,17 @@ export const API = {
       const url = new URL(API_CONFIG.API_BASE_URL + endpoint);
 
       Object.keys(params).forEach(key => {
-        if (params[key] !== undefined && params[key] !== null) {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
           url.searchParams.append(key, params[key]);
         }
       });
+
+      // Добавляем timestamp для предотвращения кеширования в development mode
+      if (import.meta.env.DEV) {
+        url.searchParams.append('_t', Date.now());
+      }
+
+      console.log('API GET request:', url.toString());
 
       const response = await fetch(url, {
         method: 'GET',
@@ -76,7 +83,10 @@ export const API = {
 
       const isFormData = body instanceof FormData;
 
-      const response = await fetch(API_CONFIG.API_BASE_URL + endpoint, {
+      const url = API_CONFIG.API_BASE_URL + endpoint;
+      console.log('API POST request:', url);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: isFormData ? {
           'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
@@ -130,7 +140,10 @@ export const API = {
 
       const isFormData = body instanceof FormData;
 
-      const response = await fetch(API_CONFIG.API_BASE_URL + endpoint, {
+      const url = API_CONFIG.API_BASE_URL + endpoint;
+      console.log('API PUT request:', url);
+
+      const response = await fetch(url, {
         method: 'PUT',
         headers: isFormData ? {
           'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
@@ -182,7 +195,10 @@ export const API = {
         }
       }
 
-      const response = await fetch(API_CONFIG.API_BASE_URL + endpoint, {
+      const url = API_CONFIG.API_BASE_URL + endpoint;
+      console.log('API DELETE request:', url);
+
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

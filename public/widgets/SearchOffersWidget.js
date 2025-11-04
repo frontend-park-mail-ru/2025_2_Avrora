@@ -1,11 +1,10 @@
-// SearchOffersWidget.js
 import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 import { OffersListCard } from "../components/OffersList/OffersListCard/OffersListCard.js";
 import { SearchWidget } from "./SearchWidget.js";
 
 export class SearchOffersWidget {
-    constructor(parent, state, app) {
+ constructor(parent, state, app) {
         this.parent = parent;
         this.state = state;
         this.app = app;
@@ -14,19 +13,26 @@ export class SearchOffersWidget {
         this.offerCards = [];
         this.meta = null;
         this.currentParams = {};
-        this.allOffers = []; // Сохраняем все загруженные предложения
+        this.allOffers = [];
+        this.lastSearchParams = null;
     }
 
     async render() {
+        await this.renderWithParams({});
+    }
+
+    async renderWithParams(params) {
         try {
             this.isLoading = true;
             this.renderLoading();
 
-            // Получаем параметры из URL
-            this.currentParams = this.getSearchParamsFromURL();
-            console.log('Current search params:', this.currentParams);
+            // Получаем параметры из URL или из переданных параметров
+            const searchParams = params.searchParams || this.getSearchParamsFromURL();
+            this.currentParams = searchParams;
 
-            // Загружаем все предложения
+            console.log('SearchOffersWidget rendering with params:', this.currentParams);
+
+            // Загружаем все предложения с учетом параметров поиска
             const allOffers = await this.loadAllOffers();
             this.allOffers = allOffers;
 
@@ -43,9 +49,37 @@ export class SearchOffersWidget {
 
     async loadAllOffers() {
         try {
-            console.log('Loading all offers...');
+            console.log('Loading offers with params:', this.currentParams);
 
-            const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST);
+            // Формируем параметры для API запроса
+            const apiParams = {};
+
+            if (this.currentParams.location) {
+                apiParams.location = this.currentParams.location;
+            }
+            if (this.currentParams.offer_type) {
+                apiParams.offer_type = this.currentParams.offer_type;
+            }
+            if (this.currentParams.property_type) {
+                apiParams.property_type = this.currentParams.property_type;
+            }
+            if (this.currentParams.min_price) {
+                apiParams.min_price = this.currentParams.min_price;
+            }
+            if (this.currentParams.max_price) {
+                apiParams.max_price = this.currentParams.max_price;
+            }
+            if (this.currentParams.min_area) {
+                apiParams.min_area = this.currentParams.min_area;
+            }
+            if (this.currentParams.max_area) {
+                apiParams.max_area = this.currentParams.max_area;
+            }
+
+            // Добавляем timestamp для предотвращения кеширования
+            apiParams._t = Date.now();
+
+            const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, apiParams);
 
             if (!result.ok) {
                 throw new Error(result.error || `HTTP ${result.status}`);
@@ -83,6 +117,7 @@ export class SearchOffersWidget {
         }
     }
 
+
     filterOffers(offers, filters) {
         if (!filters || Object.keys(filters).length === 0) {
             return offers;
@@ -105,7 +140,8 @@ export class SearchOffersWidget {
             if (filters.location) {
                 const searchLocation = filters.location.toLowerCase();
                 const offerAddress = (offer.Address || '').toLowerCase();
-                if (!offerAddress.includes(searchLocation)) {
+                const offerComplex = (offer.ComplexName || '').toLowerCase();
+                if (!offerAddress.includes(searchLocation) && !offerComplex.includes(searchLocation)) {
                     return false;
                 }
             }
@@ -155,7 +191,7 @@ export class SearchOffersWidget {
         searchContainer.className = 'search-widget-container';
         this.parent.appendChild(searchContainer);
 
-        // Рендерим виджет поиска
+        // Рендерим виджет поиска с текущими параметрами
         const searchWidget = new SearchWidget(searchContainer, {
             onSearch: (params) => this.handleSearch(params),
             onShowMap: (params) => this.handleShowMap(params),
@@ -277,7 +313,7 @@ export class SearchOffersWidget {
         const displayNames = {
             'location': `Местоположение: ${value}`,
             'offer_type': `Тип сделки: ${value === 'sale' ? 'Продажа' : 'Аренда'}`,
-            'property_type': `Тип недвижимости: ${value === 'apartment' ? 'Квартира' : 'Дом'}`,
+            'property_type': `Тип недвижимости: ${this.getPropertyTypeDisplay(value)}`,
             'min_price': `Цена от: ${this.formatPrice(value)} ₽`,
             'max_price': `Цена до: ${this.formatPrice(value)} ₽`,
             'min_area': `Площадь от: ${value} м²`,
@@ -285,6 +321,16 @@ export class SearchOffersWidget {
         };
 
         return displayNames[key] || `${key}: ${value}`;
+    }
+
+    getPropertyTypeDisplay(value) {
+        const types = {
+            'apartment': 'Квартира',
+            'house': 'Дом',
+            'commercial': 'Коммерческая',
+            'land': 'Земельный участок'
+        };
+        return types[value] || value;
     }
 
     removeFilter(key) {
@@ -331,7 +377,8 @@ export class SearchOffersWidget {
             isLiked: isLiked,
             metro: apiData.Metro || apiData.metro || "Метро не указано",
             floor: apiData.Floor || apiData.floor,
-            total_floors: apiData.TotalFloors || apiData.total_floors
+            total_floors: apiData.TotalFloors || apiData.total_floors,
+            complex_name: apiData.ComplexName || apiData.complex_name || ""
         };
     }
 
@@ -573,6 +620,10 @@ export class SearchOffersWidget {
 
             .active-filters__clear-all:hover {
                 background: #c82333;
+            }
+
+            .search-widget-container {
+                margin-bottom: 30px;
             }
         `;
 

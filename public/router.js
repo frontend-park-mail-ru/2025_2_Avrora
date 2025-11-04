@@ -3,6 +3,7 @@ export class Router {
     constructor(app) {
         this.app = app;
         this.routes = {};
+        this.currentPath = '';
 
         this.protectedRoutes = [
             "/profile",
@@ -29,27 +30,47 @@ export class Router {
     }
 
     start() {
-        window.addEventListener("popstate", () => {
-            this.loadRoute(location.pathname);
+        window.addEventListener("popstate", (event) => {
+            console.log('PopState event:', event.state, 'Current URL:', window.location.href);
+            this.loadRoute(window.location.pathname + window.location.search);
         });
 
-        this.loadRoute(location.pathname);
+        // Обработка начальной загрузки
+        this.loadRoute(window.location.pathname + window.location.search);
     }
 
     navigate(path) {
-        if (location.pathname !== path) {
-            history.pushState({}, "", path);
+        const fullPath = path;
+        console.log('Router navigating to:', fullPath, 'Current path:', this.currentPath);
+        
+        if (this.currentPath !== fullPath) {
+            history.pushState({}, "", fullPath);
+            this.loadRoute(fullPath);
         }
-        this.loadRoute(path);
     }
 
-    async loadRoute(path) {
-        if (path === "/logout") {
+    async loadRoute(fullPath) {
+        console.log('Router loading route:', fullPath);
+        
+        if (fullPath === "/logout") {
             return;
         }
 
+        // Извлекаем путь и параметры
+        const [path, search] = fullPath.split('?');
+        const urlParams = new URLSearchParams(search);
+
+        console.log('Parsed - Path:', path, 'Params:', Object.fromEntries(urlParams));
+
         // Проверка авторизации для защищенных маршрутов
-        if (this.protectedRoutes.includes(path) && !this.app.state.user) {
+        if (this.protectedRoutes.some(route => {
+            if (route.includes(':')) {
+                const routePattern = new RegExp('^' + route.replace(/:\w+/g, '[^/]+') + '$');
+                return routePattern.test(path);
+            }
+            return route === path;
+        }) && !this.app.state.user) {
+            console.log('Redirecting to login - protected route');
             this.navigate("/login");
             return;
         }
@@ -57,6 +78,7 @@ export class Router {
         // Проверка заполненности профиля для маршрутов создания/редактирования объявлений
         if ((path.startsWith('/create-ad') || path.startsWith('/edit-offer')) &&
             this.app.state.user && !this.app.isProfileComplete()) {
+            console.log('Profile not complete, showing modal');
             this.app.showProfileCompletionModal();
             return;
         }
@@ -85,6 +107,7 @@ export class Router {
         }
 
         if (!matchedRoute) {
+            console.log('Route not found, defaulting to home');
             matchedRoute = this.routes["/"];
         }
 
@@ -99,18 +122,29 @@ export class Router {
         }
 
         if (this.app.currentPage?.cleanup) {
+            console.log('Cleaning up current page');
             this.app.currentPage.cleanup();
         }
 
         this.app.currentPage = matchedRoute;
+        this.currentPath = fullPath;
 
         if (!this.initialHeaderRendered) {
+            console.log('Rendering header for first time');
             this.app.header?.render();
             this.initialHeaderRendered = true;
         }
 
+        // Передаем параметры URL в виджеты
+        const allParams = {
+            ...routeParams,
+            searchParams: Object.fromEntries(urlParams)
+        };
+
+        console.log('Calling render with params:', allParams);
+
         if (matchedRoute.renderWithParams) {
-            matchedRoute.renderWithParams(routeParams);
+            matchedRoute.renderWithParams(allParams);
         } else {
             matchedRoute.render();
         }

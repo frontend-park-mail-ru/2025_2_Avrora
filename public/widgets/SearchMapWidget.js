@@ -1,10 +1,9 @@
-// SearchMapWidget.js
 import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 import { SearchWidget } from "./SearchWidget.js";
 
 export class SearchMapWidget {
-    constructor(parent, state, app) {
+   constructor(parent, state, app) {
         this.parent = parent;
         this.state = state;
         this.app = app;
@@ -15,14 +14,21 @@ export class SearchMapWidget {
     }
 
     async render() {
+        await this.renderWithParams({});
+    }
+
+    async renderWithParams(params) {
         try {
             this.isLoading = true;
             this.renderLoading();
 
-            // Получаем параметры из URL
-            this.currentParams = this.getSearchParamsFromURL();
+            // Получаем параметры из URL или из переданных параметров
+            const searchParams = params.searchParams || this.getSearchParamsFromURL();
+            this.currentParams = searchParams;
 
-            // Загружаем все предложения
+            console.log('SearchMapWidget rendering with params:', this.currentParams);
+
+            // Загружаем все предложения с учетом параметров поиска
             const allOffers = await this.loadAllOffers();
             this.allOffers = allOffers;
 
@@ -39,7 +45,35 @@ export class SearchMapWidget {
 
     async loadAllOffers() {
         try {
-            const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST);
+            // Формируем параметры для API запроса
+            const apiParams = {};
+
+            if (this.currentParams.location) {
+                apiParams.location = this.currentParams.location;
+            }
+            if (this.currentParams.offer_type) {
+                apiParams.offer_type = this.currentParams.offer_type;
+            }
+            if (this.currentParams.property_type) {
+                apiParams.property_type = this.currentParams.property_type;
+            }
+            if (this.currentParams.min_price) {
+                apiParams.min_price = this.currentParams.min_price;
+            }
+            if (this.currentParams.max_price) {
+                apiParams.max_price = this.currentParams.max_price;
+            }
+            if (this.currentParams.min_area) {
+                apiParams.min_area = this.currentParams.min_area;
+            }
+            if (this.currentParams.max_area) {
+                apiParams.max_area = this.currentParams.max_area;
+            }
+
+            // Добавляем timestamp для предотвращения кеширования
+            apiParams._t = Date.now();
+
+            const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, apiParams);
 
             if (!result.ok) {
                 throw new Error(result.error || `HTTP ${result.status}`);
@@ -82,7 +116,8 @@ export class SearchMapWidget {
             if (filters.location) {
                 const searchLocation = filters.location.toLowerCase();
                 const offerAddress = (offer.Address || '').toLowerCase();
-                if (!offerAddress.includes(searchLocation)) {
+                const offerComplex = (offer.ComplexName || '').toLowerCase();
+                if (!offerAddress.includes(searchLocation) && !offerComplex.includes(searchLocation)) {
                     return false;
                 }
             }

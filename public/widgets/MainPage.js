@@ -14,28 +14,27 @@ export class MainPage {
         this.complexes = [];
     }
 
-    async render() {
-        this.parent.innerHTML = "";
+     async render() {
+            this.parent.innerHTML = "";
 
-        const searchContainer = document.createElement("div");
-        searchContainer.className = 'search';
-        this.parent.appendChild(searchContainer);
+            const searchContainer = document.createElement("div");
+            searchContainer.className = 'search';
+            this.parent.appendChild(searchContainer);
 
-        const searchWidget = new SearchWidget(searchContainer, {
-            navigate: (path) => this.app.router.navigate(path)
-        });
-        await searchWidget.render();
+            const searchWidget = new SearchWidget(searchContainer, {
+                navigate: (path) => this.app.router.navigate(path)
+            });
+            await searchWidget.render();
 
-        try {
-            await this.loadData();
+            try {
+                await this.loadData();
+                this.createPageStructure();
 
-            this.createPageStructure();
-            
-        } catch (error) {
-            console.error("Error loading main page data:", error);
-            this.renderError();
+            } catch (error) {
+                console.error("Error loading main page data:", error);
+                this.renderError();
+            }
         }
-    }
 
     async loadData() {
         // Загрузка предложений с обработкой разных форматов ответа

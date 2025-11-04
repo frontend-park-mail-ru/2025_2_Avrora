@@ -269,7 +269,7 @@ const templates = {
 
   return "            <img class=\"slider__image "
     + ((stack1 = lookupProperty(helpers,"if").call(alias1,(data && lookupProperty(data,"first")),{"name":"if","hash":{},"fn":container.program(4, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":19,"column":38},"end":{"line":19,"column":79}}})) != null ? stack1 : "")
-    + "\" \r\n                 src=\""
+    + "\"\r\n                 src=\""
     + alias2(container.lambda(depth0, depth0))
     + "\" \r\n                 alt=\"Фото объявления "
     + alias2(((helper = (helper = lookupProperty(helpers,"index") || (data && lookupProperty(data,"index"))) != null ? helper : container.hooks.helperMissing),(typeof helper === "function" ? helper.call(alias1,{"name":"index","hash":{},"data":data,"loc":{"start":{"line":21,"column":38},"end":{"line":21,"column":48}}}) : helper)))
@@ -493,7 +493,7 @@ const templates = {
 
   return "                <img class=\"slider__image "
     + ((stack1 = lookupProperty(helpers,"if").call(alias1,(data && lookupProperty(data,"first")),{"name":"if","hash":{},"fn":container.program(5, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":10,"column":42},"end":{"line":10,"column":83}}})) != null ? stack1 : "")
-    + "\" \r\n                     src=\""
+    + "\"\r\n                     src=\""
     + alias2(container.lambda(depth0, depth0))
     + "\" \r\n                     alt=\"Фото объявления "
     + alias2(((helper = (helper = lookupProperty(helpers,"index") || (data && lookupProperty(data,"index"))) != null ? helper : container.hooks.helperMissing),(typeof helper === "function" ? helper.call(alias1,{"name":"index","hash":{},"data":data,"loc":{"start":{"line":12,"column":42},"end":{"line":12,"column":52}}}) : helper)))
