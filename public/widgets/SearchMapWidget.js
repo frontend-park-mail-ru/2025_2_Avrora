@@ -3,7 +3,7 @@ import { API_CONFIG } from "../config.js";
 import { SearchWidget } from "./SearchWidget.js";
 
 export class SearchMapWidget {
-   constructor(parent, state, app) {
+    constructor(parent, state, app) {
         this.parent = parent;
         this.state = state;
         this.app = app;
@@ -28,13 +28,11 @@ export class SearchMapWidget {
 
             console.log('SearchMapWidget rendering with params:', this.currentParams);
 
-            // Загружаем все предложения с учетом параметров поиска
-            const allOffers = await this.loadAllOffers();
-            this.allOffers = allOffers;
+            // Загружаем отфильтрованные предложения с сервера
+            const { offers } = await this.loadFilteredOffers(this.currentParams);
+            this.allOffers = offers;
 
-            // Фильтруем предложения на клиенте
-            const filteredOffers = this.filterOffers(allOffers, this.currentParams);
-            this.renderContent(filteredOffers);
+            this.renderContent(offers);
         } catch (error) {
             console.error("Error rendering map:", error);
             this.renderError("Не удалось загрузить карту");
@@ -43,31 +41,34 @@ export class SearchMapWidget {
         }
     }
 
-    async loadAllOffers() {
+    async loadFilteredOffers(filters = {}) {
         try {
             // Формируем параметры для API запроса
-            const apiParams = {};
+            const apiParams = {
+                limit: 100,
+                offset: 0
+            };
 
-            if (this.currentParams.location) {
-                apiParams.location = this.currentParams.location;
+            if (filters.location) {
+                apiParams.address = filters.location;
             }
-            if (this.currentParams.offer_type) {
-                apiParams.offer_type = this.currentParams.offer_type;
+            if (filters.offer_type) {
+                apiParams.offer_type = filters.offer_type;
             }
-            if (this.currentParams.property_type) {
-                apiParams.property_type = this.currentParams.property_type;
+            if (filters.property_type) {
+                apiParams.property_type = filters.property_type;
             }
-            if (this.currentParams.min_price) {
-                apiParams.min_price = this.currentParams.min_price;
+            if (filters.min_price) {
+                apiParams.price_min = parseInt(filters.min_price);
             }
-            if (this.currentParams.max_price) {
-                apiParams.max_price = this.currentParams.max_price;
+            if (filters.max_price) {
+                apiParams.price_max = parseInt(filters.max_price);
             }
-            if (this.currentParams.min_area) {
-                apiParams.min_area = this.currentParams.min_area;
+            if (filters.min_area) {
+                apiParams.area_min = parseFloat(filters.min_area);
             }
-            if (this.currentParams.max_area) {
-                apiParams.max_area = this.currentParams.max_area;
+            if (filters.max_area) {
+                apiParams.area_max = parseFloat(filters.max_area);
             }
 
             // Добавляем timestamp для предотвращения кеширования
@@ -92,52 +93,11 @@ export class SearchMapWidget {
                 offers = responseData;
             }
 
-            return offers;
+            return { offers };
         } catch (error) {
-            console.error('Error loading offers for map:', error);
-            return [];
+            console.error('Error loading filtered offers for map:', error);
+            return { offers: [] };
         }
-    }
-
-    filterOffers(offers, filters) {
-        if (!filters || Object.keys(filters).length === 0) {
-            return offers;
-        }
-
-        return offers.filter(offer => {
-            if (filters.offer_type && offer.OfferType !== filters.offer_type) {
-                return false;
-            }
-
-            if (filters.property_type && offer.PropertyType !== filters.property_type) {
-                return false;
-            }
-
-            if (filters.location) {
-                const searchLocation = filters.location.toLowerCase();
-                const offerAddress = (offer.Address || '').toLowerCase();
-                const offerComplex = (offer.ComplexName || '').toLowerCase();
-                if (!offerAddress.includes(searchLocation) && !offerComplex.includes(searchLocation)) {
-                    return false;
-                }
-            }
-
-            if (filters.min_price && offer.Price < parseInt(filters.min_price)) {
-                return false;
-            }
-            if (filters.max_price && offer.Price > parseInt(filters.max_price)) {
-                return false;
-            }
-
-            if (filters.min_area && offer.Area < parseFloat(filters.min_area)) {
-                return false;
-            }
-            if (filters.max_area && offer.Area > parseFloat(filters.max_area)) {
-                return false;
-            }
-
-            return true;
-        });
     }
 
     getSearchParamsFromURL() {

@@ -14,39 +14,37 @@ export class MainPage {
         this.complexes = [];
     }
 
-     async render() {
-            this.parent.innerHTML = "";
+    async render() {
+        this.parent.innerHTML = "";
 
-            const searchContainer = document.createElement("div");
-            searchContainer.className = 'search';
-            this.parent.appendChild(searchContainer);
+        const searchContainer = document.createElement("div");
+        searchContainer.className = 'search';
+        this.parent.appendChild(searchContainer);
 
-            const searchWidget = new SearchWidget(searchContainer, {
-                navigate: (path) => this.app.router.navigate(path)
-            });
-            await searchWidget.render();
+        const searchWidget = new SearchWidget(searchContainer, {
+            navigate: (path) => this.app.router.navigate(path)
+        });
+        await searchWidget.render();
 
-            try {
-                await this.loadData();
-                this.createPageStructure();
+        try {
+            await this.loadData();
+            this.createPageStructure();
 
-            } catch (error) {
-                console.error("Error loading main page data:", error);
-                this.renderError();
-            }
+        } catch (error) {
+            console.error("Error loading main page data:", error);
+            this.renderError();
         }
+    }
 
     async loadData() {
-        // Загрузка предложений с обработкой разных форматов ответа
+        // Загрузка предложений с сервера с лимитом
         const offersResult = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, {
             limit: 8
         });
 
         if (offersResult.ok) {
-            // Обрабатываем разные форматы ответа от бэкенда
             const responseData = offersResult.data || offersResult;
 
-            // Поддерживаем оба варианта: Offers (новый) и offers (старый)
             let allOffers = [];
             if (Array.isArray(responseData.Offers)) {
                 allOffers = responseData.Offers;
@@ -69,7 +67,7 @@ export class MainPage {
             this.secondOffers = [];
         }
 
-        // Загрузка комплексов с обработкой разных форматов ответа
+        // Загрузка комплексов
         try {
             const complexesResult = await API.get(API_CONFIG.ENDPOINTS.COMPLEXES.LIST, {
                 isMainPage: true,
@@ -79,7 +77,6 @@ export class MainPage {
             if (complexesResult.ok) {
                 const complexesData = complexesResult.data || complexesResult;
 
-                // Поддерживаем разные форматы ответа для комплексов
                 if (Array.isArray(complexesData.Complexes)) {
                     this.complexes = complexesData.Complexes;
                 } else if (Array.isArray(complexesData.complexes)) {

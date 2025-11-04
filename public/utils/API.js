@@ -1,7 +1,7 @@
 import { API_CONFIG } from "../config.js";
 
 export const API = {
-  get: async (endpoint, params = {}) => {
+get: async (endpoint, params = {}) => {
     try {
       const url = new URL(API_CONFIG.API_BASE_URL + endpoint);
 

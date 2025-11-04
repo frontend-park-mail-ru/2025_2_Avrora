@@ -4,7 +4,7 @@ import { OffersListCard } from "../components/OffersList/OffersListCard/OffersLi
 import { SearchWidget } from "./SearchWidget.js";
 
 export class SearchOffersWidget {
- constructor(parent, state, app) {
+    constructor(parent, state, app) {
         this.parent = parent;
         this.state = state;
         this.app = app;
@@ -32,13 +32,12 @@ export class SearchOffersWidget {
 
             console.log('SearchOffersWidget rendering with params:', this.currentParams);
 
-            // Загружаем все предложения с учетом параметров поиска
-            const allOffers = await this.loadAllOffers();
-            this.allOffers = allOffers;
+            // Загружаем отфильтрованные предложения с сервера
+            const { offers, meta } = await this.loadFilteredOffers(this.currentParams);
+            this.allOffers = offers;
+            this.meta = meta;
 
-            // Фильтруем предложения на клиенте
-            const filteredOffers = this.filterOffers(allOffers, this.currentParams);
-            await this.renderContent(filteredOffers);
+            await this.renderContent(offers);
         } catch (error) {
             console.error("Error rendering offers:", error);
             this.renderError("Не удалось загрузить объявления");
@@ -47,33 +46,37 @@ export class SearchOffersWidget {
         }
     }
 
-    async loadAllOffers() {
+    async loadFilteredOffers(filters = {}) {
         try {
-            console.log('Loading offers with params:', this.currentParams);
+            console.log('Loading filtered offers with params:', filters);
 
             // Формируем параметры для API запроса
-            const apiParams = {};
+            const apiParams = {
+                limit: 100, // Достаточно большое число для получения всех отфильтрованных результатов
+                offset: 0
+            };
 
-            if (this.currentParams.location) {
-                apiParams.location = this.currentParams.location;
+            // Добавляем фильтры
+            if (filters.location) {
+                apiParams.address = filters.location;
             }
-            if (this.currentParams.offer_type) {
-                apiParams.offer_type = this.currentParams.offer_type;
+            if (filters.offer_type) {
+                apiParams.offer_type = filters.offer_type;
             }
-            if (this.currentParams.property_type) {
-                apiParams.property_type = this.currentParams.property_type;
+            if (filters.property_type) {
+                apiParams.property_type = filters.property_type;
             }
-            if (this.currentParams.min_price) {
-                apiParams.min_price = this.currentParams.min_price;
+            if (filters.min_price) {
+                apiParams.price_min = parseInt(filters.min_price);
             }
-            if (this.currentParams.max_price) {
-                apiParams.max_price = this.currentParams.max_price;
+            if (filters.max_price) {
+                apiParams.price_max = parseInt(filters.max_price);
             }
-            if (this.currentParams.min_area) {
-                apiParams.min_area = this.currentParams.min_area;
+            if (filters.min_area) {
+                apiParams.area_min = parseFloat(filters.min_area);
             }
-            if (this.currentParams.max_area) {
-                apiParams.max_area = this.currentParams.max_area;
+            if (filters.max_area) {
+                apiParams.area_max = parseFloat(filters.max_area);
             }
 
             // Добавляем timestamp для предотвращения кеширования
@@ -85,7 +88,7 @@ export class SearchOffersWidget {
                 throw new Error(result.error || `HTTP ${result.status}`);
             }
 
-            console.log('API response:', result);
+            console.log('API filtered response:', result);
 
             // Обрабатываем разные форматы ответа от бэкенда
             const responseData = result.data || result;
@@ -107,63 +110,12 @@ export class SearchOffersWidget {
                 meta = { total: responseData.length };
             }
 
-            console.log('Loaded offers:', offers.length);
-            this.meta = meta;
-
-            return offers;
+            console.log('Loaded filtered offers:', offers.length);
+            return { offers, meta };
         } catch (error) {
-            console.error('Error loading offers:', error);
+            console.error('Error loading filtered offers:', error);
             throw new Error(`Не удалось загрузить объявления: ${error.message}`);
         }
-    }
-
-
-    filterOffers(offers, filters) {
-        if (!filters || Object.keys(filters).length === 0) {
-            return offers;
-        }
-
-        console.log('Filtering offers with filters:', filters);
-
-        return offers.filter(offer => {
-            // Фильтр по типу сделки
-            if (filters.offer_type && offer.OfferType !== filters.offer_type) {
-                return false;
-            }
-
-            // Фильтр по типу недвижимости
-            if (filters.property_type && offer.PropertyType !== filters.property_type) {
-                return false;
-            }
-
-            // Фильтр по местоположению (адресу)
-            if (filters.location) {
-                const searchLocation = filters.location.toLowerCase();
-                const offerAddress = (offer.Address || '').toLowerCase();
-                const offerComplex = (offer.ComplexName || '').toLowerCase();
-                if (!offerAddress.includes(searchLocation) && !offerComplex.includes(searchLocation)) {
-                    return false;
-                }
-            }
-
-            // Фильтр по цене
-            if (filters.min_price && offer.Price < parseInt(filters.min_price)) {
-                return false;
-            }
-            if (filters.max_price && offer.Price > parseInt(filters.max_price)) {
-                return false;
-            }
-
-            // Фильтр по площади
-            if (filters.min_area && offer.Area < parseFloat(filters.min_area)) {
-                return false;
-            }
-            if (filters.max_area && offer.Area > parseFloat(filters.max_area)) {
-                return false;
-            }
-
-            return true;
-        });
     }
 
     getSearchParamsFromURL() {
