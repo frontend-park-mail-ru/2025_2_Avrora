@@ -1839,6 +1839,11 @@
   margin: 0 auto;
 }
 
+.offers__pagination {
+  display: flex;
+  justify-content: center;
+}
+
 .complex__block {
   width: 90vw;
   margin: 0 auto;
@@ -2266,6 +2271,7 @@
 .pagination__pages {
   display: flex;
   gap: 5px;
+  margin: 0 10px;
 }
 .pagination__page {
   padding: 8px 12px;
@@ -2278,7 +2284,8 @@
   transition: all 0.3s ease;
 }
 .pagination__page:hover {
-  background-color: #f8f9fa;
+  color: #fff;
+  background-color: #1FBB72;
 }
 .pagination__page--active {
   background-color: #1FBB72;

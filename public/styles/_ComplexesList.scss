@@ -151,6 +151,7 @@
     &__pages {
         display: flex;
         gap: 5px;
+        margin: 0 10px;
     }
 
     &__page {
@@ -164,7 +165,8 @@
         transition: all 0.3s ease;
 
         &:hover {
-            background-color: #f8f9fa;
+            color: #fff;
+            background-color: #1FBB72;
         }
 
         &--active {
