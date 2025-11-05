@@ -142,8 +142,8 @@ export class OfferWidget {
                 rooms: rooms
             }),
             offerType: offerType,
-            deposit: apiData.deposit || 0,
-            commission: apiData.commission || 0,
+            deposit: apiData.deposit || apiData.Deposit || 0,
+            commission: apiData.commission || apiData.Commission || 0,
             rentalPeriod: this.formatRentalPeriod(apiData.rental_period || apiData.RentalPeriod),
             userId: userId,
             showOwnerActions: this.state.user && this.state.user.id === userId,
