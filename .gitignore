@@ -1,0 +1,13 @@
+node_modules/
+.env
+*.log
+.dist-check/
+dist-babel/
+.dist/
+.docs/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+public/styles/index.css
+public/templates/compiled/
