@@ -8,6 +8,7 @@ export default [
       "docs/**",
       "public/templates/compiled/",
       "node_modules/**",
+      "dist/**",
     ]
   },
 
@@ -17,6 +18,7 @@ export default [
       "docs/**",
       "public/templates/compiled/*.js",
       "node_modules/**",
+      "dist/**",
     ],
     languageOptions: {
       globals: {

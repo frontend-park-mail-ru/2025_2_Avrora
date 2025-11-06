@@ -5,8 +5,8 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "dev": "vite",
-    "build": "npm run compile-hbs && vite build",
+    "dev": "npm run compile-hbs && npm run build-css && vite --mode development",
+    "build": "npm run compile-hbs && npm run build-css-prod && vite build --mode production",
     "preview": "vite preview",
     "lint": "eslint . --color",
     "lint:report": "eslint . --format stylish",
@@ -15,7 +15,11 @@
     "build-css": "sass public/styles/index.scss public/styles/index.css",
     "watch-css": "sass --watch public/styles/index.scss public/styles/index.css",
     "build-css-prod": "sass public/styles/index.scss public/styles/index.css --style=compressed",
-    "compile-hbs": "node compile-templates.js"
+    "compile-hbs": "node compile-templates.js",
+    "sw:unregister": "node -e \"if('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister())) }\"",
+    "sw:clean": "node -e \"caches.keys().then(keys => keys.forEach(key => caches.delete(key)))\"",
+    "babel:check": "babel public/js --out-dir dist-check --verbose",
+    "babel:build": "babel public/js --out-dir dist-babel"
   },
   "keywords": [
     "spa",
@@ -26,12 +30,22 @@
   "author": "Homa",
   "license": "MIT",
   "dependencies": {
+    "@babel/runtime": "^7.28.4",
     "cookie-parser": "^1.4.7",
+    "core-js": "^3.46.0",
     "cors": "^2.8.5",
+    "es6-promise": "^4.2.8",
     "express": "^4.21.2",
-    "handlebars": "^4.7.8"
+    "handlebars": "^4.7.8",
+    "regenerator-runtime": "^0.14.1",
+    "whatwg-fetch": "^3.6.20"
   },
   "devDependencies": {
+    "@babel/cli": "^7.28.3",
+    "@babel/core": "^7.28.5",
+    "@babel/plugin-transform-runtime": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "babel-loader": "^10.0.0",
     "esbuild": "^0.25.11",
     "eslint": "^9.36.0",
     "jsdoc": "^4.0.4",
