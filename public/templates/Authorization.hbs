@@ -1,6 +1,26 @@
-{{#each inputs}}
-    <div>
-        <input maxlength="100" type="{{this.type}}" placeholder="{{this.placeholder}}" name="{{this.name}}">
-        <div class="error__text" id="error__{{this.name}}"></div>
+<div class="auth-page">
+    <div class="auth-page__background"></div>
+    <div class="auth-page__form-container">
+        <form class="auth-form" novalidate>
+            <img class="auth-form__logo" src="../../images/logo.png" alt="Логотип">
+            <h1 class="auth-form__title">{{title}}</h1>
+            <div class="auth-form__inputs">
+                {{#each inputs}}
+                <div class="auth-input" data-input-type="{{type}}" data-input-name="{{name}}">
+                    <input class="auth-input__field" 
+                           type="{{type}}" 
+                           placeholder="{{placeholder}}" 
+                           name="{{name}}"
+                           maxlength="100"
+                           {{#if (eq type "password")}}autocomplete="current-password"{{else}}autocomplete="off"{{/if}}>
+                    <div class="auth-input__error"></div>
+                </div>
+                {{/each}}
+            </div>
+            <div class="auth-form__actions">
+                <div class="auth-form__error"></div>
+                <button type="submit" class="auth-button">{{buttonText}}</button>
+            </div>
+        </form>
     </div>
-{{/each}}
+</div>

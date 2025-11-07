@@ -1,7 +1,16 @@
 # 2025_2_Avrora
-- Запуск - node server.js
-- Установка зависимостей - npm install
-- Стандартный отчет ESLint - npm run lint
-- Детальный отчет ESLint - npm run lint:report
-- Исправление ошибок с ESLint - npm run lint:fix
-- Документация JSDoc - npm run docs
+- Ссылка на деплой - http://homa-land.ru:8000
+- npm run dev - Запуск сервера для разработки. Использование: основная команда для разработки
+- npm run build - Сборка проекта для продакшена. Использование: перед деплоем на сервер
+- npm run preview - Просмотр собранной версии. Использование: после build для проверки
+- npm run lint - Проверка кода на ошибки
+- npm run lint:fix - Автоматическое исправление ошибок
+- npm run docs - Генерация документации
+- npm run build-css - Компиляция SCSS в CSS
+- npm run watch-css - Автоматическая компиляция SCSS
+- npm run build-css-prod - Продакшен-сборка CSS
+- npm run compile-hbs - Компиляция Handlebars шаблонов
+- npm run sw:unregister - Отмена регистрации Service Worker'ов
+- npm run sw:clean - Очистка кэша браузера
+- npm run babel:check - Проверка транспайлинга Babel
+- npm run babel:build - Сборка с помощью Babel

@@ -1,78 +1,225 @@
 import { API_CONFIG } from "../config.js";
 
-/**
- * Выполняет HTTP-запрос к API с обработкой ошибок и авторизацией
- * @param {string} endpoint - Конечная точка API
- * @param {Object} options - Опции запроса
- * @param {string} options.method - HTTP метод (GET, POST, PUT, DELETE)
- * @param {Object} options.headers - Дополнительные заголовки запроса
- * @param {Object} options.body - Тело запроса (будет преобразовано в JSON)
- * @returns {Promise<Object>} Объект с результатом запроса
- * @async
- */
-async function apiRequest(endpoint, options = {}) {
-    try {
-        const token = localStorage.getItem('authToken');
-
-        const headers = {
-            'Content-Type': 'application/json',
-            ...(options.headers || {})
-        };
-
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`${API_CONFIG.API_BASE_URL}${endpoint}`, {
-            method: options.method || 'GET',
-            headers,
-            credentials: 'include',
-            body: options.body ? JSON.stringify(options.body) : undefined
-        });
-
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-            return { ok: false, status: response.status, error: data.message || data.error || 'Ошибка запроса' };
-        }
-
-        return { ok: true, status: response.status, data };
-    } catch (err) {
-        return { ok: false, status: 500, error: err.message };
-    }
-}
-
-/**
- * Объект для работы с API, предоставляющий методы для HTTP запросов
- * @namespace
- */
 export const API = {
-    /**
-     * Выполняет GET запрос
-     * @param {string} endpoint - Конечная точка API
-     * @returns {Promise<Object>} Результат запроса
-     */
-    get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
-    
-    /**
-     * Выполняет POST запрос
-     * @param {string} endpoint - Конечная точка API
-     * @param {Object} body - Тело запроса
-     * @returns {Promise<Object>} Результат запроса
-     */
-    post: (endpoint, body) => apiRequest(endpoint, { method: 'POST', body }),
-    
-    /**
-     * Выполняет PUT запрос
-     * @param {string} endpoint - Конечная точка API
-     * @param {Object} body - Тело запроса
-     * @returns {Promise<Object>} Результат запроса
-     */
-    put: (endpoint, body) => apiRequest(endpoint, { method: 'PUT', body }),
-    
-    /**
-     * Выполняет DELETE запрос
-     * @param {string} endpoint - Конечная точка API
-     * @returns {Promise<Object>} Результат запроса
-     */
-    delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' })
+get: async (endpoint, params = {}) => {
+    try {
+      const url = new URL(API_CONFIG.API_BASE_URL + endpoint);
+
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+          url.searchParams.append(key, params[key]);
+        }
+      });
+
+      if (import.meta.env.DEV) {
+        url.searchParams.append('_t', Date.now());
+      }
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        return {
+          ok: false,
+          status: response.status,
+          error: errorData.error || `HTTP error ${response.status}`
+        };
+      }
+
+      const data = await response.json();
+      return {
+        ok: true,
+        status: response.status,
+        data
+      };
+
+    } catch (error) {
+      console.error('GET request failed:', error);
+      return {
+        ok: false,
+        status: 0,
+        error: error.message
+      };
+    }
+  },
+
+  post: async (endpoint, body) => {
+    try {
+      if (endpoint === API_CONFIG.ENDPOINTS.OFFERS.CREATE) {
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        if (!userData.id) {
+          return {
+            ok: false,
+            status: 401,
+            error: 'User not authenticated'
+          };
+        }
+
+        const requiredFields = ['firstName', 'lastName', 'phone', 'email'];
+        const hasCompleteProfile = requiredFields.every(field =>
+          userData[field] && userData[field].trim() !== ''
+        ) && userData.avatar && !userData.avatar.includes('user.png');
+
+        if (!hasCompleteProfile) {
+          return {
+            ok: false,
+            status: 403,
+            error: 'Profile not complete'
+          };
+        }
+      }
+
+      const isFormData = body instanceof FormData;
+
+      const url = API_CONFIG.API_BASE_URL + endpoint;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: isFormData ? {
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        } : {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        },
+        body: isFormData ? body : JSON.stringify(body),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        return {
+          ok: false,
+          status: response.status,
+          error: errorData.error || `HTTP error ${response.status}`
+        };
+      }
+
+      const data = await response.json();
+      return {
+        ok: true,
+        status: response.status,
+        data
+      };
+
+    } catch (error) {
+      console.error('POST request failed:', error);
+      return {
+        ok: false,
+        status: 0,
+        error: error.message
+      };
+    }
+  },
+
+  put: async (endpoint, body) => {
+    try {
+      if (endpoint.startsWith(API_CONFIG.ENDPOINTS.OFFERS.UPDATE)) {
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        if (!userData.id) {
+          return {
+            ok: false,
+            status: 401,
+            error: 'User not authenticated'
+          };
+        }
+      }
+
+      const isFormData = body instanceof FormData;
+
+      const url = API_CONFIG.API_BASE_URL + endpoint;
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: isFormData ? {
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        } : {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        },
+        body: isFormData ? body : JSON.stringify(body),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        return {
+          ok: false,
+          status: response.status,
+          error: errorData.error || `HTTP error ${response.status}`
+        };
+      }
+
+      const data = await response.json();
+      return {
+        ok: true,
+        status: response.status,
+        data
+      };
+
+    } catch (error) {
+      console.error('PUT request failed:', error);
+      return {
+        ok: false,
+        status: 0,
+        error: error.message
+      };
+    }
+  },
+
+  delete: async (endpoint) => {
+    try {
+      if (endpoint.startsWith(API_CONFIG.ENDPOINTS.OFFERS.DELETE)) {
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        if (!userData.id) {
+          return {
+            ok: false,
+            status: 401,
+            error: 'User not authenticated'
+          };
+        }
+      }
+
+      const url = API_CONFIG.API_BASE_URL + endpoint;
+
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        return {
+          ok: false,
+          status: response.status,
+          error: errorData.error || `HTTP error ${response.status}`
+        };
+      }
+
+      const data = await response.json().catch(() => ({}));
+      return {
+        ok: true,
+        status: response.status,
+        data
+      };
+
+    } catch (error) {
+      console.error('DELETE request failed:', error);
+      return {
+        ok: false,
+        status: 0,
+        error: error.message
+      };
+    }
+  }
 };
