@@ -610,7 +610,6 @@ templates['Complex.hbs'] = templates['Complex'];
 templates['ComplexesList.hbs'] = templates['ComplexesList'];
 templates['Offer.hbs'] = templates['Offer'];
 templates['OffersList.hbs'] = templates['OffersList'];
-templates['Footer.hbs'] = templates['Footer'];
 
 export { templates };
 export default templates;

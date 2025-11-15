@@ -3413,7 +3413,7 @@
   transition: color 0.3s ease;
 }
 .footer__logo-link:hover {
-  color: rgb(23.747706422, 143.252293578, 87.3302752294);
+  color: #1FBB72;
 }
 .footer__description {
   color: #666;
@@ -3459,7 +3459,7 @@
   font-size: 14px;
 }
 .footer__support-btn:hover {
-  color: rgb(23.747706422, 143.252293578, 87.3302752294);
+  color: #1FBB72;
   text-decoration: underline;
 }
 .footer__contacts {

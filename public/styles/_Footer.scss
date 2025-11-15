@@ -27,7 +27,7 @@
         transition: color 0.3s ease;
 
         &:hover {
-            color: darken(#1FBB72, 10%);
+            color: #1FBB72;
         }
     }
 
@@ -81,7 +81,7 @@
         font-size: 14px;
 
         &:hover {
-            color: darken(#1FBB72, 10%);
+            color: #1FBB72;
             text-decoration: underline;
         }
     }

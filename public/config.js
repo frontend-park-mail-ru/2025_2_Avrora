@@ -37,6 +37,15 @@ export const API_CONFIG = {
     MEDIA: {
         UPLOAD: '/image/upload',
         BY_FILENAME: '/image'
+    },
+    SUPPORT_TICKETS: {
+        CREATE: '/support-tickets',
+        ALL: '/support-tickets/all',
+        MY: '/support-tickets/my',
+        BY_ID: '/support-tickets/',
+        DELETE: '/support-tickets/delete/',
+        ADMIN_ALL: '/admin/support-tickets',
+        ADMIN_UPDATE_STATUS: '/admin/support-tickets/status/'
     }
   }
 };
