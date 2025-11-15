@@ -3,20 +3,6 @@ import { Profile } from '../components/Profile/Profile/Profile.ts';
 import { Safety } from '../components/Profile/Safety/Safety.ts';
 import { MyAdvertisements } from '../components/Profile/MyAdvertisements/MyAdvertisements.ts';
 
-
-interface AppState {
-    [key: string]: any;
-    user?: User;
-}
-
-interface App {
-    state: AppState;
-    router: {
-        navigate: (path: string) => void;
-    };
-    logout?: () => Promise<void>;
-}
-
 interface User {
     id?: string;
     email?: string;
@@ -49,17 +35,15 @@ interface ProfileWidgetOptions {
 
 export class ProfileWidget {
     private parent: HTMLElement;
-    private state: AppState;
-    private app: App;
+    private controller: any;
     private view: string;
     private eventListeners: EventListener[];
     private root: HTMLElement | null;
     private currentComponent: Component | null;
 
-    constructor(parent: HTMLElement, state: AppState, app: App, options: ProfileWidgetOptions = {}) {
+    constructor(parent: HTMLElement, controller: any, options: ProfileWidgetOptions = {}) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.view = options.view || "summary";
         this.eventListeners = [];
         this.root = null;
@@ -100,17 +84,17 @@ export class ProfileWidget {
         let component: Component;
         switch (this.view) {
             case "profile":
-                component = new Profile(this.state, this.app);
+                component = new Profile(this.controller);
                 break;
             case "safety":
-                component = new Safety(this.state, this.app);
+                component = new Safety(this.controller);
                 break;
             case "myads":
-                component = new MyAdvertisements(this.state, this.app);
+                component = new MyAdvertisements(this.controller);
                 break;
             case "summary":
             default:
-                component = new Summary(this.state, this.app);
+                component = new Summary(this.controller);
                 break;
         }
 
@@ -176,7 +160,7 @@ export class ProfileWidget {
         const avatar = document.createElement("img");
         avatar.className = "profile__sidebar-avatar";
 
-        const user = this.app.state.user;
+        const user = this.controller.user;
         let userAvatar = "../../images/user.png";
         let userName = "Пользователь";
 
@@ -250,8 +234,8 @@ export class ProfileWidget {
 
         button.addEventListener("click", (e) => {
             const path = (e.currentTarget as HTMLButtonElement).dataset.path;
-            if (this.app?.router?.navigate && path) {
-                this.app.router.navigate(path);
+            if (path) {
+                this.controller.navigate(path);
             }
         });
 
@@ -268,7 +252,7 @@ export class ProfileWidget {
         exitButton.textContent = "Выйти";
 
         exitButton.addEventListener("click", async () => {
-            if (this.app?.logout) await this.app.logout();
+            await this.controller.logout();
         });
 
         block.appendChild(exitButton);

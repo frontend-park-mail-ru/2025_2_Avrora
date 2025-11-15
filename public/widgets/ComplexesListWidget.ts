@@ -43,8 +43,7 @@ interface EventListener {
 
 export class ComplexesListWidget {
     parent: HTMLElement;
-    state: any;
-    app: any;
+    controller: any;
     template: HandlebarsTemplateDelegate | null;
     eventListeners: EventListener[];
     complexCards: ComplexesListCard[];
@@ -53,10 +52,9 @@ export class ComplexesListWidget {
     isMainPage: boolean;
     container: HTMLElement | null;
 
-    constructor(parent: HTMLElement, state: any, app: any, options: ComplexesListWidgetOptions = {}) {
+    constructor(parent: HTMLElement, controller: any, options: ComplexesListWidgetOptions = {}) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.template = null;
         this.eventListeners = [];
         this.complexCards = [];
@@ -166,12 +164,7 @@ export class ComplexesListWidget {
             const complexData = complexes[index];
             const card = new ComplexesListCard(element as HTMLElement, complexData, {
                 navigate: (path: string) => {
-                    if (this.app?.router?.navigate) {
-                        this.app.router.navigate(path);
-                    } else {
-                        window.history.pushState({}, "", path);
-                        window.dispatchEvent(new PopStateEvent("popstate"));
-                    }
+                    this.controller.navigate(path);
                 }
             });
 

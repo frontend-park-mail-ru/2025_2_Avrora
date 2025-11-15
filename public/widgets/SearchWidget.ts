@@ -3,23 +3,10 @@ import { RangeDropdown } from "/components/Search/RangeDropdown/RangeDropdown.ts
 import { Button } from "/components/Search/Button/Button.ts";
 import { SearchField } from "/components/Search/SearchField/SearchField.ts";
 
-
 interface SearchWidgetOptions {
     onSearch?: ((params: Record<string, string>) => void) | null;
     onShowMap?: ((params: Record<string, string>) => void) | null;
     navigate?: ((path: string) => void) | null;
-}
-
-interface DropdownConfig {
-    key: string;
-    placeholder: string;
-    items: { label: string; value: string }[];
-}
-
-interface RangeDropdownConfig {
-    key: string;
-    placeholder: string;
-    type: 'price' | 'area';
 }
 
 export class SearchWidget {
@@ -30,13 +17,11 @@ export class SearchWidget {
     private searchField: SearchField | null;
     private rootElement: HTMLElement | null;
     private template: ((data: any) => string) | null;
-
     private onSearch: ((params: Record<string, string>) => void) | null;
     private onShowMap: ((params: Record<string, string>) => void) | null;
     private navigate: ((path: string) => void) | null;
-
-    private dropdownConfigs: DropdownConfig[];
-    private rangeDropdownConfigs: RangeDropdownConfig[];
+    private dropdownConfigs: any[];
+    private rangeDropdownConfigs: any[];
     private currentParams: Record<string, string>;
 
     constructor(parent: HTMLElement, { onSearch = null, onShowMap = null, navigate = null }: SearchWidgetOptions = {}) {
@@ -47,10 +32,9 @@ export class SearchWidget {
         this.searchField = null;
         this.rootElement = null;
         this.template = null;
-
-        this.onSearch = typeof onSearch === 'function' ? onSearch : null;
-        this.onShowMap = typeof onShowMap === 'function' ? onShowMap : null;
-        this.navigate = typeof navigate === 'function' ? navigate : null;
+        this.onSearch = onSearch;
+        this.onShowMap = onShowMap;
+        this.navigate = navigate;
 
         this.dropdownConfigs = [
             { key: 'offer_type', placeholder: 'Тип сделки', items: [
@@ -83,7 +67,6 @@ export class SearchWidget {
         };
 
         if (typeof template !== 'function') {
-            console.error('Template is not a function:', template);
             throw new Error('Search template is not a valid function');
         }
 
@@ -102,23 +85,18 @@ export class SearchWidget {
     private async loadTemplate(): Promise<(data: any) => string> {
         if (this.template) return this.template;
 
-        try {
-            const templates = (window as any).Handlebars.templates;
-            this.template = templates['Search'] || templates['Search.hbs'];
+        const templates = (window as any).Handlebars.templates;
+        this.template = templates['Search'] || templates['Search.hbs'];
 
-            if (!this.template) {
-                throw new Error('Search template not found in compiled templates');
-            }
-
-            if (typeof this.template !== 'function') {
-                throw new Error('Search template is not a function');
-            }
-
-            return this.template;
-        } catch (error) {
-            console.error('Failed to load search widget template:', error);
-            throw new Error('Search widget template loading failed');
+        if (!this.template) {
+            throw new Error('Search template not found in compiled templates');
         }
+
+        if (typeof this.template !== 'function') {
+            throw new Error('Search template is not a function');
+        }
+
+        return this.template;
     }
 
     private getParamsFromURL(): Record<string, string> {
@@ -128,7 +106,6 @@ export class SearchWidget {
         if (urlParams.has('location')) params.location = urlParams.get('location')!;
         if (urlParams.has('offer_type')) params.offer_type = urlParams.get('offer_type')!;
         if (urlParams.has('property_type')) params.property_type = urlParams.get('property_type')!;
-
         if (urlParams.has('min_price')) params.min_price = urlParams.get('min_price')!;
         if (urlParams.has('max_price')) params.max_price = urlParams.get('max_price')!;
         if (urlParams.has('min_area')) params.min_area = urlParams.get('min_area')!;
@@ -182,8 +159,7 @@ export class SearchWidget {
                     parent: container as HTMLElement,
                     placeholder: config.placeholder,
                     items: config.items,
-                    onSelect: (selected: { label: string; value: string }) => {
-                    },
+                    onSelect: () => {},
                     reuseRoot: true
                 });
                 this.dropdowns.push(dropdown);
@@ -197,8 +173,7 @@ export class SearchWidget {
                     parent: container as HTMLElement,
                     placeholder: config.placeholder,
                     type: config.type,
-                    onSelect: (selected: { from: string; to: string }) => {
-                    },
+                    onSelect: () => {},
                     reuseRoot: true,
                     validateRange: true
                 });
@@ -240,7 +215,6 @@ export class SearchWidget {
         });
 
         this.addClearButton(searchField);
-
         return searchField;
     }
 
@@ -267,7 +241,6 @@ export class SearchWidget {
         });
 
         wrapper.appendChild(clearButton);
-
         (searchField as any).clearButton = clearButton;
     }
 
@@ -313,15 +286,12 @@ export class SearchWidget {
 
     private buildUrl(basePath: string, params: Record<string, string>): string {
         const url = new URL(basePath, window.location.origin);
-
         url.search = '';
-
         Object.entries(params).forEach(([key, value]) => {
             if (value != null && value !== '' && value !== undefined) {
                 url.searchParams.set(key, value);
             }
         });
-
         return url.pathname + url.search;
     }
 

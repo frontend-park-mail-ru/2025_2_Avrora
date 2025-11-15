@@ -1,11 +1,9 @@
 import { OfferCreateFirstStage } from '../components/OfferCreate/OfferCreateFirstStage/OfferCreateFirstStage.ts';
-import { OfferCreateSecondStage } from  '../components/OfferCreate/OfferCreateSecondStage/OfferCreateSecondStage.ts';
-import { OfferCreateThirdStage } from  '../components/OfferCreate/OfferCreateThirdStage/OfferCreateThirdStage.ts';
-import { OfferCreateFourthStage } from  '../components/OfferCreate/OfferCreateFourthStage/OfferCreateFourthStage.ts';
-import { OfferCreateFifthStage } from  '../components/OfferCreate/OfferCreateFifthStage/OfferCreateFifthStage.ts';
+import { OfferCreateSecondStage } from '../components/OfferCreate/OfferCreateSecondStage/OfferCreateSecondStage.ts';
+import { OfferCreateThirdStage } from '../components/OfferCreate/OfferCreateThirdStage/OfferCreateThirdStage.ts';
+import { OfferCreateFourthStage } from '../components/OfferCreate/OfferCreateFourthStage/OfferCreateFourthStage.ts';
+import { OfferCreateFifthStage } from '../components/OfferCreate/OfferCreateFifthStage/OfferCreateFifthStage.ts';
 import { OfferCreateDataManager } from '../utils/OfferCreateDataManager.ts';
-import { API } from '../utils/API.js';
-import { API_CONFIG } from '../config.js';
 import { Modal } from '../components/OfferCreate/Modal/Modal.ts';
 
 interface OfferCreateWidgetOptions {
@@ -13,95 +11,25 @@ interface OfferCreateWidgetOptions {
     isEditing?: boolean;
 }
 
-interface AppState {
-    user?: {
-        id: string;
-    };
-}
-
-interface App {
-    router: {
-        navigate: (path: string) => void;
-    };
-}
-
-interface APIResponse {
-    ok: boolean;
-    data?: any;
-    error?: string;
-    status?: number;
-}
-
-interface EventListener {
-    element: EventTarget;
-    event: string;
-    handler: EventListenerOrEventListenerObject;
-}
-
-interface FormData {
-    [key: string]: string | number | null;
-}
-
-interface OfferData {
-    offer_type?: string;
-    property_type?: string;
-    category?: string;
-    address?: string;
-    floor?: number | null;
-    total_floors?: number | null;
-    rooms?: number | null;
-    area?: number | null;
-    living_area?: number | null;
-    kitchen_area?: number | null;
-    price?: number | null;
-    deposit?: number | null;
-    commission?: number | null;
-    rental_period?: string | null;
-    description?: string;
-    images?: Array<{ filename: string; url: string }>;
-    title?: string;
-    user_id?: string;
-    status?: string;
-    image_urls?: string[];
-}
-
-interface ValidationResult {
-    isValid: boolean;
-    message?: string;
-}
-
 export class OfferCreateWidget {
-    parent: HTMLElement;
-    state: AppState;
-    app: App;
-    step: number;
-    eventListeners: EventListener[];
-    dataManager: OfferCreateDataManager;
-    isEditing: boolean;
-    editOfferId: string | null;
-    originalOfferData: OfferData | null;
-    currentStageElement: HTMLElement | null;
+    private parent: HTMLElement;
+    private controller: any;
+    private step: number;
+    private eventListeners: Array<{element: EventTarget, event: string, handler: EventListenerOrEventListenerObject}>;
+    private dataManager: OfferCreateDataManager;
+    private isEditing: boolean;
+    private editOfferId: string | null;
+    private currentStageElement: HTMLElement | null;
 
-    constructor(parent: HTMLElement, state: AppState, app: App, options: OfferCreateWidgetOptions = {}) {
+    constructor(parent: HTMLElement, controller: any, options: OfferCreateWidgetOptions = {}) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.step = options.step || 1;
         this.eventListeners = [];
         this.dataManager = new OfferCreateDataManager();
         this.isEditing = options.isEditing || false;
         this.editOfferId = null;
-        this.originalOfferData = null;
         this.currentStageElement = null;
-    }
-
-    resolveStepFromLocation(): number {
-        const path = window.location.pathname;
-        if (path.includes('/step-5')) return 5;
-        if (path.includes('/step-4')) return 4;
-        if (path.includes('/step-3')) return 3;
-        if (path.includes('/step-2')) return 2;
-        return 1;
     }
 
     async renderWithParams(params: { id?: string } = {}): Promise<void> {
@@ -122,7 +50,6 @@ export class OfferCreateWidget {
             }
         } else if (!this.isEditing && this.editOfferId) {
             this.editOfferId = null;
-            this.originalOfferData = null;
             this.dataManager.clear();
         }
 
@@ -132,16 +59,7 @@ export class OfferCreateWidget {
 
     async loadOfferData(offerId: string): Promise<void> {
         try {
-            const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.LIST}/${offerId}`;
-            const result: APIResponse = await API.get(endpoint);
-
-            if (result.ok && result.data) {
-                this.originalOfferData = result.data;
-                this.dataManager.populateFromAPI(result.data);
-            } else {
-                console.error('Failed to load offer data:', result.error);
-                this.showError('Не удалось загрузить данные объявления');
-            }
+            await this.controller.loadOfferData(offerId, this.dataManager);
         } catch (error) {
             console.error('Error loading offer data:', error);
             this.showError('Ошибка при загрузке данных объявления');
@@ -154,8 +72,7 @@ export class OfferCreateWidget {
 
         let stageEl: HTMLElement;
         const stageOptions = {
-            state: this.state,
-            app: this.app,
+            controller: this.controller,
             dataManager: this.dataManager,
             isEditing: this.isEditing,
             editOfferId: this.editOfferId
@@ -206,8 +123,6 @@ export class OfferCreateWidget {
                 if (this.validateCurrentStep()) {
                     const next = Math.min(5, this.step + 1);
                     this.navigateToStep(next);
-                } else {
-                    console.error('Validation failed for step:', this.step);
                 }
             });
         }
@@ -224,10 +139,7 @@ export class OfferCreateWidget {
     saveCurrentStepData(): void {
         try {
             const currentForm = this.currentStageElement || this.parent.querySelector('.create-ad');
-            if (!currentForm) {
-                console.warn('No form found for saving data');
-                return;
-            }
+            if (!currentForm) return;
 
             const formData = this.collectFormData(currentForm as HTMLElement);
 
@@ -237,24 +149,7 @@ export class OfferCreateWidget {
                 }
             });
 
-            switch (this.step) {
-                case 1:
-                    this.dataManager.updateStage1(formData);
-                    break;
-                case 2:
-                    this.dataManager.updateStage2(formData);
-                    break;
-                case 3:
-                    this.dataManager.updateStage3(formData);
-                    break;
-                case 4:
-                    this.dataManager.updateStage4(formData);
-                    break;
-                case 5:
-                    this.dataManager.updateStage5(formData);
-                    break;
-            }
-
+            this.dataManager.updateData(this.step, formData);
         } catch (error) {
             console.error('Error saving step data:', error);
         }
@@ -262,73 +157,11 @@ export class OfferCreateWidget {
 
     validateCurrentStep(): boolean {
         const currentData = this.dataManager.getData();
-        let errorMessage = '';
-
-        switch (this.step) {
-            case 1:
-                if (!currentData.offer_type) errorMessage = 'Выберите тип объявления';
-                else if (!currentData.property_type) errorMessage = 'Выберите тип недвижимости';
-                else if (!currentData.category) errorMessage = 'Выберите вид недвижимости';
-                break;
-            case 2:
-                if (!currentData.address || currentData.address.trim() === '') {
-                    errorMessage = 'Укажите адрес';
-                } else {
-                    const floor = currentData.floor;
-                    const totalFloors = currentData.total_floors;
-
-                    if (floor !== null && totalFloors !== null) {
-                        if (floor > totalFloors) {
-                            errorMessage = 'Этаж не может быть больше общего количества этажей в доме';
-                        } else if (floor < 0) {
-                            errorMessage = 'Этаж не может быть отрицательным числом';
-                        } else if (totalFloors <= 0) {
-                            errorMessage = 'Общее количество этажей должно быть положительным числом';
-                        }
-                    }
-                }
-                break;
-            case 3:
-                if (!currentData.rooms && currentData.rooms !== 0) errorMessage = 'Укажите количество комнат';
-                else if (!currentData.area) errorMessage = 'Укажите общую площадь';
-                else if (currentData.area <= 0) errorMessage = 'Площадь должна быть положительным числом';
-                else if (currentData.living_area && currentData.living_area > currentData.area) {
-                    errorMessage = 'Жилая площадь не может быть больше общей площади';
-                }
-                else if (currentData.kitchen_area && currentData.kitchen_area > currentData.area) {
-                    errorMessage = 'Площадь кухни не может быть больше общей площади';
-                }
-                break;
-            case 4:
-                if (!currentData.price) errorMessage = 'Укажите цену';
-                else if (currentData.price <= 0) errorMessage = 'Цена должна быть положительным числом';
-                else if (currentData.deposit && currentData.deposit < 0) errorMessage = 'Залог не может быть отрицательным';
-                else if (currentData.commission && (currentData.commission < 0 || currentData.commission > 100)) {
-                    errorMessage = 'Комиссия должна быть в диапазоне от 0 до 100%';
-                }
-                break;
-            case 5:
-                if (!currentData.description || currentData.description.trim() === '') {
-                    errorMessage = 'Введите описание объявления';
-                } else if (!currentData.images || currentData.images.length === 0) {
-                    errorMessage = 'Необходимо загрузить минимум одну фотографию';
-                } else if (currentData.images.length > 10) {
-                    errorMessage = 'Можно загрузить не более 10 фотографий';
-                }
-                break;
-        }
-
-        if (errorMessage) {
-            console.error('Validation failed:', errorMessage);
-            this.showError(errorMessage);
-            return false;
-        }
-
-        return true;
+        return this.controller.validateOfferStep(this.step, currentData);
     }
 
-    collectFormData(formElement: HTMLElement): FormData {
-        const formData: FormData = {};
+    collectFormData(formElement: HTMLElement): any {
+        const formData: any = {};
 
         const activeButtons = formElement.querySelectorAll('.create-ad__choice-button.active');
         activeButtons.forEach(button => {
@@ -343,14 +176,9 @@ export class OfferCreateWidget {
             const field = (input as HTMLElement).dataset.field;
             if (field) {
                 let value = (input as HTMLInputElement).value.trim();
-
-                if (value === '') {
-                    formData[field] = null;
-                } else if ((input as HTMLInputElement).type === 'number') {
-                    formData[field] = parseFloat(value) || null;
-                } else {
-                    formData[field] = value;
-                }
+                formData[field] = value === '' ? null : 
+                    (input as HTMLInputElement).type === 'number' ? 
+                    (parseFloat(value) || null) : value;
             }
         });
 
@@ -373,151 +201,8 @@ export class OfferCreateWidget {
         return formData;
     }
 
-    async prepareOfferDataForAPI(): Promise<OfferData | null> {
-        const rawData = this.dataManager.getData();
-
-        if (!this.state.user || !this.state.user.id) {
-            console.error('No user found for offer creation:', this.state.user);
-            this.showError('Для создания объявления необходимо авторизоваться');
-            return null;
-        }
-
-        const apiData: OfferData = {
-            offer_type: rawData.offer_type || 'sale',
-            property_type: rawData.property_type || 'apartment',
-            title: rawData.title || this.generateTitle(rawData),
-            description: rawData.description || '',
-            price: this.safeNumber(rawData.price, 0),
-            area: this.safeNumber(rawData.area, 0),
-            address: rawData.address || '',
-            rooms: this.safeNumber(rawData.rooms, 1),
-            floor: this.safeNumber(rawData.floor),
-            total_floors: this.safeNumber(rawData.total_floors),
-            living_area: this.safeNumber(rawData.living_area),
-            kitchen_area: this.safeNumber(rawData.kitchen_area),
-            deposit: this.safeNumber(rawData.deposit),
-            commission: this.safeNumber(rawData.commission),
-            rental_period: rawData.rental_period || null,
-            image_urls: rawData.images ? rawData.images.map(img => img.filename || img.url) : [],
-            user_id: this.state.user.id,
-            status: 'active'
-        };
-
-        if (apiData.deposit !== null) apiData.deposit = Math.round(apiData.deposit as number);
-        if (apiData.commission !== null) apiData.commission = Math.round(apiData.commission as number);
-        if (apiData.price !== null) apiData.price = Math.round(apiData.price as number);
-        if (apiData.floor !== null) apiData.floor = Math.round(apiData.floor as number);
-        if (apiData.total_floors !== null) apiData.total_floors = Math.round(apiData.total_floors as number);
-        if (apiData.rooms !== null) apiData.rooms = Math.round(apiData.rooms as number);
-
-        return apiData;
-    }
-
-    safeNumber(value: any, defaultValue: number | null = null): number | null {
-        if (value === null || value === undefined || value === '') {
-            return defaultValue;
-        }
-        const num = Number(value);
-        return isNaN(num) ? defaultValue : num;
-    }
-
-    generateTitle(data: OfferData): string {
-        const roomText = data.rooms === 0 ? 'Студия' : `${data.rooms}-комн.`;
-        const propertyTypeText = data.property_type === 'apartment' ? 'квартира' :
-                               data.property_type === 'house' ? 'дом' : 'гараж';
-        const offerTypeText = data.offer_type === 'sale' ? 'продажа' : 'аренда';
-
-        return `${roomText} ${propertyTypeText}, ${offerTypeText}`;
-    }
-
-    validateOfferData(data: OfferData): ValidationResult {
-
-        const requiredFields = [
-            { field: 'offer_type', name: 'Тип объявления' },
-            { field: 'property_type', name: 'Тип недвижимости' },
-            { field: 'title', name: 'Заголовок' },
-            { field: 'address', name: 'Адрес' },
-            { field: 'rooms', name: 'Количество комнат' },
-            { field: 'area', name: 'Общая площадь' },
-            { field: 'price', name: 'Цена' },
-            { field: 'user_id', name: 'ID пользователя' }
-        ];
-
-        const missingFields: string[] = [];
-        const invalidFields: string[] = [];
-
-        for (const { field, name } of requiredFields) {
-            if (!data[field as keyof OfferData] && data[field as keyof OfferData] !== 0) {
-                missingFields.push(name);
-            }
-        }
-
-        if (data.area && data.area <= 0) {
-            invalidFields.push('Площадь должна быть положительным числом');
-        }
-
-        if (data.price && data.price <= 0) {
-            invalidFields.push('Цена должна быть положительным числом');
-        }
-
-        if (data.rooms && data.rooms < 0) {
-            invalidFields.push('Количество комнат не может быть отрицательным');
-        }
-
-        if (data.floor && data.floor < 0) {
-            invalidFields.push('Этаж не может быть отрицательным');
-        }
-
-        if (data.total_floors && data.total_floors <= 0) {
-            invalidFields.push('Количество этажей в доме должно быть положительным числом');
-        }
-
-        if (data.floor && data.total_floors && data.floor > data.total_floors) {
-            invalidFields.push('Этаж не может быть больше общего количества этажей в доме');
-        }
-
-        if (data.living_area && data.area && data.living_area > data.area) {
-            invalidFields.push('Жилая площадь не может быть больше общей площади');
-        }
-
-        if (data.kitchen_area && data.area && data.kitchen_area > data.area) {
-            invalidFields.push('Площадь кухни не может быть больше общей площади');
-        }
-
-        if (data.deposit && data.deposit < 0) {
-            invalidFields.push('Залог не может быть отрицательным');
-        }
-
-        if (data.commission && (data.commission < 0 || data.commission > 100)) {
-            invalidFields.push('Комиссия должна быть в диапазоне от 0 до 100%');
-        }
-
-        if (!data.image_urls || data.image_urls.length === 0) {
-            invalidFields.push('Необходимо загрузить минимум одну фотографию');
-        } else if (data.image_urls.length > 10) {
-            invalidFields.push('Можно загрузить не более 10 фотографий');
-        }
-
-        if (missingFields.length > 0) {
-            return {
-                isValid: false,
-                message: `Заполните обязательные поля: ${missingFields.join(', ')}`
-            };
-        }
-
-        if (invalidFields.length > 0) {
-            return {
-                isValid: false,
-                message: invalidFields.join(', ')
-            };
-        }
-
-        return { isValid: true };
-    }
-
     async handlePublish(): Promise<void> {
-
-        if (!this.checkUserState()) {
+        if (!this.controller.canManageOffers()) {
             return;
         }
 
@@ -525,15 +210,7 @@ export class OfferCreateWidget {
             this.saveCurrentStepData();
             const currentData = this.dataManager.getData();
 
-            const offerData = await this.prepareOfferDataForAPI();
-
-            if (!offerData) {
-                console.error('Offer data preparation failed');
-                return;
-            }
-
-
-            const validationResult = this.validateOfferData(offerData);
+            const validationResult = this.controller.validateOfferData(currentData);
             if (!validationResult.isValid) {
                 this.showError(validationResult.message!);
                 return;
@@ -544,20 +221,16 @@ export class OfferCreateWidget {
             publishBtn.textContent = this.isEditing ? 'Сохранение...' : 'Публикация...';
             publishBtn.disabled = true;
 
-            let result: APIResponse;
-            const startTime = Date.now();
-
+            let result: any;
             if (this.isEditing) {
-                result = await API.put(`${API_CONFIG.ENDPOINTS.OFFERS.UPDATE}${this.editOfferId}`, offerData);
+                result = await this.controller.updateOffer(this.editOfferId!, currentData);
             } else {
-                result = await API.post(API_CONFIG.ENDPOINTS.OFFERS.CREATE, offerData);
+                result = await this.controller.createOffer(currentData);
             }
 
-            const endTime = Date.now();
-
             if (result.ok) {
-                const successMessage = this.isEditing ?
-                    'Объявление успешно обновлено!' :
+                const successMessage = this.isEditing ? 
+                    'Объявление успешно обновлено!' : 
                     'Объявление успешно опубликовано!';
 
                 this.showSuccess(successMessage);
@@ -567,21 +240,14 @@ export class OfferCreateWidget {
                 }
 
                 setTimeout(() => {
-                    this.app.router.navigate('/profile/myoffers');
+                    this.controller.navigate('/profile/myoffers');
                 }, 2000);
             } else {
-                console.error('API Error details:', {
-                    status: result.status,
-                    error: result.error,
-                    url: this.isEditing ? 'UPDATE_OFFER' : 'CREATE_OFFER',
-                    requestData: offerData
-                });
-
-                this.handleAPIError(result);
+                this.controller.handleAPIError(result, this.isEditing);
             }
         } catch (error) {
             console.error('Network error during publish:', error);
-            this.showError(`Сетевая ошибка: ${(error as Error).message}. Проверьте подключение к интернету.`);
+            this.showError(`Сетевая ошибка: ${(error as Error).message}`);
         } finally {
             const publishBtn = this.parent.querySelector('[data-action="publish"]') as HTMLButtonElement;
             if (publishBtn) {
@@ -591,66 +257,23 @@ export class OfferCreateWidget {
         }
     }
 
-    handleAPIError(result: APIResponse): void {
-        console.error('Full API error object:', result);
-
-        const errorInfo = {
-            timestamp: new Date().toISOString(),
-            status: result.status,
-            error: result.error,
-            endpoint: this.isEditing ? 'UPDATE_OFFER' : 'CREATE_OFFER',
-            user_id: this.state.user?.id
-        };
-        console.error('Error context:', errorInfo);
-
-        switch (result.status) {
-            case 400:
-                this.showError(result.error || 'Некорректные данные в запросе. Проверьте введенные значения.');
-                break;
-            case 401:
-                this.showError('Необходимо авторизоваться');
-                this.app.router.navigate('/login');
-                break;
-            case 403:
-                if (result.error && result.error.includes('Профиль не заполнен')) {
-                    this.showProfileCompletionRequired(result.error);
-                } else {
-                    this.showError(result.error || 'Доступ запрещен. Возможно, у вас нет прав для этого действия.');
-                }
-                break;
-            case 500:
-                let errorMessage = 'Внутренняя ошибка сервера. ';
-
-                if (result.error && result.error.includes('ошибка создания предложения')) {
-                    errorMessage += 'Сервер не смог обработать запрос на создание объявления. ';
-                }
-
-                errorMessage += 'Попробуйте позже или обратитесь в поддержку.';
-
-                this.showError(errorMessage);
-
-                setTimeout(() => {
-                    if (confirm('Произошла ошибка сервера. Хотите попробовать снова?')) {
-                        this.handlePublish();
-                    }
-                }, 2000);
-                break;
-            default:
-                this.showError(result.error || `Произошла неизвестная ошибка (${result.status})`);
-        }
+    resolveStepFromLocation(): number {
+        const path = window.location.pathname;
+        if (path.includes('/step-5')) return 5;
+        if (path.includes('/step-4')) return 4;
+        if (path.includes('/step-3')) return 3;
+        if (path.includes('/step-2')) return 2;
+        return 1;
     }
 
-    showProfileCompletionRequired(message: string): void {
-        Modal.show({
-            title: 'Профиль не заполнен',
-            message: message + ' Пожалуйста, заполните профиль перед созданием объявления.',
-            type: 'error',
-            onConfirm: () => {
-                this.app.router.navigate('/profile/edit');
-            },
-            onCancel: () => {
-            }
-        });
+    navigateToStep(step: number): void {
+        if (this.isEditing && this.editOfferId) {
+            const route = step === 1 ? `/edit-offer/${this.editOfferId}` : `/edit-offer/${this.editOfferId}/step-${step}`;
+            this.controller.navigate(route);
+        } else {
+            const route = step === 1 ? '/create-ad' : `/create-ad/step-${step}`;
+            this.controller.navigate(route);
+        }
     }
 
     showError(message: string): void {
@@ -667,36 +290,6 @@ export class OfferCreateWidget {
             message: message,
             type: 'success'
         });
-    }
-
-    checkUserState(): boolean {
-        const user = this.state.user;
-        const token = localStorage.getItem('authToken');
-
-        if (!user || !token) {
-            console.warn('User not authenticated, redirecting to login');
-            this.showError('Для создания объявления необходимо авторизоваться');
-            this.app.router.navigate('/login');
-            return false;
-        }
-
-        if (!user.id) {
-            console.error('User ID is missing');
-            this.showError('Ошибка авторизации: отсутствует ID пользователя');
-            return false;
-        }
-
-        return true;
-    }
-
-    navigateToStep(step: number): void {
-        if (this.isEditing && this.editOfferId) {
-            const route = step === 1 ? `/edit-offer/${this.editOfferId}` : `/edit-offer/${this.editOfferId}/step-${step}`;
-            this.app?.router?.navigate(route);
-        } else {
-            const route = step === 1 ? '/create-ad' : `/create-ad/step-${step}`;
-            this.app?.router?.navigate(route);
-        }
     }
 
     addEventListener(element: EventTarget, event: string, handler: EventListenerOrEventListenerObject): void {

@@ -1,102 +1,26 @@
-import { API } from "../utils/API.js";
-import { API_CONFIG } from "../config.js";
 import { OffersListCard } from "../components/OffersList/OffersListCard/OffersListCard.ts";
 
-interface OffersListState {
-    user?: {
-        likedOffers?: number[];
-    };
-}
-
-interface AppRouter {
-    navigate: (path: string) => void;
-}
-
-interface App {
-    router?: AppRouter;
-}
-
-interface APIResponse {
-    ok: boolean;
-    data?: any;
-    error?: string;
-    status?: number;
-}
-
-interface EventListener {
-    element: HTMLElement;
-    event: string;
-    handler: EventListenerOrEventListenerObject;
-}
-
-interface OfferMeta {
-    total_pages?: number;
-    total?: number;
-    Meta?: any;
-    meta?: any;
-}
-
-interface OfferData {
-    id?: number;
-    ID?: number;
-    images?: string[];
-    image_url?: string;
-    ImageURL?: string;
-    price?: number;
-    Price?: number;
-    address?: string;
-    Address?: string;
-    metro?: string;
-    Metro?: string;
-    title?: string;
-    area?: number;
-    Area?: number;
-    rooms?: number;
-    Rooms?: number;
-}
-
 export class OffersListWidget {
-    parent: HTMLElement;
-    state: OffersListState;
-    app: App | null;
-    eventListeners: EventListener[];
-    isLoading: boolean;
-    offerCards: OffersListCard[];
-    template: any;
-    currentPage: number;
-    totalPages: number;
-    limit: number;
-    allOffers: OfferData[];
+    private parent: HTMLElement;
+    private controller: any;
+    private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListenerOrEventListenerObject}>;
+    private isLoading: boolean;
+    private offerCards: OffersListCard[];
+    private currentPage: number;
+    private totalPages: number;
+    private limit: number;
+    private allOffers: any[];
 
-    constructor(parent: HTMLElement, state: OffersListState, app: App | null) {
+    constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.eventListeners = [];
         this.isLoading = false;
         this.offerCards = [];
-        this.template = null;
         this.currentPage = 1;
         this.totalPages = 1;
         this.limit = 8;
         this.allOffers = [];
-    }
-
-    async loadTemplate(): Promise<any> {
-        if (this.template) return this.template;
-
-        try {
-            Handlebars.registerHelper('formatPrice', function(price: number) {
-                if (!price) return "Цена не указана";
-                return new Intl.NumberFormat('ru-RU').format(price);
-            });
-
-            this.template = (Handlebars as any).templates["OffersList.hbs"];
-            return this.template;
-        } catch (error) {
-            console.error('Failed to load template:', error);
-            throw new Error('Template loading failed');
-        }
     }
 
     async render(): Promise<void> {
@@ -104,7 +28,10 @@ export class OffersListWidget {
             this.isLoading = true;
             this.renderLoading();
 
-            const result = await this.loadOffers();
+            const result = await this.controller.loadOffers({
+                page: this.currentPage,
+                limit: this.limit
+            });
             await this.renderContent(result.offers, result.meta);
         } catch (error) {
             console.error("Error rendering offers:", error);
@@ -114,7 +41,7 @@ export class OffersListWidget {
         }
     }
 
-    async renderWithOffers(offers: OfferData[], showTitle: boolean = true): Promise<void> {
+    async renderWithOffers(offers: any[], showTitle: boolean = true): Promise<void> {
         try {
             this.isLoading = true;
             this.renderLoading();
@@ -132,57 +59,13 @@ export class OffersListWidget {
         }
     }
 
-    getPaginatedOffers(): OfferData[] {
+    getPaginatedOffers(): any[] {
         const startIndex = (this.currentPage - 1) * this.limit;
         const endIndex = startIndex + this.limit;
         return (this.allOffers || []).slice(startIndex, endIndex);
     }
 
-    async loadOffers(params: any = {}): Promise<{offers: OfferData[], meta: OfferMeta}> {
-        try {
-            const result: APIResponse = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, {
-                page: this.currentPage,
-                limit: this.limit,
-                ...params
-            });
-
-            if (!result.ok) {
-                throw new Error(result.error || `HTTP ${result.status}`);
-            }
-
-            const responseData = result.data || result;
-
-            let offers: OfferData[] = [];
-            let meta: OfferMeta = {};
-
-            if (Array.isArray(responseData.Offers)) {
-                offers = responseData.Offers;
-                meta = responseData.Meta || {};
-            } else if (Array.isArray(responseData.offers)) {
-                offers = responseData.offers;
-                meta = responseData.meta || {};
-            } else if (Array.isArray(responseData.data)) {
-                offers = responseData.data;
-                meta = responseData.meta || {};
-            } else if (responseData.Offers && Array.isArray(responseData.Offers)) {
-                offers = responseData.Offers;
-                meta = responseData.Meta || {};
-            }
-
-            return {
-                offers: offers,
-                meta: {
-                    total_pages: Math.ceil((meta.Total || meta.total || offers.length) / this.limit) || 1,
-                    total: meta.Total || meta.total || offers.length
-                }
-            };
-        } catch (error) {
-            console.error('Error loading offers:', error);
-            throw new Error(`Не удалось загрузить объявления: ${(error as Error).message}`);
-        }
-    }
-
-    async renderContent(offers: OfferData[], meta: OfferMeta | null = null, showTitle: boolean = true): Promise<void> {
+    async renderContent(offers: any[], meta: any = null, showTitle: boolean = true): Promise<void> {
         this.cleanup();
 
         if (!offers || offers.length === 0) {
@@ -191,8 +74,8 @@ export class OffersListWidget {
         }
 
         const template = await this.loadTemplate();
-
         const formattedOffers = offers.map(offer => this.formatOffer(offer));
+        
         const html = template({
             offers: formattedOffers,
             showTitle: showTitle
@@ -209,24 +92,13 @@ export class OffersListWidget {
         }
     }
 
-    formatOffer(apiData: OfferData): any {
-        const isLiked = this.state.user?.likedOffers?.includes(apiData.id || apiData.ID!) || false;
-
-        let images: string[] = [];
-        if (Array.isArray(apiData.images)) {
-            images = apiData.images;
-        } else if (apiData.image_url) {
-            images = [apiData.image_url];
-        } else if ((apiData as any).imageURLs) {
-            images = (apiData as any).imageURLs;
-        } else if (apiData.ImageURL) {
-            images = [apiData.ImageURL];
-        }
+    formatOffer(apiData: any): any {
+        const isLiked = this.controller.isOfferLiked(apiData.id || apiData.ID);
+        const images = this.controller.getOfferImages(apiData);
 
         const offerId = apiData.id || apiData.ID;
         const price = apiData.price || apiData.Price || 0;
         const address = apiData.address || apiData.Address || "Адрес не указан";
-        const metro = apiData.metro || apiData.Metro || "Метро не указано";
 
         return {
             id: offerId,
@@ -235,7 +107,7 @@ export class OffersListWidget {
             area: apiData.area || apiData.Area || 0,
             rooms: apiData.rooms || apiData.Rooms || 0,
             address: address,
-            metro: metro,
+            metro: apiData.metro || apiData.Metro || "Метро не указано",
             images: images,
             multipleImages: images.length > 1,
             likeClass: isLiked ? "liked" : "",
@@ -249,14 +121,9 @@ export class OffersListWidget {
 
         this.offerCards = Array.from(offerElements).map((element, index) => {
             const offerData = offers[index];
+            if (!offerData || !offerData.id) return null;
 
-            if (!offerData || !offerData.id) {
-                console.warn('Invalid offer data at index:', index, offerData);
-                return null;
-            }
-
-            const card = new OffersListCard(element as HTMLElement, offerData, this.state, this.app);
-            return card;
+            return new OffersListCard(element as HTMLElement, offerData, this.controller);
         }).filter(card => card !== null) as OffersListCard[];
 
         for (const card of this.offerCards) {
@@ -266,7 +133,7 @@ export class OffersListWidget {
         }
     }
 
-    renderPagination(meta: OfferMeta): void {
+    renderPagination(meta: any): void {
         if (!meta || !meta.total_pages || meta.total_pages <= 1) return;
 
         this.totalPages = meta.total_pages;
@@ -328,9 +195,15 @@ export class OffersListWidget {
         this.parent.appendChild(paginationContainer);
     }
 
+    async loadTemplate(): Promise<any> {
+        if ((window as any).Handlebars?.templates?.["OffersList.hbs"]) {
+            return (window as any).Handlebars.templates["OffersList.hbs"];
+        }
+        throw new Error('Template not found');
+    }
+
     renderLoading(): void {
         this.cleanup();
-
         const loadingDiv = document.createElement("div");
         loadingDiv.className = "offers__loading";
         loadingDiv.textContent = "Загрузка объявлений...";
@@ -339,7 +212,6 @@ export class OffersListWidget {
 
     renderError(message: string): void {
         this.cleanup();
-
         const offersContainer = document.createElement('div');
         offersContainer.className = 'offers';
 
@@ -367,7 +239,6 @@ export class OffersListWidget {
 
     renderEmptyState(showTitle: boolean = true): void {
         this.cleanup();
-
         const offersContainer = document.createElement('div');
         offersContainer.className = 'offers';
 
@@ -395,22 +266,16 @@ export class OffersListWidget {
     }
 
     cleanup(): void {
-        this.removeEventListeners();
-
-        if (this.offerCards) {
-            this.offerCards.forEach(card => {
-                if (card && card.cleanup) card.cleanup();
-            });
-            this.offerCards = [];
-        }
-
-        this.parent.innerHTML = '';
-    }
-
-    removeEventListeners(): void {
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
+
+        this.offerCards.forEach(card => {
+            if (card && card.cleanup) card.cleanup();
+        });
+        this.offerCards = [];
+
+        this.parent.innerHTML = '';
     }
 }
