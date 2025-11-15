@@ -149,15 +149,138 @@ export class OfferCreateWidget {
                 }
             });
 
+            // Автоматически генерируем заголовок при сохранении данных
+            if (this.shouldGenerateTitle()) {
+                formData.title = this.generateTitle();
+            }
+
             this.dataManager.updateData(this.step, formData);
         } catch (error) {
             console.error('Error saving step data:', error);
         }
     }
 
+    shouldGenerateTitle(): boolean {
+        const currentData = this.dataManager.getData();
+        // Генерируем заголовок, если его нет или если это новая запись
+        return !currentData.title || (!this.isEditing && this.step >= 2);
+    }
+
+    generateTitle(): string {
+        const data = this.dataManager.getData();
+        
+        const offerTypeMap: {[key: string]: string} = {
+            'sale': 'Продажа',
+            'rent': 'Аренда'
+        };
+
+        const propertyTypeMap: {[key: string]: string} = {
+            'apartment': 'квартиры',
+            'house': 'дома'
+        };
+
+        const categoryMap: {[key: string]: string} = {
+            'new': 'новостройки',
+            'secondary': 'вторички'
+        };
+
+        const roomLabels: {[key: string]: string} = {
+            '0': 'Студия',
+            '1': '1-комнатная',
+            '2': '2-комнатная',
+            '3': '3-комнатная',
+            '4': '4-комнатная'
+        };
+
+        const parts: string[] = [];
+
+        // Тип объявления
+        if (data.offer_type && offerTypeMap[data.offer_type]) {
+            parts.push(offerTypeMap[data.offer_type]);
+        }
+
+        // Количество комнат
+        if (data.rooms !== undefined && data.rooms !== null) {
+            const roomLabel = roomLabels[data.rooms] || `${data.rooms}-комнатная`;
+            parts.push(roomLabel);
+        }
+
+        // Тип недвижимости
+        if (data.property_type && propertyTypeMap[data.property_type]) {
+            parts.push(propertyTypeMap[data.property_type]);
+        }
+
+        // Категория (новостройка/вторичка)
+        if (data.category && categoryMap[data.category]) {
+            parts.push(categoryMap[data.category]);
+        }
+
+        // Площадь
+        if (data.area) {
+            parts.push(`${data.area} м²`);
+        }
+
+        // Адрес (если есть и нужно сократить)
+        if (data.address) {
+            const shortAddress = this.getShortAddress(data.address);
+            if (shortAddress) {
+                parts.push(shortAddress);
+            }
+        }
+
+        // Если ничего не собрали, возвращаем заголовок по умолчанию
+        if (parts.length === 0) {
+            return 'Новое объявление о недвижимости';
+        }
+
+        return parts.join(' ');
+    }
+
+    getShortAddress(fullAddress: string): string {
+        if (!fullAddress) return '';
+        
+        // Убираем лишние части адреса, оставляем только район или улицу
+        const addressParts = fullAddress.split(',');
+        
+        // Возвращаем первые 2-3 части адреса (обычно город, район, улица)
+        if (addressParts.length > 1) {
+            return addressParts.slice(0, Math.min(2, addressParts.length)).join(', ').trim();
+        }
+        
+        return fullAddress;
+    }
+
     validateCurrentStep(): boolean {
         const currentData = this.dataManager.getData();
+        
+        // Для 5-го этапа дополнительно проверяем валидацию изображений
+        if (this.step === 5) {
+            const imagesValidation = this.validateImages(currentData);
+            if (!imagesValidation.isValid) {
+                this.showError(imagesValidation.message!);
+                return false;
+            }
+        }
+        
         return this.controller.validateOfferStep(this.step, currentData);
+    }
+
+    validateImages(data: any): { isValid: boolean; message?: string } {
+        if (!data.images || data.images.length === 0) {
+            return {
+                isValid: false,
+                message: 'Необходимо загрузить минимум одну фотографию'
+            };
+        }
+
+        if (data.images.length > 10) {
+            return {
+                isValid: false,
+                message: 'Можно загрузить не более 10 фотографий'
+            };
+        }
+
+        return { isValid: true };
     }
 
     collectFormData(formElement: HTMLElement): any {
@@ -202,13 +325,30 @@ export class OfferCreateWidget {
     }
 
     async handlePublish(): Promise<void> {
-        if (!this.controller.canManageOffers()) {
+        if (!await this.controller.canManageOffers()) {
             return;
         }
 
         try {
             this.saveCurrentStepData();
             const currentData = this.dataManager.getData();
+
+            // Добавляем user_id из текущего пользователя
+            if (this.controller.user && this.controller.user.id) {
+                currentData.user_id = this.controller.user.id;
+            }
+
+            // Убеждаемся, что заголовок сгенерирован перед публикацией
+            if (!currentData.title || currentData.title.trim() === '') {
+                currentData.title = this.generateTitle();
+            }
+
+            // Проверяем валидацию изображений перед публикацией
+            const imagesValidation = this.validateImages(currentData);
+            if (!imagesValidation.isValid) {
+                this.showError(imagesValidation.message!);
+                return;
+            }
 
             const validationResult = this.controller.validateOfferData(currentData);
             if (!validationResult.isValid) {

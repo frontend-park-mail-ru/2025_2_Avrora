@@ -1,4 +1,5 @@
 interface OfferData {
+    title?: string | null;
     category: string | null;
     offer_type: string | null;
     property_type: string | null;
@@ -55,6 +56,8 @@ interface Stage5Data {
 }
 
 interface APIOfferData {
+    title?: string;
+    Title?: string;
     category?: string;
     offer_type?: string;
     OfferType?: string;
@@ -95,6 +98,7 @@ export class OfferCreateDataManager {
 
     constructor() {
         this.data = {
+            title: null,
             category: null,
             offer_type: null,
             property_type: null,
@@ -113,6 +117,14 @@ export class OfferCreateDataManager {
             images: [],
             status: 'active'
         };
+    }
+
+    updateData(step: number, formData: any): void {
+        Object.keys(formData).forEach(key => {
+            if (formData[key] !== undefined) {
+                (this.data as any)[key] = formData[key];
+            }
+        });
     }
 
     updateStage1(data: Stage1Data): void {
@@ -152,6 +164,7 @@ export class OfferCreateDataManager {
 
     clear(): void {
         this.data = {
+            title: null,
             category: null,
             offer_type: null,
             property_type: null,
@@ -174,6 +187,7 @@ export class OfferCreateDataManager {
 
     populateFromAPI(apiData: APIOfferData): void {
         this.data = {
+            title: apiData.title || apiData.Title || null,
             category: apiData.category || 'secondary',
             offer_type: apiData.offer_type || apiData.OfferType || 'sale',
             property_type: apiData.property_type || apiData.PropertyType || 'apartment',

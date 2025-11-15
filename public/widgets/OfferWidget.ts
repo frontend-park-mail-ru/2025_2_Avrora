@@ -23,6 +23,10 @@ export class OfferWidget {
             this.renderLoading();
 
             this.offerId = params.id || null;
+            if (!this.offerId) {
+                throw new Error("Offer ID is required");
+            }
+
             const offerData = await this.loadOffer();
             await this.renderContent(offerData);
         } catch (error) {
@@ -35,12 +39,7 @@ export class OfferWidget {
 
     async loadOffer(): Promise<any> {
         if (!this.offerId) {
-            const offersResult = await this.controller.loadOffers({ limit: 1 });
-            if (offersResult.ok && offersResult.data.offers && offersResult.data.offers.length > 0) {
-                this.offerId = offersResult.data.offers[0].id || offersResult.data.offers[0].ID;
-            } else {
-                throw new Error("No offers available");
-            }
+            throw new Error("No offer ID provided");
         }
 
         const result = await this.controller.loadOffer(this.offerId);
@@ -72,15 +71,15 @@ export class OfferWidget {
 
         return {
             id: offerId,
-            title: title,
+            title: title || "Без названия",
             infoDesc: this.generateInfoDesc(offerType, propertyType),
             metro: this.extractMetroFromAddress(address),
-            address: address,
+            address: address || "Адрес не указан",
             price: this.formatPrice(price),
             userName: sellerInfo.name,
             userPhone: sellerInfo.phone,
             userAvatar: sellerInfo.avatar,
-            description: description,
+            description: description || "Описание отсутствует",
             images: images,
             characteristics: this.getCharacteristics({
                 area: area,
@@ -112,12 +111,15 @@ export class OfferWidget {
         const types: {[key: string]: string} = {
             'apartment': 'квартиры',
             'house': 'дома',
-            'flat': 'квартиры'
+            'flat': 'квартиры',
+            'room': 'комнаты'
         };
         return types[propertyType] || 'недвижимости';
     }
 
     extractMetroFromAddress(address: string): string {
+        if (!address) return "Метро не указано";
+        
         if (address.includes('Москва') || address.includes('Moscow')) {
             return "Ближайшее метро";
         }
@@ -183,7 +185,8 @@ export class OfferWidget {
         const types: {[key: string]: string} = {
             'apartment': 'Квартира',
             'house': 'Дом',
-            'flat': 'Квартира'
+            'flat': 'Квартира',
+            'room': 'Комната'
         };
         return types[propertyType] || 'Не указано';
     }
@@ -198,9 +201,24 @@ export class OfferWidget {
 
     async renderContent(offerData: any): Promise<void> {
         this.cleanup();
-        this.offerCard = new OfferCard(offerData, this.controller);
-        const element = await this.offerCard.render();
-        this.parent.appendChild(element);
+        
+        if (!offerData) {
+            this.renderError("Данные объявления не получены");
+            return;
+        }
+
+        try {
+            this.offerCard = new OfferCard(offerData, this.controller);
+            const element = await this.offerCard.render();
+            if (element) {
+                this.parent.appendChild(element);
+            } else {
+                throw new Error("Failed to render offer card");
+            }
+        } catch (error) {
+            console.error("Error rendering offer content:", error);
+            this.renderError("Ошибка при отображении объявления");
+        }
     }
 
     renderError(message: string): void {

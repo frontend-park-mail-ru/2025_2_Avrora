@@ -7,6 +7,7 @@ export class AppController {
         this.view = view;
         this.router = null;
         this.api = API;
+        this.footer = null;
     }
 
     setRouter(router) {
@@ -20,7 +21,7 @@ export class AppController {
 
     // Геттер для проверки аутентификации
     get isAuthenticated() {
-        return !!this.model.userModel.user;
+        return !!this.model.userModel.user && !!this.model.userModel.token;
     }
 
     async setUser(user, token = null) {
@@ -155,9 +156,6 @@ export class AppController {
         }
         
         const currentPage = this.model.appStateModel.currentPage;
-        if (currentPage && currentPage.cleanup) {
-            currentPage.cleanup();
-        }
         if (currentPage && currentPage.render) {
             currentPage.render();
         }
@@ -190,8 +188,6 @@ export class AppController {
         return this.model.userModel.isProfileComplete();
     }
 
-    // Новые методы для работы с виджетами
-
     // Проверка, лайкнуто ли объявление
     isOfferLiked(offerId) {
         // Временная заглушка - в будущем можно добавить логику лайков
@@ -210,6 +206,8 @@ export class AppController {
             images = [apiData.ImageURL];
         } else if (Array.isArray(apiData.ImageURLs)) {
             images = apiData.ImageURLs;
+        } else if (apiData.image_urls && Array.isArray(apiData.image_urls)) {
+            images = apiData.image_urls;
         }
 
         if (images.length === 0) {
@@ -285,6 +283,9 @@ export class AppController {
             } else if (Array.isArray(responseData.data)) {
                 offers = responseData.data;
                 meta = responseData.meta || {};
+            } else if (Array.isArray(responseData)) {
+                offers = responseData;
+                meta = { total: responseData.length };
             }
 
             return {
@@ -302,7 +303,7 @@ export class AppController {
 
     // Загрузка конкретного объявления
     async loadOffer(offerId) {
-        const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.LIST}/${offerId}`;
+        const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.BY_ID}${offerId}`;
         return await this.api.get(endpoint);
     }
 
@@ -324,17 +325,20 @@ export class AppController {
 
     // Получение информации о продавце
     getSellerInfo(sellerData) {
-        const sellerName = sellerData ?
-            `${sellerData.firstName || sellerData.first_name || ''} ${sellerData.lastName || sellerData.last_name || ''}`.trim() || "Продавец" :
-            "Продавец";
+        if (!sellerData) {
+            return {
+                name: "Продавец",
+                phone: "+7 XXX XXX-XX-XX",
+                avatar: '../../images/user.png'
+            };
+        }
 
-        const sellerPhone = sellerData ?
-            (sellerData.phone || "+7 XXX XXX-XX-XX") :
-            "+7 XXX XXX-XX-XX";
+        const sellerName = 
+            `${sellerData.firstName || sellerData.first_name || sellerData.FirstName || ''} ${sellerData.lastName || sellerData.last_name || sellerData.LastName || ''}`.trim() || "Продавец";
 
-        const sellerAvatar = sellerData && sellerData.avatar ?
-            sellerData.avatar :
-            '../../images/user.png';
+        const sellerPhone = sellerData.phone || sellerData.Phone || "+7 XXX XXX-XX-XX";
+
+        const sellerAvatar = sellerData.avatar || sellerData.AvatarURL || sellerData.avatar_url || sellerData.photo_url || '../../images/user.png';
 
         return {
             name: sellerName,
@@ -393,9 +397,9 @@ export class AppController {
             case 5:
                 if (!data.description || data.description.trim() === '') {
                     errorMessage = 'Введите описание объявления';
-                } else if (!data.images || data.images.length === 0) {
+                } else if (!data.image_urls || data.image_urls.length === 0) {
                     errorMessage = 'Необходимо загрузить минимум одну фотографию';
-                } else if (data.images.length > 10) {
+                } else if (data.image_urls.length > 10) {
                     errorMessage = 'Можно загрузить не более 10 фотографий';
                 }
                 break;
@@ -496,6 +500,11 @@ export class AppController {
 
     // Создание объявления
     async createOffer(offerData) {
+        // Добавляем user_id из текущего пользователя
+        if (this.model.userModel.user) {
+            offerData.user_id = this.model.userModel.user.id;
+        }
+        
         return await this.api.post(API_CONFIG.ENDPOINTS.OFFERS.CREATE, offerData);
     }
 
@@ -558,7 +567,7 @@ export class AppController {
     // Загрузка данных объявления для редактирования
     async loadOfferData(offerId, dataManager) {
         try {
-            const result = await this.api.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIST}/${offerId}`);
+            const result = await this.api.get(`${API_CONFIG.ENDPOINTS.OFFERS.BY_ID}${offerId}`);
 
             if (result.ok && result.data) {
                 dataManager.populateFromAPI(result.data);
@@ -569,6 +578,61 @@ export class AppController {
         } catch (error) {
             console.error('Error loading offer data:', error);
             throw error;
+        }
+    }
+    
+    async renderLayout() {
+        const appElement = document.getElementById('app');
+        if (!appElement) return;
+
+        // Очищаем app element
+        appElement.innerHTML = '';
+
+        // Создаем структуру
+        const headerElement = document.createElement('header');
+        const mainElement = document.createElement('main');
+        mainElement.id = 'main-content';
+        const footerElement = document.createElement('footer');
+
+        appElement.appendChild(headerElement);
+        appElement.appendChild(mainElement);
+        appElement.appendChild(footerElement);
+
+        // Рендерим хедер
+        if (this.view.header) {
+            this.view.header.parent = headerElement;
+            await this.view.header.render();
+        }
+
+        // Рендерим футер
+        if (this.view.footer) {
+            this.view.footer.parent = footerElement;
+            await this.view.footer.render();
+        }
+
+        // Рендерим текущую страницу в main
+        await this.renderCurrentPage();
+    }
+
+    async renderCurrentPage() {
+        const mainElement = document.getElementById('main-content');
+        if (!mainElement || !this.model.appStateModel.currentPage) return;
+
+        // Очищаем main
+        mainElement.innerHTML = '';
+
+        // Рендерим текущую страницу
+        const currentPage = this.model.appStateModel.currentPage;
+        currentPage.parent = mainElement;
+        
+        if (currentPage.renderWithParams) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const params = {
+                searchParams: Object.fromEntries(urlParams)
+            };
+            await currentPage.renderWithParams(params);
+        } else {
+            await currentPage.render();
         }
     }
 }

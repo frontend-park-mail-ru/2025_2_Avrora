@@ -1,7 +1,8 @@
+// ProfileService.ts - полный исправленный код
+
 import { API } from "./API.js";
 import { API_CONFIG } from "../config.js";
 import { validEmail, validName, validPhone, validPassword, validateForm } from "./Validator.ts";
-
 
 interface ProfileData {
   id: string;
@@ -77,6 +78,41 @@ interface BackendOfferData {
   Description?: string;
   Area?: number;
   Offers?: any[];
+}
+
+// Support Ticket Interfaces
+interface SupportTicket {
+  id: string;
+  user_id?: string;
+  signed_email: string;
+  response_email: string;
+  name: string;
+  category: string;
+  description: string;
+  status: string;
+  photo_urls: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface CreateSupportTicketRequest {
+  user_id?: string;
+  signed_email: string;
+  response_email: string;
+  name: string;
+  category: string;
+  description: string;
+  photo_urls?: string[];
+}
+
+interface SupportTicketsResponse {
+  tickets: SupportTicket[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
 }
 
 export class ProfileService {
@@ -270,6 +306,138 @@ export class ProfileService {
     }
   }
 
+  // Support Ticket Methods
+  static async createSupportTicket(ticketData: CreateSupportTicketRequest): Promise<SupportTicket> {
+    try {
+      // Если пользователь авторизован, добавляем его ID
+      const userId = this.getCurrentUserId();
+      if (userId) {
+        ticketData.user_id = userId;
+      }
+
+      const result: APIResponse = await API.post('/support-tickets', ticketData);
+
+      if (result.ok && result.data) {
+        return result.data;
+      }
+
+      throw new Error(result.error || "Ошибка создания обращения в поддержку");
+    } catch (error) {
+      console.error('Error creating support ticket:', error);
+      throw error;
+    }
+  }
+
+  static async getMySupportTickets(page: number = 1, limit: number = 10): Promise<SupportTicketsResponse> {
+    try {
+      const userId = this.getCurrentUserId();
+      if (!userId) {
+        throw new Error("Не удалось определить ID пользователя. Пожалуйста, войдите заново.");
+      }
+
+      const params = {
+        page: page.toString(),
+        limit: limit.toString()
+      };
+
+      const result: APIResponse = await API.get(`/support-tickets/my/${userId}`, params);
+
+      if (result.ok && result.data) {
+        return result.data;
+      }
+
+      // Если ошибка 500 (таблица еще не создана или другие проблемы), логируем и возвращаем пустой результат
+      console.warn('Failed to load support tickets, server returned:', result.status, result.error);
+      return {
+        tickets: [],
+        meta: {
+          total: 0,
+          page: page,
+          limit: limit,
+          pages: 0
+        }
+      };
+    } catch (error) {
+      console.error('Error loading support tickets:', error);
+      // В случае ошибки возвращаем пустой результат
+      return {
+        tickets: [],
+        meta: {
+          total: 0,
+          page: page,
+          limit: limit,
+          pages: 0
+        }
+      };
+    }
+  }
+
+  static async getSupportTicket(ticketId: string): Promise<SupportTicket> {
+    try {
+      const result: APIResponse = await API.get(`/support-tickets/${ticketId}`);
+
+      if (result.ok && result.data) {
+        return result.data;
+      }
+
+      throw new Error(result.error || "Ошибка загрузки обращения");
+    } catch (error) {
+      console.error('Error loading support ticket:', error);
+      throw error;
+    }
+  }
+
+  static async deleteSupportTicket(ticketId: string): Promise<{ message: string }> {
+    try {
+      const result: APIResponse = await API.delete(`/support-tickets/delete/${ticketId}`);
+
+      if (result.ok) {
+        return { message: "Обращение успешно удалено" };
+      }
+
+      throw new Error(result.error || "Ошибка удаления обращения");
+    } catch (error) {
+      console.error('Error deleting support ticket:', error);
+      throw error;
+    }
+  }
+
+  static async getAllSupportTickets(page: number = 1, limit: number = 10): Promise<SupportTicketsResponse> {
+    try {
+      const params = {
+        page: page.toString(),
+        limit: limit.toString()
+      };
+
+      const result: APIResponse = await API.get(`/admin/support-tickets`, params);
+
+      if (result.ok && result.data) {
+        return result.data;
+      }
+
+      throw new Error(result.error || "Ошибка загрузки всех обращений");
+    } catch (error) {
+      console.error('Error loading all support tickets:', error);
+      throw error;
+    }
+  }
+
+  static async updateSupportTicketStatus(ticketId: string, status: string): Promise<{ message: string }> {
+    try {
+      const result: APIResponse = await API.put(`/admin/support-tickets/status/${ticketId}`, { status });
+
+      if (result.ok) {
+        return { message: "Статус обращения успешно обновлен" };
+      }
+
+      throw new Error(result.error || "Ошибка обновления статуса обращения");
+    } catch (error) {
+      console.error('Error updating support ticket status:', error);
+      throw error;
+    }
+  }
+
+  // Validation Methods
   static validateProfile(profileData: Partial<ProfileData>): ValidationResult {
     const validation = validateForm({
       first_name: {
@@ -324,6 +492,87 @@ export class ProfileService {
     });
 
     return validation;
+  }
+
+  static validateSupportTicket(ticketData: CreateSupportTicketRequest): ValidationResult {
+    const validation = validateForm({
+      signed_email: {
+        value: ticketData.signed_email,
+        type: 'email',
+        required: true
+      },
+      response_email: {
+        value: ticketData.response_email,
+        type: 'email',
+        required: true
+      },
+      name: {
+        value: ticketData.name,
+        type: 'name',
+        required: true
+      },
+      category: {
+        value: ticketData.category,
+        type: 'custom',
+        required: true,
+        validator: (value: string) => {
+          const errors: string[] = [];
+          const validCategories = ['bug', 'general', 'billing', 'feature'];
+          if (!validCategories.includes(value)) {
+            errors.push("Неверная категория обращения");
+          }
+          return errors;
+        }
+      },
+      description: {
+        value: ticketData.description,
+        type: 'custom',
+        required: true,
+        validator: (value: string) => {
+          const errors: string[] = [];
+          if (value.length < 1) {
+            errors.push("Описание не может быть пустым");
+          }
+          if (value.length > 5000) {
+            errors.push("Описание слишком длинное");
+          }
+          return errors;
+        }
+      }
+    });
+
+    return validation;
+  }
+
+  // Helper Methods
+  static getCategoryDisplayName(category: string): string {
+    const categoryNames: { [key: string]: string } = {
+      'bug': 'Ошибка',
+      'general': 'Общий вопрос',
+      'billing': 'Биллинг',
+      'feature': 'Предложение функции'
+    };
+    return categoryNames[category] || category;
+  }
+
+  static getStatusDisplayName(status: string): string {
+    const statusNames: { [key: string]: string } = {
+      'open': 'Открыт',
+      'in_progress': 'В работе',
+      'closed': 'Закрыт',
+      'resolved': 'Решен'
+    };
+    return statusNames[status] || status;
+  }
+
+  static getStatusColor(status: string): string {
+    const statusColors: { [key: string]: string } = {
+      'open': '#f39c12',
+      'in_progress': '#3498db',
+      'closed': '#95a5a6',
+      'resolved': '#27ae60'
+    };
+    return statusColors[status] || '#95a5a6';
   }
 
   static mapProfileData(backendData: BackendProfileData): ProfileData {

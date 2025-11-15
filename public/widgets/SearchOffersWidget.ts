@@ -216,8 +216,8 @@ export class SearchOffersWidget {
 
         return {
             id: apiData.ID || apiData.id,
-            title: apiData.Title || "Без названия",
-            description: apiData.Description || "",
+            title: apiData.Title || apiData.title || "Без названия",
+            description: apiData.Description || apiData.description || "",
             price: apiData.Price || apiData.price || 0,
             area: apiData.Area || apiData.area || 0,
             rooms: apiData.Rooms || apiData.rooms || 0,

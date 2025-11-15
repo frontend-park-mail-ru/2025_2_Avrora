@@ -3,13 +3,24 @@ import { OffersListWidget } from "./OffersListWidget.ts";
 import { ComplexesListWidget } from "./ComplexesListWidget.ts";
 import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
+import { SupportIntegration } from './main-page-integration';
 
 interface Offer {
-    // Define offer interface as needed
+    id: string;
+    title: string;
+    price: number;
+    address: string;
+    image_url?: string;
+    ImageURL?: string;
+    images?: string[];
 }
 
 interface Complex {
-    // Define complex interface as needed
+    id: string;
+    name: string;
+    address: string;
+    image_url?: string;
+    ImageURL?: string;
 }
 
 export class MainPage {
@@ -18,6 +29,8 @@ export class MainPage {
     private firstOffers: Offer[];
     private secondOffers: Offer[];
     private complexes: Complex[];
+    private supportIntegration: SupportIntegration | null = null;
+    private isSupportInitialized: boolean = false;
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -46,6 +59,12 @@ export class MainPage {
         } catch (error) {
             console.error("Error loading main page data:", error);
             this.renderError();
+        }
+        
+        // Инициализируем поддержку только один раз
+        if (!this.isSupportInitialized) {
+            this.initializeSupport();
+            this.isSupportInitialized = true;
         }
     }
 
@@ -167,8 +186,29 @@ export class MainPage {
 
         this.parent.appendChild(errorDiv);
     }
+    
+    private initializeSupport(): void {
+        try {
+            // Используем document.body для правильного позиционирования
+            this.supportIntegration = new SupportIntegration(document.body);
+            
+            // Автоматически инициализируем поддержку
+            setTimeout(() => {
+                if (this.supportIntegration) {
+                    this.supportIntegration.initializeSupportWidget();
+                }
+            }, 1000);
+        } catch (error) {
+            console.error('Failed to initialize support:', error);
+        }
+    }
 
     cleanup(): void {
+        if (this.supportIntegration) {
+            this.supportIntegration.destroy();
+            this.supportIntegration = null;
+        }
+        this.isSupportInitialized = false;
         this.parent.innerHTML = '';
     }
 }

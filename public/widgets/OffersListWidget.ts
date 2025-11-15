@@ -3,13 +3,11 @@ import { OffersListCard } from "../components/OffersList/OffersListCard/OffersLi
 export class OffersListWidget {
     private parent: HTMLElement;
     private controller: any;
-    private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListenerOrEventListenerObject}>;
+    private eventListeners: Array<{element: Element, event: string, handler: EventListenerOrEventListenerObject}>;
     private isLoading: boolean;
-    private offerCards: OffersListCard[];
+    private offerCards: any[];
+    private meta: any;
     private currentPage: number;
-    private totalPages: number;
-    private limit: number;
-    private allOffers: any[];
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -17,10 +15,8 @@ export class OffersListWidget {
         this.eventListeners = [];
         this.isLoading = false;
         this.offerCards = [];
+        this.meta = null;
         this.currentPage = 1;
-        this.totalPages = 1;
-        this.limit = 8;
-        this.allOffers = [];
     }
 
     async render(): Promise<void> {
@@ -28,11 +24,13 @@ export class OffersListWidget {
             this.isLoading = true;
             this.renderLoading();
 
-            const result = await this.controller.loadOffers({
-                page: this.currentPage,
-                limit: this.limit
+            const { offers, meta } = await this.controller.loadOffers({ 
+                limit: 8, 
+                offset: (this.currentPage - 1) * 8 
             });
-            await this.renderContent(result.offers, result.meta);
+            this.meta = meta;
+
+            await this.renderContent(offers);
         } catch (error) {
             console.error("Error rendering offers:", error);
             this.renderError("Не удалось загрузить объявления");
@@ -41,228 +39,172 @@ export class OffersListWidget {
         }
     }
 
-    async renderWithOffers(offers: any[], showTitle: boolean = true): Promise<void> {
+    async renderWithParams(params: { searchParams?: Record<string, string> }): Promise<void> {
         try {
             this.isLoading = true;
             this.renderLoading();
 
-            this.allOffers = offers || [];
-            this.totalPages = Math.ceil((offers?.length || 0) / this.limit);
+            const searchParams = params.searchParams || {};
+            const { offers, meta } = await this.controller.loadFilteredOffers({
+                ...searchParams,
+                limit: 8,
+                offset: (this.currentPage - 1) * 8
+            });
+            this.meta = meta;
 
-            const paginatedOffers = this.getPaginatedOffers();
-            await this.renderContent(paginatedOffers, { total_pages: this.totalPages }, showTitle);
+            await this.renderContent(offers);
         } catch (error) {
-            console.error("Error rendering offers:", error);
-            this.renderError("Не удалось отобразить объявления");
+            console.error("Error rendering offers with params:", error);
+            this.renderError("Не удалось загрузить объявления");
         } finally {
             this.isLoading = false;
         }
     }
 
-    getPaginatedOffers(): any[] {
-        const startIndex = (this.currentPage - 1) * this.limit;
-        const endIndex = startIndex + this.limit;
-        return (this.allOffers || []).slice(startIndex, endIndex);
+    async renderWithOffers(offers: any[], showTitle: boolean = true): Promise<void> {
+        this.cleanup();
+        await this.renderContent(offers, showTitle);
     }
 
-    async renderContent(offers: any[], meta: any = null, showTitle: boolean = true): Promise<void> {
+    private async renderContent(offers: any[], showTitle: boolean = true): Promise<void> {
         this.cleanup();
 
-        if (!offers || offers.length === 0) {
-            this.renderEmptyState(showTitle);
-            return;
-        }
-
-        const template = await this.loadTemplate();
-        const formattedOffers = offers.map(offer => this.formatOffer(offer));
-        
-        const html = template({
-            offers: formattedOffers,
-            showTitle: showTitle
-        });
-
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        this.parent.appendChild(container.firstElementChild as HTMLElement);
-
-        await this.initializeOfferCards(formattedOffers);
-
-        if (meta && meta.total_pages && meta.total_pages > 1) {
-            this.renderPagination(meta);
-        }
-    }
-
-    formatOffer(apiData: any): any {
-        const isLiked = this.controller.isOfferLiked(apiData.id || apiData.ID);
-        const images = this.controller.getOfferImages(apiData);
-
-        const offerId = apiData.id || apiData.ID;
-        const price = apiData.price || apiData.Price || 0;
-        const address = apiData.address || apiData.Address || "Адрес не указан";
-
-        return {
-            id: offerId,
-            title: apiData.title || "Без названия",
-            price: price,
-            area: apiData.area || apiData.Area || 0,
-            rooms: apiData.rooms || apiData.Rooms || 0,
-            address: address,
-            metro: apiData.metro || apiData.Metro || "Метро не указано",
-            images: images,
-            multipleImages: images.length > 1,
-            likeClass: isLiked ? "liked" : "",
-            likeIcon: isLiked ? "../../images/active__like.png" : "../../images/like.png",
-            formattedPrice: this.formatPrice(price)
-        };
-    }
-
-    async initializeOfferCards(offers: any[]): Promise<void> {
-        const offerElements = this.parent.querySelectorAll('.offer-card');
-
-        this.offerCards = Array.from(offerElements).map((element, index) => {
-            const offerData = offers[index];
-            if (!offerData || !offerData.id) return null;
-
-            return new OffersListCard(element as HTMLElement, offerData, this.controller);
-        }).filter(card => card !== null) as OffersListCard[];
-
-        for (const card of this.offerCards) {
-            if (card && card.render) {
-                await card.render();
-            }
-        }
-    }
-
-    renderPagination(meta: any): void {
-        if (!meta || !meta.total_pages || meta.total_pages <= 1) return;
-
-        this.totalPages = meta.total_pages;
-
-        const paginationContainer = document.createElement('div');
-        paginationContainer.className = 'offers__pagination';
-
-        const prevButton = document.createElement('button');
-        prevButton.className = 'pagination__btn pagination__btn--prev';
-        prevButton.textContent = 'Назад';
-        prevButton.disabled = this.currentPage === 1;
-        prevButton.addEventListener('click', () => {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-                if (this.allOffers.length > 0) {
-                    this.renderWithOffers(this.allOffers, false);
-                } else {
-                    this.render();
-                }
-            }
-        });
-
-        const pagesContainer = document.createElement('div');
-        pagesContainer.className = 'pagination__pages';
-
-        for (let i = 1; i <= this.totalPages; i++) {
-            const pageButton = document.createElement('button');
-            pageButton.className = `pagination__page ${i === this.currentPage ? 'pagination__page--active' : ''}`;
-            pageButton.textContent = i;
-            pageButton.addEventListener('click', () => {
-                this.currentPage = i;
-                if (this.allOffers.length > 0) {
-                    this.renderWithOffers(this.allOffers, false);
-                } else {
-                    this.render();
-                }
-            });
-            pagesContainer.appendChild(pageButton);
-        }
-
-        const nextButton = document.createElement('button');
-        nextButton.className = 'pagination__btn pagination__btn--next';
-        nextButton.textContent = 'Вперед';
-        nextButton.disabled = this.currentPage === this.totalPages;
-        nextButton.addEventListener('click', () => {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-                if (this.allOffers.length > 0) {
-                    this.renderWithOffers(this.allOffers, false);
-                } else {
-                    this.render();
-                }
-            }
-        });
-
-        paginationContainer.appendChild(prevButton);
-        paginationContainer.appendChild(pagesContainer);
-        paginationContainer.appendChild(nextButton);
-        this.parent.appendChild(paginationContainer);
-    }
-
-    async loadTemplate(): Promise<any> {
-        if ((window as any).Handlebars?.templates?.["OffersList.hbs"]) {
-            return (window as any).Handlebars.templates["OffersList.hbs"];
-        }
-        throw new Error('Template not found');
-    }
-
-    renderLoading(): void {
-        this.cleanup();
-        const loadingDiv = document.createElement("div");
-        loadingDiv.className = "offers__loading";
-        loadingDiv.textContent = "Загрузка объявлений...";
-        this.parent.appendChild(loadingDiv);
-    }
-
-    renderError(message: string): void {
-        this.cleanup();
-        const offersContainer = document.createElement('div');
-        offersContainer.className = 'offers';
-
-        const title = document.createElement('h1');
-        title.className = 'offers__title';
-        title.textContent = 'Популярные объявления';
-        offersContainer.appendChild(title);
-
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'offers__error';
-
-        const errorText = document.createElement('p');
-        errorText.textContent = message;
-        errorDiv.appendChild(errorText);
-
-        const retryButton = document.createElement('button');
-        retryButton.className = 'offers__retry-btn';
-        retryButton.textContent = 'Попробовать снова';
-        retryButton.addEventListener('click', () => this.render());
-        errorDiv.appendChild(retryButton);
-
-        offersContainer.appendChild(errorDiv);
-        this.parent.appendChild(offersContainer);
-    }
-
-    renderEmptyState(showTitle: boolean = true): void {
-        this.cleanup();
         const offersContainer = document.createElement('div');
         offersContainer.className = 'offers';
 
         if (showTitle) {
             const title = document.createElement('h1');
             title.className = 'offers__title';
-            title.textContent = 'Популярные объявления';
+            title.textContent = 'Актуальные объявления';
             offersContainer.appendChild(title);
         }
 
-        const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'offers__empty';
+        if (!offers || offers.length === 0) {
+            this.renderEmptyState(offersContainer);
+        } else {
+            this.renderOffersList(offers, offersContainer);
+        }
 
-        const emptyText = document.createElement('p');
-        emptyText.textContent = 'Нет доступных объявлений';
-        emptyDiv.appendChild(emptyText);
-
-        offersContainer.appendChild(emptyDiv);
         this.parent.appendChild(offersContainer);
     }
 
-    formatPrice(price: number): string {
-        if (!price) return '0';
-        return new Intl.NumberFormat('ru-RU').format(price);
+    private renderOffersList(offers: any[], container: HTMLElement): void {
+        const offersGrid = document.createElement('div');
+        offersGrid.className = 'offers__container';
+
+        this.offerCards = offers.map(offer => {
+            const formattedOffer = this.formatOffer(offer);
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'offer-card-container';
+            return new OffersListCard(cardContainer, formattedOffer, this.controller);
+        });
+
+        this.offerCards.forEach(card => {
+            try {
+                const cardElement = card.render();
+                if (cardElement && cardElement.nodeType === Node.ELEMENT_NODE) {
+                    offersGrid.appendChild(cardElement);
+                }
+            } catch (error) {
+                console.error('Error rendering offer card:', error);
+            }
+        });
+
+        container.appendChild(offersGrid);
+
+        if (this.meta && this.meta.total_pages > 1) {
+            this.renderPagination(container);
+        }
+    }
+
+    private formatOffer(apiData: any): any {
+        const isLiked = this.controller.isOfferLiked(apiData.ID || apiData.id);
+        const images = this.controller.getOfferImages(apiData);
+
+        return {
+            id: apiData.ID || apiData.id,
+            title: apiData.Title || apiData.title || "Без названия",
+            description: apiData.Description || apiData.description || "",
+            price: apiData.Price || apiData.price || 0,
+            area: apiData.Area || apiData.area || 0,
+            rooms: apiData.Rooms || apiData.rooms || 0,
+            address: apiData.Address || apiData.address || "Адрес не указан",
+            offer_type: apiData.OfferType || apiData.offer_type,
+            property_type: apiData.PropertyType || apiData.property_type,
+            images: images,
+            isLiked: isLiked,
+            metro: apiData.Metro || apiData.metro || "Метро не указано",
+            floor: apiData.Floor || apiData.floor,
+            total_floors: apiData.TotalFloors || apiData.total_floors,
+            complex_name: apiData.ComplexName || apiData.complex_name || ""
+        };
+    }
+
+    private renderPagination(container: HTMLElement): void {
+        const pagination = document.createElement('div');
+        pagination.className = 'offers__pagination';
+
+        for (let i = 1; i <= this.meta.total_pages; i++) {
+            const pageButton = document.createElement('button');
+            pageButton.className = 'offers__pagination-button';
+            if (i === this.currentPage) {
+                pageButton.classList.add('offers__pagination-button--active');
+            }
+            pageButton.textContent = i.toString();
+            pageButton.addEventListener('click', () => {
+                this.currentPage = i;
+                this.render();
+            });
+            pagination.appendChild(pageButton);
+        }
+
+        container.appendChild(pagination);
+    }
+
+    private renderLoading(): void {
+        this.cleanup();
+        const loadingDiv = document.createElement("div");
+        loadingDiv.className = "offers__loading";
+        loadingDiv.innerHTML = `
+            <div class="loading-spinner"></div>
+            <p>Загрузка объявлений...</p>
+        `;
+        this.parent.appendChild(loadingDiv);
+    }
+
+    private renderError(message: string): void {
+        this.cleanup();
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "offers__error";
+
+        const errorText = document.createElement("p");
+        errorText.textContent = message;
+        errorDiv.appendChild(errorText);
+
+        const retryButton = document.createElement("button");
+        retryButton.className = "offers__retry-btn";
+        retryButton.textContent = "Попробовать снова";
+        retryButton.addEventListener("click", () => this.render());
+        errorDiv.appendChild(retryButton);
+
+        this.parent.appendChild(errorDiv);
+    }
+
+    private renderEmptyState(container: HTMLElement): void {
+        const emptyDiv = document.createElement("div");
+        emptyDiv.className = "offers__empty";
+
+        const emptyIcon = document.createElement("div");
+        emptyIcon.className = "empty-icon";
+        emptyIcon.innerHTML = "🏠";
+        emptyDiv.appendChild(emptyIcon);
+
+        const emptyText = document.createElement("p");
+        emptyText.className = "empty-text";
+        emptyText.textContent = "В данный момент нет доступных объявлений.";
+        emptyDiv.appendChild(emptyText);
+
+        container.appendChild(emptyDiv);
     }
 
     cleanup(): void {
@@ -276,6 +218,6 @@ export class OffersListWidget {
         });
         this.offerCards = [];
 
-        this.parent.innerHTML = '';
+        this.parent.innerHTML = "";
     }
 }

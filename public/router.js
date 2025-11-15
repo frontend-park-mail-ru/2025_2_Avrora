@@ -118,12 +118,8 @@ export class Router {
         this.controller.setCurrentPage(matchedRoute);
         this.currentPath = fullPath;
 
-        if (!this.initialHeaderRendered) {
-            if (this.controller.view.header) {
-                this.controller.view.header.render();
-            }
-            this.initialHeaderRendered = true;
-        }
+        // Рендерим layout и текущую страницу
+        await this.controller.renderLayout();
 
         const allParams = {
             ...routeParams,

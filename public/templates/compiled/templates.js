@@ -211,6 +211,9 @@ const templates = {
     + ((stack1 = lookupProperty(helpers,"each").call(depth0 != null ? depth0 : (container.nullContext || {}),(depth0 != null ? lookupProperty(depth0,"complexes") : depth0),{"name":"each","hash":{},"fn":container.program(1, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":3,"column":4},"end":{"line":15,"column":13}}})) != null ? stack1 : "")
     + "</div>";
 },"useData":true}),
+  'Footer': Handlebars.template({"compiler":[8,">= 4.3.0"],"main":function(container,depth0,helpers,partials,data) {
+    return "<footer class=\"footer\">\r\n    <div class=\"footer__content\">\r\n        <div class=\"footer__support-section\">\r\n            <button class=\"footer__support-btn\">Задать вопрос</button>\r\n        </div>\r\n    </div>\r\n</footer>";
+},"useData":true}),
   'Header': Handlebars.template({"1":function(container,depth0,helpers,partials,data) {
     var stack1, lookupProperty = container.lookupProperty || function(parent, propertyName) {
         if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {

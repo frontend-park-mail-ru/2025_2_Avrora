@@ -15,15 +15,15 @@ import { OfferCreateWidget } from './widgets/OfferCreateWidget.ts';
 import { OfferWidget } from './widgets/OfferWidget.ts';
 import { SearchOffersWidget } from './widgets/SearchOffersWidget.ts';
 import { SearchMapWidget } from './widgets/SearchMapWidget.ts';
-import { OffersListWidget } from './widgets/OffersListWidget.ts'; // Добавлен импорт
+import { OffersListWidget } from './widgets/OffersListWidget.ts';
 import { Header } from './components/Header/Header/Header.ts';
+import { Footer } from './components/Footer/Footer/Footer.ts';
 
 import { API } from './utils/API.js';
 import { Router } from './router.js';
 import { API_CONFIG } from "./config.js";
 import Handlebars from 'handlebars';
 import { templates } from './templates/compiled/templates.js';
-
 
 function initializeHandlebarsHelpers() {
     Handlebars.templates = templates;
@@ -59,7 +59,8 @@ class App {
             },
             {
                 modalView: this.modalView,
-                header: null // будет установлен позже
+                header: null,
+                footer: null // будет установлен позже
             }
         );
 
@@ -89,34 +90,37 @@ class App {
         const root = document.getElementById('root');
         if (!root) throw new Error('Root element not found');
 
-        this.headerElement = document.createElement('header');
-        root.appendChild(this.headerElement);
-
-        this.mainElement = document.createElement('main');
-        root.appendChild(this.mainElement);
+        // Создаем основную структуру приложения
+        const appElement = document.createElement('div');
+        appElement.id = 'app';
+        root.appendChild(appElement);
     }
 
     initializeComponents() {
         // Инициализация header с передачей контроллера
-        this.header = new Header(this.headerElement, this.controller);
+        this.header = new Header(document.createElement('header'), this.controller);
         this.controller.view.header = this.header;
 
+        // Инициализация footer с передачей контроллера
+        this.footer = new Footer(document.createElement('footer'), this.controller);
+        this.controller.view.footer = this.footer;
+
         // Инициализация страниц и передача контроллера
-        this.controller.registerPage('main', new MainPage(this.mainElement, this.controller));
-        this.controller.registerPage('login', new LoginPage(this.mainElement, this.controller));
-        this.controller.registerPage('register', new RegisterPage(this.mainElement, this.controller));
-        this.controller.registerPage('profileSummary', new ProfileWidget(this.mainElement, this.controller, { view: "summary" }));
-        this.controller.registerPage('profileEdit', new ProfileWidget(this.mainElement, this.controller, { view: "profile" }));
-        this.controller.registerPage('profileSafety', new ProfileWidget(this.mainElement, this.controller, { view: "safety" }));
-        this.controller.registerPage('profileMyAds', new ProfileWidget(this.mainElement, this.controller, { view: "myads" }));
-        this.controller.registerPage('complexesList', new ComplexesListWidget(this.mainElement, this.controller));
-        this.controller.registerPage('complexesDetail', new ComplexWidget(this.mainElement, this.controller));
-        this.controller.registerPage('createAd', new OfferCreateWidget(this.mainElement, this.controller));
-        this.controller.registerPage('offersList', new OffersListWidget(this.mainElement, this.controller)); // Исправлено
-        this.controller.registerPage('offerDetail', new OfferWidget(this.mainElement, this.controller));
-        this.controller.registerPage('searchAds', new SearchOffersWidget(this.mainElement, this.controller));
-        this.controller.registerPage('searchMap', new SearchMapWidget(this.mainElement, this.controller));
-        this.controller.registerPage('editOffer', new OfferCreateWidget(this.mainElement, this.controller, { isEditing: true }));
+        this.controller.registerPage('main', new MainPage(document.createElement('div'), this.controller));
+        this.controller.registerPage('login', new LoginPage(document.createElement('div'), this.controller));
+        this.controller.registerPage('register', new RegisterPage(document.createElement('div'), this.controller));
+        this.controller.registerPage('profileSummary', new ProfileWidget(document.createElement('div'), this.controller, { view: "summary" }));
+        this.controller.registerPage('profileEdit', new ProfileWidget(document.createElement('div'), this.controller, { view: "profile" }));
+        this.controller.registerPage('profileSafety', new ProfileWidget(document.createElement('div'), this.controller, { view: "safety" }));
+        this.controller.registerPage('profileMyAds', new ProfileWidget(document.createElement('div'), this.controller, { view: "myads" }));
+        this.controller.registerPage('complexesList', new ComplexesListWidget(document.createElement('div'), this.controller));
+        this.controller.registerPage('complexesDetail', new ComplexWidget(document.createElement('div'), this.controller));
+        this.controller.registerPage('createAd', new OfferCreateWidget(document.createElement('div'), this.controller));
+        this.controller.registerPage('offersList', new OffersListWidget(document.createElement('div'), this.controller));
+        this.controller.registerPage('offerDetail', new OfferWidget(document.createElement('div'), this.controller));
+        this.controller.registerPage('searchAds', new SearchOffersWidget(document.createElement('div'), this.controller));
+        this.controller.registerPage('searchMap', new SearchMapWidget(document.createElement('div'), this.controller));
+        this.controller.registerPage('editOffer', new OfferCreateWidget(document.createElement('div'), this.controller, { isEditing: true }));
     }
 
     setupRouter() {
@@ -156,7 +160,6 @@ class App {
     async initializeServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
-
                 console.log('Production mode - registering service worker');
                 const registration = await navigator.serviceWorker.register('/sw.js', {
                     scope: '/',

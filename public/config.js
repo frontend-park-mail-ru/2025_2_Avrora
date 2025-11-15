@@ -1,3 +1,5 @@
+// config.js - обновленный с эндпоинтами поддержки
+
 export const API_CONFIG = {
   API_BASE_URL: 'http://localhost:8080/api/v1',
   ENDPOINTS: {
@@ -37,6 +39,16 @@ export const API_CONFIG = {
     MEDIA: {
         UPLOAD: '/image/upload',
         BY_FILENAME: '/image'
+    },
+    SUPPORT_TICKETS: {
+        CREATE: '/support-tickets',
+        MY_TICKETS: '/support-tickets/my/',
+        BY_ID: '/support-tickets/',
+        DELETE: '/support-tickets/delete/',
+        ADMIN: {
+            LIST: '/admin/support-tickets',
+            UPDATE_STATUS: '/admin/support-tickets/status/'
+        }
     }
   }
 };
