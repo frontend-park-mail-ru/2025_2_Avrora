@@ -1,0 +1,80 @@
+<div class="complex">
+    <div class="complex__slider">
+        <div class="complex__slider-content">
+            <span class="complex__slider-title">{{title}}</span>
+            {{#if price}}
+            <span class="complex__slider-price">{{price}}</span>
+            {{/if}}
+        </div>
+
+        <div class="complex__slider-images">
+            {{#each images}}
+            <img class="complex__slider-image {{#if @first}}complex__slider-image_active{{/if}}"
+                 src="{{this}}"
+                 alt="Фото комплекса {{@index}}"
+                 loading="lazy">
+            {{else}}
+            <img class="complex__slider-image complex__slider-image_active"
+                 src="../images/default_complex.jpg"
+                 alt="Фото комплекса"
+                 loading="lazy">
+            {{/each}}
+
+            {{#if multipleImages}}
+            <!-- Кнопки управления -->
+            <div class="complex__slider-controls">
+                <button class="complex__slider-btn complex__slider-btn_prev" type="button">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2"></path>
+                    </svg>
+                </button>
+                <button class="complex__slider-btn complex__slider-btn_next" type="button">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Точки навигации -->
+            <div class="complex__slider-dots">
+                {{#each images}}
+                <button class="complex__slider-dot {{#if @first}}complex__slider-dot_active{{/if}}" type="button"></button>
+                {{/each}}
+            </div>
+            {{/if}}
+        </div>
+    </div>
+
+    <!-- Остальной код без изменений -->
+    <div class="complex__block">
+        <span class="complex__suptitle">Адрес</span>
+        <h1 class="complex__title">{{address}}</h1>
+        {{#if metro}}
+        <span class="complex__metro">
+            <img src="../images/metro.png" alt="Метро"> {{metro}}
+        </span>
+        {{/if}}
+        {{#if developer}}
+        <div class="complex__info-item">
+            <span class="complex__info-label">Застройщик:</span>
+            <span class="complex__info-value">{{developer}}</span>
+        </div>
+        {{/if}}
+        {{#if yearBuilt}}
+        <div class="complex__info-item">
+            <span class="complex__info-label">Год постройки:</span>
+            <span class="complex__info-value">{{yearBuilt}}</span>
+        </div>
+        {{/if}}
+        {{#if description}}
+        <p class="complex__description">{{description}}</p>
+        {{/if}}
+    </div>
+
+    <div class="complex__block">
+        <h2 class="complex__subtitle">Доступные апартаменты</h2>
+        <div class="complex__apartments">
+            <p class="complex__empty">Нет доступных апартаментов</p>
+        </div>
+    </div>
+</div>
