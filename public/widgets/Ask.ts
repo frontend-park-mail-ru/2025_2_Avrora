@@ -4,13 +4,13 @@ export class Ask {
     private parent: HTMLElement;
     private controller: any;
     private isModal: boolean;
-    private signedEmail: string | null = null; // Например, из auth
+    private signedEmail: string | null = null;
 
     constructor(parent: HTMLElement, controller: any, isModal: boolean = false, signedEmail: string | null = null) {
         this.parent = parent;
         this.controller = controller;
         this.isModal = isModal;
-        this.signedEmail = signedEmail; // можно передавать извне (например, из профиля)
+        this.signedEmail = signedEmail; 
     }
 
     async render(): Promise<void> {
@@ -43,7 +43,6 @@ export class Ask {
         const firstSection = document.createElement('div');
         firstSection.className = 'form-section';
 
-        // Category select (ENUM: 'bug', 'feature', 'general', 'billing')
         const categoryGroup = document.createElement('div');
         categoryGroup.className = 'form-group';
 
@@ -90,7 +89,6 @@ export class Ask {
         customSelect.append(categorySelect, selectArrow);
         categoryGroup.append(categoryLabel, customSelect);
 
-        // Description
         const descriptionGroup = document.createElement('div');
         descriptionGroup.className = 'form-group';
 
@@ -106,12 +104,11 @@ export class Ask {
 
         descriptionGroup.append(descriptionLabel, descriptionTextarea);
 
-        // File upload (supports multiple)
         const fileGroup = document.createElement('div');
         fileGroup.className = 'form-group';
 
         const fileLabel = document.createElement('label');
-        fileLabel.textContent = 'Приложите скриншоты (до 5, до 5 МБ каждый)';
+        fileLabel.textContent = 'Приложите скриншоты (до 5 МБ каждый)';
 
         const fileUpload = document.createElement('div');
         fileUpload.className = 'file-upload';
@@ -121,7 +118,7 @@ export class Ask {
         fileInput.id = 'screenshot';
         fileInput.name = 'screenshot';
         fileInput.accept = 'image/*';
-        fileInput.multiple = true; // ✅ поддержка нескольких файлов
+        fileInput.multiple = true; 
 
         const fileUploadLabel = document.createElement('label');
         fileUploadLabel.htmlFor = 'screenshot';
@@ -181,7 +178,6 @@ export class Ask {
 
         secondSection.append(contactsTitle, contactsSubtitle, nameGroup, emailGroup);
 
-        // Actions
         const formActions = document.createElement('div');
         formActions.className = 'form-actions';
 
@@ -236,14 +232,12 @@ export class Ask {
         const files = target.files;
 
         if (files && files.length > 0) {
-            // Обрезаем имя при >1 файле
             const label = files.length === 1
                 ? (files[0].name.length > 20 ? files[0].name.substring(0, 17) + '...' : files[0].name)
                 : `${files.length} файл(ов)`;
 
             this.updateFileLabel(fileLabel, label);
 
-            // Проверка размера каждого файла
             for (let i = 0; i < files.length; i++) {
                 if (files[i].size > 5 * 1024 * 1024) {
                     this.showError(`Файл "${files[i].name}" превышает 5MB`);
@@ -340,7 +334,6 @@ export class Ask {
         alert(message);
     }
 
-    // 📤 Отправка формы
     private async submitForm(): Promise<void> {
         const form = this.parent.querySelector('.ask-form') as HTMLFormElement;
         const submitButton = this.parent.querySelector('.submit-button') as HTMLButtonElement;
@@ -349,39 +342,34 @@ export class Ask {
         this.showLoadingState(submitButton);
 
         try {
-            // Сбор данных
             const category = (form.querySelector('#category') as HTMLSelectElement).value;
             const description = (form.querySelector('#problem-description') as HTMLTextAreaElement).value;
             const name = (form.querySelector('#name') as HTMLInputElement).value;
             const responseEmail = (form.querySelector('#response-email') as HTMLInputElement).value;
             const signedEmail = this.signedEmail || responseEmail; // fallback
 
-            // Загрузка файлов → photo_urls[]
             let photoUrls: string[] = [];
             if (fileInput.files && fileInput.files.length > 0) {
                 const uploadPromises = Array.from(fileInput.files).map(file => this.uploadFile(file));
                 photoUrls = await Promise.all(uploadPromises);
             }
 
-            // Формируем тело запроса по новому формату
             const ticketData = {
                 signed_email: signedEmail,
                 response_email: responseEmail,
                 name: name,
                 category: category,
                 description: description,
-                photo_urls: photoUrls // массив строк
+                photo_urls: photoUrls 
             };
 
-            // ✅ Отправляем JSON
             const response = await fetch(
                 `${API_CONFIG.API_BASE_URL}${API_CONFIG.ENDPOINTS.SUPPORT_TICKETS.CREATE}`,
                 {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'multipart/form-data',
-                        // 'Authorization': `Bearer ${token}` // добавить, если нужна авторизация
-                    },
+                   },
                     body: JSON.stringify(ticketData)
                 }
             );
@@ -412,10 +400,9 @@ export class Ask {
         }
     }
 
-    // 🖼️ Загрузка одного файла
     private async uploadFile(file: File): Promise<string> {
         const formData = new FormData();
-        formData.append('image', file); // ключ должен совпадать с ожидаемым на backend (например, `file`)
+        formData.append('image', file);
 
         const response = await fetch(
             `${API_CONFIG.API_BASE_URL}${API_CONFIG.ENDPOINTS.MEDIA.UPLOAD}`,
@@ -431,8 +418,6 @@ export class Ask {
         }
 
         const result = await response.json();
-        // Предполагается, что backend возвращает { filename: "xyz.png" } или { url: "https://..." }
-        // Адаптируем под ожидаемый формат photo_urls (полные URL)
         if (typeof result === 'string') return result;
         if (result.url) return result.url;
         if (result.filename) return `${API_CONFIG.API_BASE_URL}${API_CONFIG.ENDPOINTS.MEDIA.BY_FILENAME}/${result.filename}`;
