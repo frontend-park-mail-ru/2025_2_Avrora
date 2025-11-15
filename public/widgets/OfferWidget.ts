@@ -1,57 +1,20 @@
-import { API } from "../utils/API.js";
-import { API_CONFIG } from "../config.js";
-import { MediaService } from "../utils/MediaService.ts";
-import { ProfileService } from "../utils/ProfileService.ts";
 import { OfferCard } from "../components/Offer/OfferCard/OfferCard.ts";
 
-interface OfferWidgetState {
-    user?: {
-        id?: number;
-    };
-}
-
-interface AppRouter {
-    navigate: (path: string) => void;
-}
-
-interface App {
-    router?: AppRouter;
-}
-
-interface APIResponse {
-    ok: boolean;
-    data?: any;
-    error?: string;
-    status?: number;
-}
-
-interface EventListener {
-    element: HTMLElement;
-    event: string;
-    handler: EventListenerOrEventListenerObject;
-}
-
 export class OfferWidget {
-    parent: HTMLElement;
-    state: OfferWidgetState;
-    app: App | null;
-    offerId: number | null;
-    eventListeners: EventListener[];
-    isLoading: boolean;
-    offerCard: OfferCard | null;
+    private parent: HTMLElement;
+    private controller: any;
+    private offerId: number | null;
+    private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListenerOrEventListenerObject}>;
+    private isLoading: boolean;
+    private offerCard: OfferCard | null;
 
-    constructor(parent: HTMLElement, state: OfferWidgetState, app: App | null) {
+    constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.offerId = null;
         this.eventListeners = [];
         this.isLoading = false;
         this.offerCard = null;
-    }
-
-    async render(): Promise<void> {
-        await this.renderWithParams({});
     }
 
     async renderWithParams(params: any = {}): Promise<void> {
@@ -72,7 +35,7 @@ export class OfferWidget {
 
     async loadOffer(): Promise<any> {
         if (!this.offerId) {
-            const offersResult: APIResponse = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST);
+            const offersResult = await this.controller.loadOffers({ limit: 1 });
             if (offersResult.ok && offersResult.data.offers && offersResult.data.offers.length > 0) {
                 this.offerId = offersResult.data.offers[0].id || offersResult.data.offers[0].ID;
             } else {
@@ -80,29 +43,12 @@ export class OfferWidget {
             }
         }
 
-        const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.LIST}/${this.offerId}`;
-        const result: APIResponse = await API.get(endpoint);
-
+        const result = await this.controller.loadOffer(this.offerId);
         if (result.ok && result.data) {
-            const sellerData = await this.loadSellerData(result.data.user_id || result.data.UserID);
+            const sellerData = await this.controller.loadSellerData(result.data.user_id || result.data.UserID);
             return this.formatOffer(result.data, sellerData);
         }
         throw new Error(result.error || "Ошибка загрузки объявления");
-    }
-
-    async loadSellerData(userId: number): Promise<any> {
-        if (!userId) {
-            console.warn('No user ID provided for seller data');
-            return null;
-        }
-
-        try {
-            const sellerProfile = await ProfileService.getProfile(userId);
-            return sellerProfile;
-        } catch (error) {
-            console.error('Error loading seller profile:', error);
-            return null;
-        }
     }
 
     formatOffer(apiData: any, sellerData: any): any {
@@ -121,32 +67,8 @@ export class OfferWidget {
         const description = apiData.description || apiData.Description;
         const title = apiData.title || apiData.Title;
 
-        let images: string[] = [];
-        if (Array.isArray(apiData.images)) {
-            images = apiData.images.map((img: string) => MediaService.getImageUrl(img));
-        } else if (Array.isArray(apiData.ImageURLs)) {
-            images = apiData.ImageURLs.map((img: string) => MediaService.getImageUrl(img));
-        } else if (apiData.image_url) {
-            images = [MediaService.getImageUrl(apiData.image_url)];
-        } else if (apiData.ImageURL) {
-            images = [MediaService.getImageUrl(apiData.ImageURL)];
-        }
-
-        if (images.length === 0) {
-            images = [MediaService.getImageUrl('default_offer.jpg')];
-        }
-
-        const sellerName = sellerData ?
-            `${sellerData.first_name || ''} ${sellerData.last_name || ''}`.trim() || "Продавец" :
-            "Продавец";
-
-        const sellerPhone = sellerData ?
-            (sellerData.phone || "+7 XXX XXX-XX-XX") :
-            "+7 XXX XXX-XX-XX";
-
-        const sellerAvatar = sellerData && sellerData.photo_url ?
-            MediaService.getImageUrl(sellerData.photo_url) :
-            MediaService.getImageUrl('user.png');
+        const images = this.controller.getOfferImages(apiData);
+        const sellerInfo = this.controller.getSellerInfo(sellerData);
 
         return {
             id: offerId,
@@ -155,9 +77,9 @@ export class OfferWidget {
             metro: this.extractMetroFromAddress(address),
             address: address,
             price: this.formatPrice(price),
-            userName: sellerName,
-            userPhone: sellerPhone,
-            userAvatar: sellerAvatar,
+            userName: sellerInfo.name,
+            userPhone: sellerInfo.phone,
+            userAvatar: sellerInfo.avatar,
             description: description,
             images: images,
             characteristics: this.getCharacteristics({
@@ -174,9 +96,9 @@ export class OfferWidget {
             commission: apiData.commission || apiData.Commission || 0,
             rentalPeriod: this.formatRentalPeriod(apiData.rental_period || apiData.RentalPeriod),
             userId: userId,
-            showOwnerActions: this.state.user && this.state.user.id === userId,
-            showContactBtn: !(this.state.user && this.state.user.id === userId),
-            showPhone: this.state.user && this.state.user.id === userId
+            showOwnerActions: this.controller.isOfferOwner(apiData),
+            showContactBtn: !this.controller.isOfferOwner(apiData),
+            showPhone: this.controller.isOfferOwner(apiData)
         };
     }
 
@@ -213,7 +135,6 @@ export class OfferWidget {
 
     formatRentalPeriod(period: string): string {
         if (!period) return "";
-
         const periodMap: {[key: string]: string} = {
             'monthly': 'ежемесячно',
             'yearly': 'ежегодно',
@@ -277,14 +198,13 @@ export class OfferWidget {
 
     async renderContent(offerData: any): Promise<void> {
         this.cleanup();
-        this.offerCard = new OfferCard(offerData, this.state, this.app);
+        this.offerCard = new OfferCard(offerData, this.controller);
         const element = await this.offerCard.render();
         this.parent.appendChild(element);
     }
 
     renderError(message: string): void {
         this.cleanup();
-
         const errorDiv = document.createElement("div");
         errorDiv.className = "error-state";
 
@@ -302,15 +222,11 @@ export class OfferWidget {
     }
 
     cleanup(): void {
-        this.removeEventListeners();
-        this.parent.innerHTML = "";
-        this.offerCard = null;
-    }
-
-    removeEventListeners(): void {
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
+        this.parent.innerHTML = "";
+        this.offerCard = null;
     }
 }

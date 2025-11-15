@@ -1,19 +1,9 @@
 const CACHE_NAME = 'homa-offline-v1';
 const OFFLINE_URL = '/index.html';
 
-const isDevelopment = self.location.hostname === 'localhost' ||
-                     self.location.hostname === '127.0.0.1' ||
-                     self.location.protocol === 'http:';
-
-console.log('[SW] Starting in mode:', isDevelopment ? 'development' : 'production');
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
-
-  if (isDevelopment) {
-    console.log('[SW] Development mode - skipping cache installation');
-    return self.skipWaiting();
-  }
 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -34,11 +24,6 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating...');
-
-  if (isDevelopment) {
-    console.log('[SW] Development mode - skipping cache cleanup');
-    return self.clients.claim();
-  }
 
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -61,9 +46,6 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  if (isDevelopment) {
-    return;
-  }
 
   if (url.pathname.startsWith('/@vite') ||
       url.pathname.startsWith('/@fs') ||

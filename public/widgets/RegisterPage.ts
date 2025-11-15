@@ -3,27 +3,6 @@ import { validEmail, validPassword } from '../utils/Validator.ts';
 import { Input } from '../components/Authorization/Input/Input.ts';
 import { API_CONFIG } from "../config.js";
 
-
-interface AppState {
-    [key: string]: any;
-}
-
-interface App {
-    setUser: (user: User, token: string) => Promise<void>;
-    router: {
-        navigate: (path: string) => void;
-    };
-}
-
-interface User {
-    id: string;
-    email: string;
-    avatar: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-}
-
 interface JWTDecoded {
     user_id?: string;
     userID?: string;
@@ -56,31 +35,18 @@ interface APIResponse {
     error?: string;
 }
 
-declare global {
-    interface Window {
-        Handlebars: {
-            templates: {
-                [key: string]: (data: any) => string;
-            };
-            registerHelper: (name: string, fn: (a: any, b: any) => boolean) => void;
-        };
-    }
-}
-
 export class RegisterPage {
-    private state: AppState;
     private parent: HTMLElement;
-    private app: App;
+    private controller: any;
     private inputs: { [key: string]: Input };
     private eventListeners: EventListener[];
     private form: HTMLFormElement | null;
     private errorElement: HTMLElement | null;
     private button: HTMLButtonElement | null;
 
-    constructor(parent: HTMLElement, state: AppState, app: App) {
-        this.state = state;
+    constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
-        this.app = app;
+        this.controller = controller;
         this.inputs = {};
         this.eventListeners = [];
         this.form = null;
@@ -209,14 +175,12 @@ export class RegisterPage {
             });
 
             if (registerResult.ok) {
-
                 const loginResult: APIResponse = await API.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
                     email: emailStr,
                     password: passStr
                 });
 
                 if (loginResult.ok && loginResult.data && loginResult.data.token) {
-
                     const decoded = this.decodeJWT(loginResult.data.token);
 
                     const userId = decoded?.user_id || decoded?.userID;
@@ -225,7 +189,7 @@ export class RegisterPage {
                         throw new Error('Не удалось получить ID пользователя из токена. Доступные поля: ' + JSON.stringify(decoded));
                     }
 
-                    const user: User = {
+                    const user = {
                         id: userId.toString(),
                         email: loginResult.data.email || emailStr,
                         avatar: '../../images/user.png',
@@ -234,7 +198,7 @@ export class RegisterPage {
                         phone: ''
                     };
 
-                    await this.app.setUser(user, loginResult.data.token);
+                    await this.controller.setUser(user, loginResult.data.token);
 
                     this.showFormError("Регистрация и вход выполнены успешно!");
                     if (this.errorElement) {
@@ -250,7 +214,7 @@ export class RegisterPage {
                     this.clearAllVisualStates();
 
                     setTimeout(() => {
-                        this.app.router.navigate("/login");
+                        this.controller.navigate("/login");
                     }, 2000);
                 }
             } else {

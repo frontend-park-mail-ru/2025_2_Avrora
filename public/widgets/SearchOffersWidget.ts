@@ -1,111 +1,25 @@
-import { API } from "../utils/API.js";
-import { API_CONFIG } from "../config.js";
 import { OffersListCard } from "../components/OffersList/OffersListCard/OffersListCard.ts";
 import { SearchWidget } from "./SearchWidget.ts";
 
-interface App {
-    router: {
-        navigate(path: string): void;
-    };
-    logout(): void;
-    navigateToCreateAd(): void;
-}
-
-interface User {
-    likedOffers?: string[];
-}
-
-interface State {
-    user: User | null;
-}
-
-interface Offer {
-    ID?: string;
-    id?: string;
-    Title?: string;
-    title?: string;
-    Description?: string;
-    description?: string;
-    Price?: number;
-    price?: number;
-    Area?: number;
-    area?: number;
-    Rooms?: number;
-    rooms?: number;
-    Address?: string;
-    address?: string;
-    OfferType?: string;
-    offer_type?: string;
-    PropertyType?: string;
-    property_type?: string;
-    ImageURL?: string;
-    image_url?: string;
-    Metro?: string;
-    metro?: string;
-    Floor?: number;
-    floor?: number;
-    TotalFloors?: number;
-    total_floors?: number;
-    ComplexName?: string;
-    complex_name?: string;
-}
-
-interface Meta {
-    total?: number;
-}
-
-interface APIResponse {
-    ok: boolean;
-    data?: any;
-    error?: string;
-    status?: number;
-}
-
-interface FormattedOffer {
-    id: string | undefined;
-    title: string;
-    description: string;
-    price: number;
-    area: number;
-    rooms: number;
-    address: string;
-    offer_type: string | undefined;
-    property_type: string | undefined;
-    images: string[];
-    isLiked: boolean;
-    metro: string;
-    floor: number | undefined;
-    total_floors: number | undefined;
-    complex_name: string;
-}
-
 export class SearchOffersWidget {
     private parent: HTMLElement;
-    private state: State;
-    private app: App;
-    private eventListeners: { element: Element; event: string; handler: EventListenerOrEventListenerObject }[];
+    private controller: any;
+    private eventListeners: Array<{element: Element, event: string, handler: EventListenerOrEventListenerObject}>;
     private isLoading: boolean;
     private offerCards: any[];
-    private meta: Meta | null;
+    private meta: any;
     private currentParams: Record<string, string>;
-    private allOffers: Offer[];
-    private lastSearchParams: Record<string, string> | null;
+    private allOffers: any[];
 
-    constructor(parent: HTMLElement, state: State, app: App) {
+    constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.eventListeners = [];
         this.isLoading = false;
         this.offerCards = [];
         this.meta = null;
         this.currentParams = {};
         this.allOffers = [];
-        this.lastSearchParams = null;
-    }
-
-    async render(): Promise<void> {
-        await this.renderWithParams({});
     }
 
     async renderWithParams(params: { searchParams?: Record<string, string> }): Promise<void> {
@@ -116,7 +30,7 @@ export class SearchOffersWidget {
             const searchParams = params.searchParams || this.getSearchParamsFromURL();
             this.currentParams = searchParams;
 
-            const { offers, meta } = await this.loadFilteredOffers(this.currentParams);
+            const { offers, meta } = await this.controller.loadFilteredOffers(this.currentParams);
             this.allOffers = offers;
             this.meta = meta;
 
@@ -129,69 +43,6 @@ export class SearchOffersWidget {
         }
     }
 
-    private async loadFilteredOffers(filters: Record<string, string> = {}): Promise<{ offers: Offer[]; meta: Meta }> {
-        try {
-            const apiParams: Record<string, any> = {
-                limit: 100,
-                offset: 0
-            };
-
-            if (filters.location) {
-                apiParams.address = filters.location;
-            }
-            if (filters.offer_type) {
-                apiParams.offer_type = filters.offer_type;
-            }
-            if (filters.property_type) {
-                apiParams.property_type = filters.property_type;
-            }
-            if (filters.min_price) {
-                apiParams.price_min = parseInt(filters.min_price);
-            }
-            if (filters.max_price) {
-                apiParams.price_max = parseInt(filters.max_price);
-            }
-            if (filters.min_area) {
-                apiParams.area_min = parseFloat(filters.min_area);
-            }
-            if (filters.max_area) {
-                apiParams.area_max = parseFloat(filters.max_area);
-            }
-
-            apiParams._t = Date.now();
-
-            const result: APIResponse = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, apiParams);
-
-            if (!result.ok) {
-                throw new Error(result.error || `HTTP ${result.status}`);
-            }
-
-            const responseData = result.data || result;
-
-            let offers: Offer[] = [];
-            let meta: Meta = {};
-
-            if (responseData.Offers && Array.isArray(responseData.Offers)) {
-                offers = responseData.Offers;
-                meta = responseData.Meta || {};
-            } else if (responseData.offers && Array.isArray(responseData.offers)) {
-                offers = responseData.offers;
-                meta = responseData.meta || {};
-            } else if (responseData.data && Array.isArray(responseData.data)) {
-                offers = responseData.data;
-                meta = responseData.meta || {};
-            } else if (Array.isArray(responseData)) {
-                offers = responseData;
-                meta = { total: responseData.length };
-            }
-
-            return { offers, meta };
-        } catch (error) {
-            console.error('Error loading filtered offers:', error);
-            throw new Error(`Не удалось загрузить объявления: ${(error as Error).message}`);
-        }
-    }
-
     private getSearchParamsFromURL(): Record<string, string> {
         const urlParams = new URLSearchParams(window.location.search);
         const params: Record<string, string> = {};
@@ -199,7 +50,6 @@ export class SearchOffersWidget {
         if (urlParams.has('location')) params.location = urlParams.get('location')!;
         if (urlParams.has('offer_type')) params.offer_type = urlParams.get('offer_type')!;
         if (urlParams.has('property_type')) params.property_type = urlParams.get('property_type')!;
-
         if (urlParams.has('min_price')) params.min_price = urlParams.get('min_price')!;
         if (urlParams.has('max_price')) params.max_price = urlParams.get('max_price')!;
         if (urlParams.has('min_area')) params.min_area = urlParams.get('min_area')!;
@@ -208,7 +58,7 @@ export class SearchOffersWidget {
         return params;
     }
 
-    private async renderContent(offers: Offer[]): Promise<void> {
+    private async renderContent(offers: any[]): Promise<void> {
         this.cleanup();
 
         const searchContainer = document.createElement('div');
@@ -218,7 +68,7 @@ export class SearchOffersWidget {
         const searchWidget = new SearchWidget(searchContainer, {
             onSearch: (params: Record<string, string>) => this.handleSearch(params),
             onShowMap: (params: Record<string, string>) => this.handleShowMap(params),
-            navigate: (path: string) => this.navigate(path)
+            navigate: (path: string) => this.controller.navigate(path)
         });
         await searchWidget.render();
 
@@ -234,7 +84,7 @@ export class SearchOffersWidget {
         this.parent.appendChild(resultsContainer);
     }
 
-    private renderOffersList(offers: Offer[], container: HTMLElement): void {
+    private renderOffersList(offers: any[], container: HTMLElement): void {
         const offersContainer = document.createElement('div');
         offersContainer.className = 'offers';
 
@@ -263,7 +113,7 @@ export class SearchOffersWidget {
             const formattedOffer = this.formatOffer(offer);
             const cardContainer = document.createElement('div');
             cardContainer.className = 'offer-card-container';
-            return new OffersListCard(cardContainer, formattedOffer, this.state, this.app);
+            return new OffersListCard(cardContainer, formattedOffer, this.controller);
         });
 
         this.offerCards.forEach(card => {
@@ -320,7 +170,7 @@ export class SearchOffersWidget {
         clearAllButton.className = 'active-filters__clear-all';
         clearAllButton.textContent = 'Сбросить все фильтры';
         clearAllButton.addEventListener('click', () => {
-            this.navigate('/search-ads');
+            this.controller.navigate('/search-ads');
         });
 
         filtersContainer.appendChild(filtersList);
@@ -357,26 +207,12 @@ export class SearchOffersWidget {
         delete newParams[key];
 
         const url = this.buildUrl('/search-ads', newParams);
-        this.navigate(url);
+        this.controller.navigate(url);
     }
 
-    private formatOffer(apiData: Offer): FormattedOffer {
-        const isLiked = this.state.user?.likedOffers?.includes(apiData.ID || apiData.id || '') || false;
-
-        let images: string[] = [];
-        const imageUrl = apiData.ImageURL || apiData.image_url;
-
-        if (imageUrl) {
-            if (imageUrl.startsWith('http')) {
-                images = [imageUrl];
-            } else if (imageUrl) {
-                images = [`${API_CONFIG.API_BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE.GET}${imageUrl}`];
-            }
-        }
-
-        if (images.length === 0) {
-            images = ['../images/default_offer.jpg'];
-        }
+    private formatOffer(apiData: any): any {
+        const isLiked = this.controller.isOfferLiked(apiData.ID || apiData.id);
+        const images = this.controller.getOfferImages(apiData);
 
         return {
             id: apiData.ID || apiData.id,
@@ -399,35 +235,23 @@ export class SearchOffersWidget {
 
     private handleSearch(params: Record<string, string>): void {
         const url = this.buildUrl("/search-ads", params);
-        this.navigate(url);
+        this.controller.navigate(url);
     }
 
     private handleShowMap(params: Record<string, string>): void {
         const url = this.buildUrl("/search-map", params);
-        this.navigate(url);
+        this.controller.navigate(url);
     }
 
     private buildUrl(basePath: string, params: Record<string, string> = {}): string {
         const url = new URL(basePath, window.location.origin);
-
         url.search = '';
-
         Object.entries(params).forEach(([key, value]) => {
             if (value != null && value !== "" && value !== undefined) {
                 url.searchParams.set(key, value);
             }
         });
-
         return url.pathname + url.search;
-    }
-
-    private navigate(path: string): void {
-        if (this.app?.router?.navigate) {
-            this.app.router.navigate(path);
-        } else {
-            window.history.pushState({}, "", path);
-            window.dispatchEvent(new PopStateEvent("popstate"));
-        }
     }
 
     private renderLoading(): void {
@@ -453,7 +277,7 @@ export class SearchOffersWidget {
         const retryButton = document.createElement("button");
         retryButton.className = "search-results__retry-btn";
         retryButton.textContent = "Попробовать снова";
-        retryButton.addEventListener("click", () => this.render());
+        retryButton.addEventListener("click", () => this.renderWithParams({}));
         errorDiv.appendChild(retryButton);
 
         this.parent.appendChild(errorDiv);
@@ -485,7 +309,7 @@ export class SearchOffersWidget {
             resetButton.className = "search-results__reset-btn";
             resetButton.textContent = "Сбросить фильтры";
             resetButton.addEventListener("click", () => {
-                this.navigate("/search-ads");
+                this.controller.navigate("/search-ads");
             });
             emptyDiv.appendChild(resetButton);
         }

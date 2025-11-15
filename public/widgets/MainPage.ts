@@ -4,36 +4,24 @@ import { ComplexesListWidget } from "./ComplexesListWidget.ts";
 import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 
-interface App {
-    router: {
-        navigate: (path: string) => void;
-    };
-}
-
-interface State {
-
-}
-
 interface Offer {
-
+    // Define offer interface as needed
 }
 
 interface Complex {
-
+    // Define complex interface as needed
 }
 
 export class MainPage {
     private parent: HTMLElement;
-    private state: State;
-    private app: App;
+    private controller: any;
     private firstOffers: Offer[];
     private secondOffers: Offer[];
     private complexes: Complex[];
 
-    constructor(parent: HTMLElement, state: State, app: App) {
+    constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.firstOffers = [];
         this.secondOffers = [];
         this.complexes = [];
@@ -47,7 +35,7 @@ export class MainPage {
         this.parent.appendChild(searchContainer);
 
         const searchWidget = new SearchWidget(searchContainer, {
-            navigate: (path: string) => this.app.router.navigate(path)
+            navigate: (path: string) => this.controller.navigate(path)
         });
         await searchWidget.render();
 
@@ -122,7 +110,7 @@ export class MainPage {
             firstOffersContainer.className = 'offers';
             this.parent.appendChild(firstOffersContainer);
 
-            const firstOffersWidget = new OffersListWidget(firstOffersContainer, this.state, this.app);
+            const firstOffersWidget = new OffersListWidget(firstOffersContainer, this.controller);
             firstOffersWidget.renderWithOffers(this.firstOffers);
         }
 
@@ -131,7 +119,7 @@ export class MainPage {
             complexesContainer.className = 'complexes-list';
             this.parent.appendChild(complexesContainer);
 
-            const complexesWidget = new ComplexesListWidget(complexesContainer, this.state, this.app, {
+            const complexesWidget = new ComplexesListWidget(complexesContainer, this.controller, {
                 limit: 5,
                 showPagination: false,
                 isMainPage: true
@@ -144,7 +132,7 @@ export class MainPage {
             secondOffersContainer.className = 'offers offers--no-title';
             this.parent.appendChild(secondOffersContainer);
 
-            const secondOffersWidget = new OffersListWidget(secondOffersContainer, this.state, this.app);
+            const secondOffersWidget = new OffersListWidget(secondOffersContainer, this.controller);
             secondOffersWidget.renderWithOffers(this.secondOffers, false);
         }
 

@@ -1,76 +1,20 @@
-import { API } from "../utils/API.js";
-import { API_CONFIG } from "../config.js";
 import { SearchWidget } from "./SearchWidget.js";
-
-interface App {
-    router: {
-        navigate(path: string): void;
-    };
-}
-
-interface State {
-    user: any;
-}
-
-interface Offer {
-    ID?: string;
-    id?: string;
-    Title?: string;
-    title?: string;
-    Description?: string;
-    description?: string;
-    Price?: number;
-    price?: number;
-    Area?: number;
-    area?: number;
-    Rooms?: number;
-    rooms?: number;
-    Address?: string;
-    address?: string;
-    OfferType?: string;
-    offer_type?: string;
-    PropertyType?: string;
-    property_type?: string;
-    ImageURL?: string;
-    image_url?: string;
-    Metro?: string;
-    metro?: string;
-    Floor?: number;
-    floor?: number;
-    TotalFloors?: number;
-    total_floors?: number;
-    ComplexName?: string;
-    complex_name?: string;
-}
-
-interface APIResponse {
-    ok: boolean;
-    data?: any;
-    error?: string;
-    status?: number;
-}
 
 export class SearchMapWidget {
     private parent: HTMLElement;
-    private state: State;
-    private app: App;
-    private eventListeners: { element: Element; event: string; handler: EventListenerOrEventListenerObject }[];
+    private controller: any;
+    private eventListeners: Array<{element: Element, event: string, handler: EventListenerOrEventListenerObject}>;
     private isLoading: boolean;
     private currentParams: Record<string, string>;
-    private allOffers: Offer[];
+    private allOffers: any[];
 
-    constructor(parent: HTMLElement, state: State, app: App) {
+    constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.eventListeners = [];
         this.isLoading = false;
         this.currentParams = {};
         this.allOffers = [];
-    }
-
-    async render(): Promise<void> {
-        await this.renderWithParams({});
     }
 
     async renderWithParams(params: { searchParams?: Record<string, string> }): Promise<void> {
@@ -81,7 +25,7 @@ export class SearchMapWidget {
             const searchParams = params.searchParams || this.getSearchParamsFromURL();
             this.currentParams = searchParams;
 
-            const { offers } = await this.loadFilteredOffers(this.currentParams);
+            const { offers } = await this.controller.loadFilteredOffers(this.currentParams);
             this.allOffers = offers;
 
             this.renderContent(offers);
@@ -90,63 +34,6 @@ export class SearchMapWidget {
             this.renderError("Не удалось загрузить карту");
         } finally {
             this.isLoading = false;
-        }
-    }
-
-    private async loadFilteredOffers(filters: Record<string, string> = {}): Promise<{ offers: Offer[] }> {
-        try {
-            const apiParams: Record<string, any> = {
-                limit: 100,
-                offset: 0
-            };
-
-            if (filters.location) {
-                apiParams.address = filters.location;
-            }
-            if (filters.offer_type) {
-                apiParams.offer_type = filters.offer_type;
-            }
-            if (filters.property_type) {
-                apiParams.property_type = filters.property_type;
-            }
-            if (filters.min_price) {
-                apiParams.price_min = parseInt(filters.min_price);
-            }
-            if (filters.max_price) {
-                apiParams.price_max = parseInt(filters.max_price);
-            }
-            if (filters.min_area) {
-                apiParams.area_min = parseFloat(filters.min_area);
-            }
-            if (filters.max_area) {
-                apiParams.area_max = parseFloat(filters.max_area);
-            }
-
-            apiParams._t = Date.now();
-
-            const result: APIResponse = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, apiParams);
-
-            if (!result.ok) {
-                throw new Error(result.error || `HTTP ${result.status}`);
-            }
-
-            const responseData = result.data || result;
-            let offers: Offer[] = [];
-
-            if (responseData.Offers && Array.isArray(responseData.Offers)) {
-                offers = responseData.Offers;
-            } else if (responseData.offers && Array.isArray(responseData.offers)) {
-                offers = responseData.offers;
-            } else if (responseData.data && Array.isArray(responseData.data)) {
-                offers = responseData.data;
-            } else if (Array.isArray(responseData)) {
-                offers = responseData;
-            }
-
-            return { offers };
-        } catch (error) {
-            console.error('Error loading filtered offers for map:', error);
-            return { offers: [] };
         }
     }
 
@@ -165,7 +52,7 @@ export class SearchMapWidget {
         return params;
     }
 
-    private renderContent(offers: Offer[]): void {
+    private renderContent(offers: any[]): void {
         this.cleanup();
 
         const searchContainer = document.createElement('div');
@@ -175,7 +62,7 @@ export class SearchMapWidget {
         const searchWidget = new SearchWidget(searchContainer, {
             onSearch: (params: Record<string, string>) => this.handleSearch(params),
             onShowMap: (params: Record<string, string>) => this.handleShowMap(params),
-            navigate: (path: string) => this.navigate(path)
+            navigate: (path: string) => this.controller.navigate(path)
         });
         searchWidget.render();
 
@@ -210,7 +97,7 @@ export class SearchMapWidget {
         this.parent.appendChild(mapContainer);
     }
 
-    private createMapPlaceholder(offers: Offer[]): HTMLElement {
+    private createMapPlaceholder(offers: any[]): HTMLElement {
         const placeholder = document.createElement('div');
         placeholder.className = 'search-map__placeholder';
 
@@ -236,11 +123,11 @@ export class SearchMapWidget {
 
         goToListButton!.addEventListener('click', () => {
             const searchParams = new URLSearchParams(window.location.search);
-            this.navigate(`/search-ads?${searchParams.toString()}`);
+            this.controller.navigate(`/search-ads?${searchParams.toString()}`);
         });
 
         resetButton!.addEventListener('click', () => {
-            this.navigate('/search-map');
+            this.controller.navigate('/search-map');
         });
 
         return placeholder;
@@ -248,12 +135,12 @@ export class SearchMapWidget {
 
     private handleSearch(params: Record<string, string>): void {
         const url = this.buildUrl("/search-ads", params);
-        this.navigate(url);
+        this.controller.navigate(url);
     }
 
     private handleShowMap(params: Record<string, string>): void {
         const url = this.buildUrl("/search-map", params);
-        this.navigate(url);
+        this.controller.navigate(url);
     }
 
     private buildUrl(basePath: string, params: Record<string, string> = {}): string {
@@ -264,16 +151,6 @@ export class SearchMapWidget {
             }
         });
         return url.pathname + url.search;
-    }
-
-    private navigate(path: string): void {
-        console.log('Navigating to:', path);
-        if (this.app?.router?.navigate) {
-            this.app.router.navigate(path);
-        } else {
-            window.history.pushState({}, "", path);
-            window.dispatchEvent(new PopStateEvent("popstate"));
-        }
     }
 
     private renderLoading(): void {
@@ -299,7 +176,7 @@ export class SearchMapWidget {
         const retryButton = document.createElement("button");
         retryButton.className = "search-results__retry-btn";
         retryButton.textContent = "Попробовать снова";
-        retryButton.addEventListener("click", () => this.render());
+        retryButton.addEventListener("click", () => this.renderWithParams({}));
         errorDiv.appendChild(retryButton);
 
         this.parent.appendChild(errorDiv);

@@ -1,7 +1,7 @@
 export class Router {
     
-    constructor(app) {
-        this.app = app;
+    constructor(controller) {
+        this.controller = controller;
         this.routes = {};
         this.currentPath = '';
 
@@ -55,20 +55,22 @@ export class Router {
         const [path, search] = fullPath.split('?');
         const urlParams = new URLSearchParams(search);
 
+        // Проверка защищенных маршрутов
         if (this.protectedRoutes.some(route => {
             if (route.includes(':')) {
                 const routePattern = new RegExp('^' + route.replace(/:\w+/g, '[^/]+') + '$');
                 return routePattern.test(path);
             }
             return route === path;
-        }) && !this.app.state.user) {
+        }) && !this.controller.isAuthenticated) {
             this.navigate("/login");
             return;
         }
 
+        // Проверка полноты профиля для создания/редактирования офферов
         if ((path.startsWith('/create-ad') || path.startsWith('/edit-offer')) &&
-            this.app.state.user && !this.app.isProfileComplete()) {
-            this.app.showProfileCompletionModal();
+            this.controller.isAuthenticated && !this.controller.isProfileComplete()) {
+            this.controller.showProfileCompletionModal();
             return;
         }
 
@@ -99,23 +101,27 @@ export class Router {
             matchedRoute = this.routes["/"];
         }
 
+        // Проверка владения оффером для редактирования
         if (path.startsWith('/edit-offer/') && routeParams.id) {
-            const isOwner = await this.app.checkOfferOwnership(routeParams.id);
+            const isOwner = await this.controller.checkOfferOwnership(routeParams.id);
             if (!isOwner) {
                 this.navigate("/");
                 return;
             }
         }
 
-        if (this.app.currentPage?.cleanup) {
-            this.app.currentPage.cleanup();
+        const currentPage = this.controller.model.appStateModel.currentPage;
+        if (currentPage?.cleanup) {
+            currentPage.cleanup();
         }
 
-        this.app.currentPage = matchedRoute;
+        this.controller.setCurrentPage(matchedRoute);
         this.currentPath = fullPath;
 
         if (!this.initialHeaderRendered) {
-            this.app.header?.render();
+            if (this.controller.view.header) {
+                this.controller.view.header.render();
+            }
             this.initialHeaderRendered = true;
         }
 

@@ -81,8 +81,7 @@ interface EventListener {
 
 export class ComplexWidget {
     parent: HTMLElement;
-    state: any;
-    app: any;
+    controller: any;
     complexId: number | null;
     eventListeners: EventListener[];
     isLoading: boolean;
@@ -90,10 +89,9 @@ export class ComplexWidget {
     currentSlide: number;
     offersWidget: OffersListWidget | null;
 
-    constructor(parent: HTMLElement, state: any, app: any) {
+    constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.complexId = null;
         this.eventListeners = [];
         this.isLoading = false;
@@ -140,7 +138,6 @@ export class ComplexWidget {
     }
 
     async loadComplex(): Promise<FormattedComplexData> {
-
         if (!this.complexId) {
             throw new Error("Complex ID is required");
         }
@@ -297,7 +294,7 @@ export class ComplexWidget {
             return;
         }
 
-        this.offersWidget = new OffersListWidget(apartmentsContainer as HTMLElement, this.state, this.app);
+        this.offersWidget = new OffersListWidget(apartmentsContainer as HTMLElement, this.controller);
         (this.offersWidget as any).renderWithOffers(offers, false);
     }
 
