@@ -1,4 +1,5 @@
 import { SearchWidget } from "./SearchWidget.js";
+import { YandexMapSearchService } from "../utils/YandexMapSearchService.ts";
 
 export class SearchMapWidget {
     private parent: HTMLElement;
@@ -90,47 +91,19 @@ export class SearchMapWidget {
         const mapContent = document.createElement('div');
         mapContent.className = 'search-map__container';
 
-        const mapPlaceholder = this.createMapPlaceholder(offers);
-        mapContent.appendChild(mapPlaceholder);
+        const mapCanvas = document.createElement('div');
+        mapCanvas.id = 'yandex-search-map';
+        mapCanvas.style.width = '100%';
+        mapCanvas.style.height = '100%';
+        mapCanvas.style.backgroundColor = '#f5f5f5';
 
+        mapContent.appendChild(mapCanvas);
         mapContainer.appendChild(mapContent);
         this.parent.appendChild(mapContainer);
-    }
 
-    private createMapPlaceholder(offers: any[]): HTMLElement {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'search-map__placeholder';
-
-        const totalCount = offers.length;
-
-        placeholder.innerHTML = `
-            <div class="map-placeholder">
-                <div class="map-placeholder__icon">🗺️</div>
-                <h3 class="map-placeholder__title">Карта находится в разработке</h3>
-                <p class="map-placeholder__description">
-                    Функционал карты будет доступен в ближайшее время.<br>
-                    Пока что вы можете просмотреть ${totalCount} объявлений в виде списка.
-                </p>
-                <div class="map-placeholder__actions">
-                    <button class="map-placeholder__btn map-placeholder__btn--primary">Перейти к списку</button>
-                    <button class="map-placeholder__btn map-placeholder__btn--secondary">Сбросить фильтры</button>
-                </div>
-            </div>
-        `;
-
-        const goToListButton = placeholder.querySelector('.map-placeholder__btn--primary');
-        const resetButton = placeholder.querySelector('.map-placeholder__btn--secondary');
-
-        goToListButton!.addEventListener('click', () => {
-            const searchParams = new URLSearchParams(window.location.search);
-            this.controller.navigate(`/search-ads?${searchParams.toString()}`);
-        });
-
-        resetButton!.addEventListener('click', () => {
-            this.controller.navigate('/search-map');
-        });
-
-        return placeholder;
+        setTimeout(() => {
+            YandexMapSearchService.initMap('yandex-search-map', offers, this.currentParams);
+        }, 0);
     }
 
     private handleSearch(params: Record<string, string>): void {
@@ -188,5 +161,7 @@ export class SearchMapWidget {
         });
         this.eventListeners = [];
         this.parent.innerHTML = "";
+
+        YandexMapSearchService.destroyMap();
     }
 }

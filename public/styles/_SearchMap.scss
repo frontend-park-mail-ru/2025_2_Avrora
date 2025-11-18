@@ -1,0 +1,144 @@
+.search-map {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #fff;
+
+    &__header {
+        padding: 16px 24px;
+        border-bottom: 1px solid #e0e0e0;
+        background-color: #f9fbfa;
+    }
+
+    &__info {
+        font-size: 16px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    &__container {
+        flex: 1;
+        position: relative;
+    }
+
+    &__placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f5f5f5;
+    }
+}
+
+.placemark-count {
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.map-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 360px;
+    background-color: white;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        border-bottom: 1px solid #e0e0e0;
+        background-color: #f9fbfa;
+
+        h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+    }
+
+    &__close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #78909c;
+        padding: 4px;
+        border-radius: 4px;
+        transition: color 0.2s ease;
+
+        &:hover {
+            color: #4CAF50;
+        }
+    }
+
+    &__content {
+        padding: 16px 24px;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    &__offer-card {
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.2s ease;
+
+        &:hover {
+            background-color: #f5f5f5;
+            transform: translateY(-2px);
+        }
+    }
+
+    &__offer-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        background-size: cover;
+        background-position: center;
+        flex-shrink: 0;
+    }
+
+    &__offer-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    &__offer-price {
+        font-size: 18px;
+        font-weight: 600;
+        color: #4CAF50;
+    }
+
+    &__offer-desc {
+        font-size: 14px;
+        color: #333;
+        margin-top: 4px;
+    }
+
+    &__offer-address {
+        font-size: 12px;
+        color: #78909c;
+        margin-top: 4px;
+    }
+}
