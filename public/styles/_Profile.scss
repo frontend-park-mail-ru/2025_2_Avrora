@@ -4,14 +4,30 @@
     display: flex;
     justify-content: space-between;
 
+    @media (max-width: 768px) {
+        width: 95vw;
+        flex-direction: column;
+    }
+
     &__sidebar {
         width: 30%;
         border-right: 1px solid #A0A8BE;
+
+        @media (max-width: 768px) {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #A0A8BE;
+            margin-bottom: 20px;
+        }
 
         &-block {
             display: flex;
             flex-direction: column;
             margin-top: 10px;
+
+            @media (max-width: 768px) {
+                margin-top: 8px;
+            }
 
             &:nth-child(1)::after,
             &:nth-child(2)::after {
@@ -21,6 +37,10 @@
                 height: 1px;
                 background-color: #A0A8BE;
                 margin-top: 10px;
+
+                @media (max-width: 768px) {
+                    margin-top: 8px;
+                }
             }
         }
 
@@ -31,6 +51,11 @@
             font-size: 18px;
             font-weight: 600;
             padding-top: 20px;
+
+            @media (max-width: 768px) {
+                font-size: 16px;
+                padding-top: 16px;
+            }
         }
 
         &-avatar {
@@ -40,12 +65,22 @@
             border-radius: 50%;
             flex-shrink: 0;
             margin-right: 20px;
+
+            @media (max-width: 768px) {
+                width: 80px;
+                height: 80px;
+                margin-right: 16px;
+            }
         }
 
         &-name {
             font-family: "Inter", sans-serif;
             font-size: 18px;
             font-weight: 600;
+
+            @media (max-width: 768px) {
+                font-size: 16px;
+            }
         }
 
         &-link {
@@ -64,6 +99,12 @@
             background: none;
             cursor: pointer;
             text-align: left;
+
+            @media (max-width: 768px) {
+                font-size: 16px;
+                height: 44px;
+                padding-left: 12px;
+            }
 
             &:focus,
             &:hover,
@@ -84,6 +125,13 @@
         grid-template-rows: auto auto;
         gap: 10px;
         padding-top: 10px;
+
+        @media (max-width: 768px) {
+            width: 100%;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            padding-top: 0;
+        }
     }
 
     &__block {
@@ -103,6 +151,16 @@
         padding: 20px 30px;
         border-bottom: 1px solid #A0A8BE;
         margin: 0;
+
+        @media (max-width: 768px) {
+            font-size: 26px;
+            padding: 16px 20px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 22px;
+            padding: 14px 16px;
+        }
     }
 
     &__text {
@@ -112,6 +170,16 @@
         font-size: 16px;
         padding: 20px 30px;
         margin: 0;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            padding: 16px 20px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            padding: 14px 16px;
+        }
     }
 
     &__action-button,
@@ -130,6 +198,18 @@
         margin: 0 30px 20px 30px;
         transition: all 0.3s ease;
 
+        @media (max-width: 768px) {
+            font-size: 15px;
+            padding: 10px 32px;
+            margin: 0 20px 16px 20px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            padding: 9px 28px;
+            margin: 0 16px 12px 16px;
+        }
+
         &:hover {
             background-color: #18955c;
             transform: translateY(-1px);
@@ -141,6 +221,14 @@
         background-color: rgba(48, 145, 100, .15);
         color: #1FBB72;
         margin: 20px 30px 0 30px;
+
+        @media (max-width: 768px) {
+            margin: 16px 20px 0 20px;
+        }
+
+        @media (max-width: 480px) {
+            margin: 12px 16px 0 16px;
+        }
 
         &:hover {
             background-color: rgba(48, 145, 100, .25);
@@ -157,6 +245,16 @@
         transition: all 0.3s ease;
         cursor: pointer;
         position: relative;
+
+        @media (max-width: 768px) {
+            padding: 16px 20px;
+        }
+
+        @media (max-width: 480px) {
+            padding: 14px 16px;
+            flex-direction: column;
+            align-items: flex-start;
+        }
 
         &:hover {
             background-color: rgba(31, 187, 114, 0.05);
@@ -175,11 +273,29 @@
         object-fit: cover;
         border-radius: 8px;
         flex-shrink: 0;
+
+        @media (max-width: 768px) {
+            width: 70px;
+            height: 52px;
+            margin-right: 16px;
+        }
+
+        @media (max-width: 480px) {
+            width: 100%;
+            height: 120px;
+            margin-right: 0;
+            margin-bottom: 12px;
+            border-radius: 8px;
+        }
     }
 
     &__ad-info {
         text-align: left;
         flex: 1;
+
+        @media (max-width: 480px) {
+            width: 100%;
+        }
     }
 
     &__ad-title {
@@ -189,6 +305,15 @@
         color: #000;
         margin: 0 0 5px 0;
         line-height: 1.3;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+        }
     }
 
     &__ad-text {
@@ -198,12 +323,26 @@
         color: #A0A8BE;
         margin: 0;
         line-height: 1.4;
+
+        @media (max-width: 768px) {
+            font-size: 13px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 12px;
+        }
     }
 
     &__ad-actions {
         display: flex;
         gap: 10px;
         margin-top: 8px;
+
+        @media (max-width: 480px) {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
     }
 
     &__ad-action {
@@ -215,6 +354,18 @@
         border: none;
         cursor: pointer;
         transition: all 0.3s ease;
+
+        @media (max-width: 768px) {
+            font-size: 13px;
+            padding: 7px 14px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 12px;
+            padding: 6px 12px;
+            flex: 1 1 calc(50% - 5px);
+            max-width: 140px;
+        }
 
         &--edit {
             background-color: rgba(31, 187, 114, 0.1);
@@ -251,6 +402,16 @@
         width: 100%;
         transition: all 0.3s ease;
 
+        @media (max-width: 768px) {
+            font-size: 16px;
+            padding: 16px 20px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 15px;
+            padding: 14px 16px;
+        }
+
         &:hover {
             background-color: rgba(31, 187, 114, 0.1);
         }
@@ -261,6 +422,15 @@
         border-bottom: 1px solid #A0A8BE;
         display: flex;
         align-items: center;
+
+        @media (max-width: 768px) {
+            padding: 16px 20px;
+        }
+
+        @media (max-width: 480px) {
+            flex-direction: column;
+            text-align: center;
+        }
     }
 
     &__avatar {
@@ -269,20 +439,51 @@
         object-fit: cover;
         border-radius: 50%;
         margin-right: 20px;
+
+        @media (max-width: 768px) {
+            width: 80px;
+            height: 80px;
+            margin-right: 16px;
+        }
+
+        @media (max-width: 480px) {
+            margin-right: 0;
+            margin-bottom: 12px;
+        }
     }
 
     &__user-name {
         font-family: "Inter", sans-serif;
         font-size: 18px;
         font-weight: 600;
+
+        @media (max-width: 768px) {
+            font-size: 16px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 15px;
+        }
     }
 
     &__data-section {
         padding: 20px 0;
+
+        @media (max-width: 768px) {
+            padding: 16px 0;
+        }
     }
 
     &__field {
         margin: 20px 30px;
+
+        @media (max-width: 768px) {
+            margin: 16px 24px;
+        }
+
+        @media (max-width: 480px) {
+            margin: 12px 20px;
+        }
     }
 
     &__field-label {
@@ -292,6 +493,11 @@
         font-size: 14px;
         margin-bottom: 5px;
         color: #333;
+
+        @media (max-width: 768px) {
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
     }
 
     &__field-input {
@@ -305,6 +511,18 @@
         color: #000;
         transition: all 0.3s ease;
 
+        @media (max-width: 768px) {
+            font-size: 15px;
+            width: 70%;
+            padding: 9px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            width: 100%;
+            padding: 8px;
+        }
+
         &:focus {
             outline: none;
             border-color: #1FBB72;
@@ -313,6 +531,10 @@
 
         &::placeholder {
             color: #A0A8BE;
+
+            @media (max-width: 480px) {
+                font-size: 13px;
+            }
         }
     }
 
@@ -320,9 +542,21 @@
         position: relative;
         width: 50%;
 
+        @media (max-width: 768px) {
+            width: 70%;
+        }
+
+        @media (max-width: 480px) {
+            width: 100%;
+        }
+
         .profile__field-input {
             width: 100%;
             padding-right: 50px;
+
+            @media (max-width: 480px) {
+                padding-right: 44px;
+            }
         }
     }
 
@@ -337,6 +571,13 @@
         cursor: pointer;
         border: none;
         background: transparent;
+
+        @media (max-width: 480px) {
+            right: 12px;
+            top: 10px;
+            width: 18px;
+            height: 16px;
+        }
 
         &:hover {
             opacity: 1;
@@ -354,6 +595,16 @@
         text-align: center;
         padding: 40px 0;
         color: #666;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            padding: 32px 0;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            padding: 24px 0;
+        }
     }
 
     &__empty {
@@ -366,6 +617,18 @@
         border-radius: 8px;
         border: 1px solid #dee2e6;
         margin: 20px 30px;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            padding: 32px 16px;
+            margin: 16px 24px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            padding: 24px 12px;
+            margin: 12px 16px;
+        }
     }
 
     &__error {
@@ -378,6 +641,18 @@
         border-radius: 8px;
         border: 1px solid rgba(220, 53, 69, 0.2);
         margin: 20px 30px;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            padding: 16px 24px;
+            margin: 16px 24px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            padding: 12px 16px;
+            margin: 12px 16px;
+        }
     }
 
     &__retry-button {
@@ -394,6 +669,20 @@
         margin-top: 15px;
         transition: all 0.3s ease;
 
+        @media (max-width: 768px) {
+            font-size: 13px;
+            padding: 9px 18px;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 12px;
+            padding: 8px 16px;
+            margin-top: 10px;
+            width: 100%;
+            max-width: 220px;
+        }
+
         &:hover {
             background-color: #18955c;
             transform: translateY(-1px);
@@ -402,6 +691,7 @@
     }
 }
 
+// Модальные окна — адаптивные
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -413,6 +703,10 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
+
+    @media (max-width: 768px) {
+        padding: 20px;
+    }
 }
 
 .modal {
@@ -423,12 +717,22 @@
     width: 90%;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 
+    @media (max-width: 768px) {
+        max-width: 100%;
+        width: 100%;
+        border-radius: 0;
+    }
+
     &__header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 20px 20px 10px;
-        border-bottom: 1px solid #e0e0e0;
+        border-bottom: 1px solid #e0e0e6;
+
+        @media (max-width: 768px) {
+            padding: 16px 16px 8px;
+        }
 
         h3 {
             margin: 0;
@@ -436,6 +740,10 @@
             font-size: 18px;
             font-weight: 600;
             color: #333;
+
+            @media (max-width: 768px) {
+                font-size: 16px;
+            }
         }
     }
 
@@ -454,6 +762,12 @@
         border-radius: 50%;
         transition: all 0.3s ease;
 
+        @media (max-width: 768px) {
+            width: 26px;
+            height: 26px;
+            font-size: 20px;
+        }
+
         &:hover {
             color: #000;
             background-color: #f5f5f5;
@@ -463,12 +777,24 @@
     &__body {
         padding: 20px;
 
+        @media (max-width: 768px) {
+            padding: 16px;
+        }
+
         p {
             margin: 0;
             font-family: "Inter", sans-serif;
             font-size: 16px;
             color: #333;
             line-height: 1.5;
+
+            @media (max-width: 768px) {
+                font-size: 15px;
+            }
+
+            @media (max-width: 480px) {
+                font-size: 14px;
+            }
         }
     }
 
@@ -477,6 +803,16 @@
         gap: 10px;
         justify-content: flex-end;
         padding: 10px 20px 20px;
+
+        @media (max-width: 768px) {
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px 16px 16px;
+        }
+
+        @media (max-width: 480px) {
+            padding: 6px 12px 12px;
+        }
     }
 
     &__btn {
@@ -488,6 +824,17 @@
         font-size: 14px;
         font-weight: 500;
         transition: all 0.3s ease;
+
+        @media (max-width: 768px) {
+            padding: 10px;
+            font-size: 13px;
+            width: 100%;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 12px;
+            padding: 8px;
+        }
 
         &--cancel {
             background: #f0f0f0;
@@ -523,11 +870,19 @@
     }
 }
 
-.field-error{
+.field-error {
     margin-top: 5px;
-}
 
-.field-error p {
-    color: red;
-    margin-bottom: 2px;
+    @media (max-width: 768px) {
+        margin-top: 4px;
+    }
+
+    p {
+        color: red;
+        margin-bottom: 2px;
+
+        @media (max-width: 768px) {
+            font-size: 13px;
+        }
+    }
 }

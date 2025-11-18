@@ -8,99 +8,52 @@ interface TemplateData {
 }
 
 export class Header {
-    private parent: HTMLElement;
-    private controller: any; // AppController
-    private eventListeners: { element: Element; event: string; handler: EventListenerOrEventListenerObject }[];
-    private template: ((data: TemplateData) => string) | null;
-    private container: HTMLElement | null;
+    private container: HTMLElement;
+    private controller: any;
+    private isMenuOpen: boolean = false;
 
-    constructor(parent: HTMLElement, controller: any) {
-        this.parent = parent;
+    constructor(container: HTMLElement, controller: any) {
+        this.container = container;
         this.controller = controller;
-        this.eventListeners = [];
-        this.template = null;
-        this.container = null;
-    }
-
-    async render(): Promise<void> {
-        this.cleanup();
-
-        const template = await this.loadTemplate();
-        const isLoginPage = window.location.pathname === '/login';
-        const isRegisterPage = window.location.pathname === '/register';
-
-        const user = this.controller.user;
-        let userAvatar = "../../images/user.png";
-
-        if (user) {
-            userAvatar = user.AvatarURL ||
-                        user.avatar ||
-                        user.photo_url ||
-                        user.avatarUrl ||
-                        "../../images/user.png";
-        }
-
-        const templateData: TemplateData = {
-            isAuthenticated: this.controller.isAuthenticated,
-            user: {
-                avatar: userAvatar
-            },
-            isLoginPage,
-            isRegisterPage
-        };
-
-        if (typeof template !== 'function') {
-            console.error('Template is not a function:', template);
-            throw new Error('Header template is not a valid function');
-        }
-
-        const html = template(templateData);
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = html;
-
-        this.container = tempContainer.firstElementChild as HTMLElement;
-        this.parent.appendChild(this.container);
+        this.render();
         this.attachEventListeners();
     }
 
-    private async loadTemplate(): Promise<(data: TemplateData) => string> {
-        if (this.template) return this.template;
+    render(): void {
+        const template = (Handlebars as any).templates['Header.hbs'];
 
-        try {
-            const templates = (window as any).Handlebars.templates;
-            this.template = templates['Header'] || templates['Header.hbs'];
+        const user = this.controller.model.userModel.user;
+        const isAuthenticated = !!user;
 
-            if (!this.template) {
-                throw new Error('Header template not found in compiled templates');
-            }
+        const templateData = {
+            user,
+            isAuthenticated,
+            menuIcon: '☰' 
+        };
 
-            if (typeof this.template !== 'function') {
-                throw new Error('Header template is not a function');
-            }
+        const html = template(templateData);
+        this.container.innerHTML = html;
 
-            return this.template;
-        } catch (error) {
-            console.error('Failed to load header template:', error);
-            throw new Error('Header template loading failed');
+        if (window.innerWidth <= 768) {
+            this.container.classList.add('header--mobile');
         }
     }
 
     private attachEventListeners(): void {
-        if (!this.container) return;
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                this.container.classList.add('header--mobile');
+            } else {
+                this.container.classList.remove('header--mobile');
+                this.closeMobileMenu(); 
+            }
+        });
 
-        const loginButton = this.container.querySelector('.header__menu-btn--login');
-        if (loginButton) {
-            this.addEventListener(loginButton, 'click', (e: Event) => {
+        const menuBtn = this.container.querySelector('.header__menu-btn--mobile');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', (e: Event) => {
                 e.preventDefault();
-                this.controller.navigate("/login");
-            });
-        }
-
-        const registerButton = this.container.querySelector('.header__menu-btn--register');
-        if (registerButton) {
-            this.addEventListener(registerButton, 'click', (e: Event) => {
-                e.preventDefault();
-                this.controller.navigate("/register");
+                this.toggleMobileMenu();
             });
         }
 
@@ -124,55 +77,53 @@ export class Header {
         if (likeButton) {
             this.addEventListener(likeButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.handleLikeClick();
+                this.controller.navigate("/profile/myfavorites");
             });
         }
 
-        const addObjectButton = this.container.querySelector('.header__menu-btn--add-object');
-        if (addObjectButton) {
-            this.addEventListener(addObjectButton, 'click', (e: Event) => {
+        const registerButton = this.container.querySelector('.header__menu-btn--register');
+        if (registerButton) {
+            this.addEventListener(registerButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.controller.navigateToCreateAd();
+                this.controller.navigate("/register");
             });
         }
 
-        const logoLink = this.container.querySelector('.header__logo-link');
-        if (logoLink) {
-            this.addEventListener(logoLink, 'click', (e: Event) => {
+        const loginButton = this.container.querySelector('.header__menu-btn--login');
+        if (loginButton) {
+            this.addEventListener(loginButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.controller.navigate("/");
+                this.controller.navigate("/login");
             });
         }
     }
 
-    private handleLikeClick(): void {
-        if (this.controller.isAuthenticated) {
-            this.controller.navigate("/profile");
-        } else {
-            this.controller.navigate("/login");
+    private toggleMobileMenu(): void {
+        this.isMenuOpen = !this.isMenuOpen;
+        const menu = this.container.querySelector('.header__menu');
+        if (menu) {
+            menu.style.display = this.isMenuOpen ? 'flex' : 'none';
         }
     }
 
-    private addEventListener(
-        element: Element,
-        event: string,
-        handler: EventListenerOrEventListenerObject
-    ): void {
-        if (element) {
-            element.addEventListener(event, handler);
-            this.eventListeners.push({ element, event, handler });
+    private closeMobileMenu(): void {
+        this.isMenuOpen = false;
+        const menu = this.container.querySelector('.header__menu');
+        if (menu) {
+            menu.style.display = 'none';
         }
     }
 
-    private cleanup(): void {
+    private addEventListener(element: HTMLElement, event: string, handler: EventListenerOrEventListenerObject): void {
+        element.addEventListener(event, handler);
+        this.eventListeners.push({ element, event, handler });
+    }
+
+    cleanup(): void {
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
-
-        if (this.container) {
-            this.container.remove();
-            this.container = null;
-        }
+        this.container.innerHTML = '';
     }
 }

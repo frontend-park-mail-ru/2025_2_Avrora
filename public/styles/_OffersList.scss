@@ -3,10 +3,34 @@
     margin: 0 auto;
     padding: 20px 0;
 
+    @media (max-width: 768px) {
+        width: 95vw;
+        padding: 16px 0;
+    }
+
+    @media (max-width: 480px) {
+        padding: 12px 0;
+    }
+
     &__container {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 20px;
+
+        @media (max-width: 1024px) {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        @media (max-width: 768px) {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 480px) {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
     }
 
     &__title {
@@ -14,6 +38,16 @@
         font-weight: 600;
         font-size: 32px;
         margin-bottom: 30px;
+
+        @media (max-width: 768px) {
+            font-size: 26px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
     }
 
     &__error,
@@ -24,6 +58,16 @@
         color: #000;
         text-align: center;
         padding: 40px 0;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            padding: 32px 0;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            padding: 24px 0;
+        }
     }
 
     &__retry-btn {
@@ -39,6 +83,24 @@
         margin: 20px auto;
         cursor: pointer;
         display: block;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            padding: 10px 32px;
+            margin: 16px auto;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            padding: 9px 28px;
+            margin: 12px auto;
+        }
+
+        &:hover {
+            background-color: #18955c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(31, 187, 114, 0.3);
+        }
     }
 
     &__loading {
@@ -47,6 +109,16 @@
         font-size: 16px;
         text-align: center;
         padding: 40px 0;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            padding: 32px 0;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            padding: 24px 0;
+        }
     }
 }
 
@@ -62,10 +134,25 @@
     cursor: pointer;
     overflow: hidden;
 
+    @media (max-width: 480px) {
+        border-radius: 10px;
+        box-shadow: 3px 3px 5px rgba(0,0,0,0.15);
+    }
+
     &:hover {
         transform: translate(-5px, -5px);
         box-shadow: 10px 10px 5px rgba(0,0,0,0.2);
         transition: .2s linear;
+
+        @media (max-width: 768px) {
+            transform: translate(-3px, -3px);
+        }
+
+        @media (hover: none) {
+            /* Отключаем hover на тач-устройствах */
+            transform: none;
+            box-shadow: 5px 5px 5px rgba(0,0,0,0.2);
+        }
     }
 
     &__gallery {
@@ -73,6 +160,15 @@
         width: 100%;
         height: 260px;
         overflow: hidden;
+
+        @media (max-width: 768px) {
+            height: 220px;
+        }
+
+        @media (max-width: 480px) {
+            height: 180px;
+            border-radius: 10px 10px 0 0;
+        }
     }
 
     &__like {
@@ -90,6 +186,13 @@
         z-index: 10;
         border: none;
 
+        @media (max-width: 480px) {
+            height: 34px;
+            width: 34px;
+            top: 8px;
+            right: 8px;
+        }
+
         &:hover {
             background: rgba(0,0,0,0.2);
             transition: .1s linear;
@@ -98,6 +201,11 @@
         img {
             height: 20px;
             width: 20px;
+
+            @media (max-width: 480px) {
+                height: 18px;
+                width: 18px;
+            }
         }
     }
 
@@ -108,6 +216,18 @@
         color: #000;
         margin: 10px 0;
         padding: 0 20px;
+
+        @media (max-width: 768px) {
+            font-size: 20px;
+            margin: 8px 0;
+            padding: 0 16px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 18px;
+            margin: 6px 0;
+            padding: 0 12px;
+        }
     }
 
     &__description {
@@ -116,6 +236,18 @@
         font-size: 16px;
         margin-bottom: 10px;
         padding: 0 20px;
+
+        @media (max-width: 768px) {
+            font-size: 15px;
+            margin-bottom: 8px;
+            padding: 0 16px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 14px;
+            margin-bottom: 6px;
+            padding: 0 12px;
+        }
     }
 
     &__metro {
@@ -127,10 +259,28 @@
         margin-bottom: 10px;
         padding: 0 20px;
 
+        @media (max-width: 768px) {
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding: 0 16px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 13px;
+            margin-bottom: 6px;
+            padding: 0 12px;
+        }
+
         img {
             height: 11px;
             width: 16px;
             margin-right: 5px;
+
+            @media (max-width: 768px) {
+                height: 10px;
+                width: 14px;
+                margin-right: 4px;
+            }
         }
     }
 
@@ -141,6 +291,18 @@
         color: #A0A8BE;
         margin-bottom: 10px;
         padding: 0 20px;
+
+        @media (max-width: 768px) {
+            font-size: 14px;
+            margin-bottom: 8px;
+            padding: 0 16px;
+        }
+
+        @media (max-width: 480px) {
+            font-size: 13px;
+            margin-bottom: 6px;
+            padding: 0 12px;
+        }
     }
 }
 
@@ -177,12 +339,30 @@
         transition: opacity 0.3s ease;
         z-index: 10;
 
+        @media (max-width: 768px) {
+            width: 28px;
+            height: 28px;
+        }
+
+        @media (max-width: 480px) {
+            width: 24px;
+            height: 24px;
+        }
+
         &_prev {
             left: 8px;
+
+            @media (max-width: 480px) {
+                left: 6px;
+            }
         }
 
         &_next {
             right: 8px;
+
+            @media (max-width: 480px) {
+                right: 6px;
+            }
         }
 
         &:hover {
@@ -193,6 +373,11 @@
             width: 20px;
             height: 20px;
             color: #333;
+
+            @media (max-width: 768px) {
+                width: 18px;
+                height: 18px;
+            }
         }
     }
 
@@ -205,6 +390,11 @@
         justify-content: center;
         gap: 6px;
         z-index: 10;
+
+        @media (max-width: 480px) {
+            bottom: 8px;
+            gap: 4px;
+        }
     }
 
     &__dot {
@@ -215,6 +405,11 @@
         background: rgba(255, 255, 255, 0.6);
         cursor: pointer;
         transition: background-color 0.3s ease;
+
+        @media (max-width: 480px) {
+            width: 6px;
+            height: 6px;
+        }
 
         &_active {
             background: rgba(255, 255, 255, 1);
@@ -237,11 +432,29 @@
         padding: 60px 20px;
         color: #000;
 
+        @media (max-width: 768px) {
+            padding: 40px 16px;
+        }
+
+        @media (max-width: 480px) {
+            padding: 30px 12px;
+        }
+
         h2 {
             font-weight: 600;
             font-size: 28px;
             margin-bottom: 16px;
             color: #333;
+
+            @media (max-width: 768px) {
+                font-size: 24px;
+                margin-bottom: 12px;
+            }
+
+            @media (max-width: 480px) {
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
         }
 
         p {
@@ -251,6 +464,15 @@
             color: #666;
             max-width: 500px;
             margin: 0 auto;
+
+            @media (max-width: 768px) {
+                font-size: 15px;
+            }
+
+            @media (max-width: 480px) {
+                font-size: 14px;
+                line-height: 1.4;
+            }
         }
     }
 }
@@ -258,4 +480,14 @@
 .offers__pagination {
     display: flex;
     justify-content: center;
+    margin-top: 40px;
+
+    @media (max-width: 768px) {
+        margin-top: 32px;
+    }
+
+    @media (max-width: 480px) {
+        margin-top: 24px;
+        flex-wrap: wrap;
+    }
 }

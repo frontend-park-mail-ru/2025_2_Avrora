@@ -1,3 +1,5 @@
+// styles/_Authorization.scss
+
 .auth-page {
     display: flex;
     justify-content: center;
@@ -40,6 +42,11 @@
         width: 100%;
         max-width: 400px;
         margin: 20px;
+
+        @media (max-width: 480px) {
+            padding: 30px 20px;
+            margin: 10px;
+        }
     }
 }
 
@@ -50,6 +57,12 @@
         width: 80px;
         height: 80px;
         margin-bottom: 20px;
+
+        @media (max-width: 480px) {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 16px;
+        }
     }
 
     &__title {
@@ -58,14 +71,27 @@
         font-size: 28px;
         margin-bottom: 30px;
         color: #333;
+
+        @media (max-width: 480px) {
+            font-size: 24px;
+            margin-bottom: 24px;
+        }
     }
 
     &__inputs {
         margin-bottom: 20px;
+
+        @media (max-width: 480px) {
+            margin-bottom: 16px;
+        }
     }
 
     &__actions {
         text-align: center;
+
+        @media (max-width: 480px) {
+            margin-top: 10px;
+        }
     }
 
     &__error {
@@ -77,6 +103,11 @@
         min-height: 20px;
         visibility: hidden;
 
+        @media (max-width: 480px) {
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
         &--visible {
             visibility: visible;
         }
@@ -86,6 +117,10 @@
 .auth-input {
     margin-bottom: 20px;
     text-align: left;
+
+    @media (max-width: 480px) {
+        margin-bottom: 16px;
+    }
 
     &__field {
         font-family: "Inter", sans-serif;
@@ -98,6 +133,11 @@
         color: #A0A8BE;
         box-sizing: border-box;
         transition: all 0.2s ease;
+
+        @media (max-width: 480px) {
+            font-size: 15px;
+            padding: 12px 42px 12px 12px;
+        }
 
         &:focus {
             color: #2B332F;
@@ -130,6 +170,11 @@
         color: #FF0000;
         margin-top: 5px;
         min-height: 20px;
+
+        @media (max-width: 480px) {
+            font-size: 13px;
+            margin-top: 4px;
+        }
     }
 
     &__password-container {
@@ -147,6 +192,12 @@
         width: 18px;
         height: 18px;
         padding: 0;
+
+        @media (max-width: 480px) {
+            right: 22px;
+            width: 16px;
+            height: 16px;
+        }
 
         &::before {
             content: "";
@@ -178,6 +229,11 @@
     cursor: pointer;
     transition: all 0.2s ease;
     width: 100%;
+
+    @media (max-width: 480px) {
+        font-size: 15px;
+        padding: 11px 32px;
+    }
 
     &:hover {
         background-color: #22CA7C;

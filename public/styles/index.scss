@@ -8,6 +8,7 @@
 @use "./ComplexesList";
 @use "./OfferCreate";
 @use "./Profile";
+@use "./Section"; 
 
 * {
 	padding: 0;
@@ -21,19 +22,41 @@
 	}
 }
 
+html {
+	font-size: 16px;
+	scroll-behavior: smooth;
+
+	-webkit-text-size-adjust: 100%;
+	-ms-text-size-adjust: 100%;
+}
+
+body {
+	font-family: "Inter", sans-serif;
+	line-height: 1.5;
+	color: #333;
+	background-color: #fff;
+	overflow-x: hidden; 
+	min-height: 100vh;
+	position: relative;
+}
+
 a {
 	&, &:link, &:visited {
 		text-decoration: none;
+		color: inherit;
 	}
 
-	&:hover {
+	&:hover,
+	&:focus {
 		text-decoration: none;
+		outline: none;
 	}
 }
 
 h1, h2, h3, h4, h5, h6, p {
 	font-size: inherit;
 	font-weight: inherit;
+	margin: 0;
 }
 
 ul, ul li {
@@ -60,6 +83,9 @@ input, textarea, button, select {
 	font-size: inherit;
 	color: inherit;
 	background-color: transparent;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
 }
 
 input::-ms-clear {
@@ -72,6 +98,7 @@ button, input[type="submit"] {
 	background-color: transparent;
 	background: none;
 	cursor: pointer;
+	border: none;
 }
 
 input, button {
@@ -95,4 +122,116 @@ legend {
 
 input[type='file'] {
 	max-width: 100%;
+}
+
+@media (max-width: 768px) {
+	html {
+		font-size: 15px;
+	}
+
+	body {
+		font-size: 14px;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	*:not(input):not(textarea) {
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+
+	* {
+		-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+	}
+
+	@supports (-webkit-touch-callout: none) {
+		body {
+			padding-bottom: env(safe-area-inset-bottom);
+		}
+	}
+}
+
+@media (max-width: 480px) {
+	html {
+		font-size: 14px;
+	}
+
+	body {
+		font-size: 13px;
+	}
+
+	button,
+	.header__menu-btn,
+	.offer__contact-btn,
+	.auth-button,
+	.button {
+		min-height: 44px;
+		min-width: 44px;
+		padding: 10px 16px;
+
+		&:not([class*="__close"]) {
+			border-radius: 8px !important;
+		}
+	}
+}
+
+.container {
+	width: 90vw;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.section {
+	padding: 60px 0;
+
+	@media (max-width: 768px) {
+		padding: 40px 0;
+	}
+
+	@media (max-width: 480px) {
+		padding: 30px 0;
+	}
+}
+
+body.no-scroll {
+	overflow: hidden;
+	height: 100vh;
+	position: fixed;
+	width: 100%;
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+.fade-in {
+	animation: fadeIn 0.3s ease-out forwards;
+}
+
+:root {
+	--color-primary: #1FBB72;
+	--color-primary-dark: #18955c;
+	--color-accent-green: #4CAF50;
+	--color-accent-blue: #4A90E2;
+	--color-accent-red: #E74C3C;
+	--color-bg: #fff;
+	--color-bg-light: #f8f9fa;
+	--color-text: #333;
+	--color-text-secondary: #666;
+	--color-border: #e0e0e0;
+	--color-border-light: #dee2e6;
+}
+
+@media print {
+	*, *::before, *::after {
+		background: transparent !important;
+		color: #000 !important;
+		box-shadow: none !important;
+		text-shadow: none !important;
+	}
+	a, a:visited {
+		text-decoration: underline;
+	}
 }
