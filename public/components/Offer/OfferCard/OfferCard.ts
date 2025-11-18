@@ -25,6 +25,7 @@ interface OfferCardData {
     userId: number;
     userPhone: string;
     userAvatar: string;
+    views: number;
 }
 
 interface OfferCardState {
@@ -79,7 +80,8 @@ export class OfferCard {
             rentalPeriod: data.rentalPeriod || "",
             userId: data.userId || data.UserID || 0,
             userPhone: data.userPhone || "+7 XXX XXX-XX-XX",
-            userAvatar: data.userAvatar || MediaService.getImageUrl('user.png')
+            userAvatar: data.userAvatar || MediaService.getImageUrl('user.png'),
+            views: data.views || 0,
         };
 
         this.state = state;
@@ -97,7 +99,11 @@ export class OfferCard {
             if (this.data.userId) {
                 await this.loadSellerData();
             }
-
+            try {
+                await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.INCREMENT_VIEWS.replace(':id', this.data.id.toString())}`, {});
+            } catch (viewError) {
+                console.warn('Failed to increment views:', viewError);
+            }
             const template = (Handlebars as any).templates['Offer.hbs'];
 
             const processedImages = this.data.images.map((img: string) =>
@@ -124,7 +130,8 @@ export class OfferCard {
                 showPhone: this.state.user && this.state.user.id !== this.data.userId && this.state.user.ID !== this.data.userId && this.isPhoneVisible,
                 showOwnerActions: this.state.user && (this.state.user.id === this.data.userId || this.state.user.ID === this.data.userId),
                 formattedDeposit: this.formatCurrency(this.data.deposit),
-                formattedCommission: this.formatCurrency(this.data.commission)
+                formattedCommission: this.formatCurrency(this.data.commission),
+                views: this.data.views
             };
 
             const html = template(templateData);

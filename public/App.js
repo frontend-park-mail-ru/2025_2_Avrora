@@ -40,6 +40,18 @@ function initializeHandlebarsHelpers() {
             return options.inverse(this);
         }
     });
+
+    Handlebars.registerHelper('pluralize', function (count, one, two, many) {
+        const n = Math.abs(count) % 100;
+        const n1 = n % 10;
+        if (n1 === 1 && n !== 11) {
+            return one;
+        } else if (n1 >= 2 && n1 <= 4 && (n < 10 || n > 20)) {
+            return two;
+        } else {
+            return many;
+        }
+    });
 }
 
 class App {

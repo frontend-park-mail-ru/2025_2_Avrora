@@ -11,6 +11,15 @@
             {{/if}}
             <span class="offer__address">{{address}}</span>
         </div>
+
+        <div class="offer__views">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="currentColor" stroke-width="2"/>
+                <circle cx="8" cy="8" r="2" fill="currentColor"/>
+            </svg>
+            <span>{{views}} {{pluralize views "просмотр" "просмотра" "просмотров"}}</span>
+        </div>
+
     </div>
 
     <div class="offer__main">
@@ -131,7 +140,13 @@
                 </div>
                 <div class="offer__feature-info">
                     <div class="offer__feature-title">{{title}}</div>
-                    <div class="offer__feature-value">{{value}}</div>
+                    {{#if isComplex}}
+                        <a href="/complexes/{{complexId}}" class="offer__feature-value offer__feature-value--complex">
+                            {{value}}
+                        </a>
+                    {{else}}
+                        <div class="offer__feature-value">{{value}}</div>
+                    {{/if}}
                 </div>
             </div>
             {{/each}}
@@ -144,4 +159,16 @@
         <p class="offer__description">{{description}}</p>
     </div>
     {{/if}}
+
+    <div class="offer__section offer__map-section">
+        <h2 class="offer__section-title">Местоположение на карте</h2>
+        <div id="yandex-map" class="offer__map" data-address="{{address}}"></div>
+    </div>
+
+    <div class="offer__section offer__price-history-section">
+        <h2 class="offer__section-title">История изменения цены</h2>
+        <div class="offer__price-history-container">
+            <canvas id="price-history-chart" width="800" height="400"></canvas>
+        </div>
+    </div>
 </div>

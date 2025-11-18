@@ -12,7 +12,8 @@ export const API_CONFIG = {
         BY_ID: '/offers/',
         UPDATE: '/offers/update/',
         DELETE: '/offers/delete/',
-        MY_OFFERS: '/profile/myoffers/'
+        MY_OFFERS: '/profile/myoffers/',
+        PRICE_HISTORY: ''
     },
     COMPLEXES: {
         LIST: '/complexes/list',

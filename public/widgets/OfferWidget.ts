@@ -1,4 +1,6 @@
 import { OfferCard } from "../components/Offer/OfferCard/OfferCard.ts";
+import { YandexMapService } from "../utils/YandexMapService.ts"; 
+import { PriceHistoryChartService } from "../utils/PriceHistoryChartService.ts";
 
 export class OfferWidget {
     private parent: HTMLElement;
@@ -7,6 +9,7 @@ export class OfferWidget {
     private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListenerOrEventListenerObject}>;
     private isLoading: boolean;
     private offerCard: OfferCard | null;
+    private rootEl: HTMLElement | null;
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -15,6 +18,7 @@ export class OfferWidget {
         this.eventListeners = [];
         this.isLoading = false;
         this.offerCard = null;
+        this.rootEl = null;
     }
 
     async renderWithParams(params: any = {}): Promise<void> {
@@ -67,6 +71,9 @@ export class OfferWidget {
         const description = apiData.description || apiData.Description;
         const title = apiData.title || apiData.Title;
 
+        const complexName = apiData.complex_name || apiData.ComplexName || '';
+        const complexId = apiData.complex_id || apiData.ComplexID || null;
+
         const images = this.controller.getOfferImages(apiData);
         const sellerInfo = this.controller.getSellerInfo(sellerData);
 
@@ -83,13 +90,14 @@ export class OfferWidget {
             description: description,
             images: images,
             characteristics: this.getCharacteristics({
-                area: area,
                 livingArea: livingArea,
                 kitchenArea: kitchenArea,
                 propertyType: propertyType,
                 floor: floor,
                 totalFloors: totalFloors,
-                rooms: rooms
+                rooms: rooms,
+                complexName: complexName, 
+                complexId: complexId  
             }),
             offerType: offerType,
             deposit: apiData.deposit || apiData.Deposit || 0,
@@ -145,12 +153,7 @@ export class OfferWidget {
     }
 
     getCharacteristics(apiData: any): any[] {
-        return [
-            {
-                title: 'Общая площадь',
-                value: `${apiData.area || '—'} м²`,
-                icon: 'area'
-            },
+        const characteristics = [
             {
                 title: 'Жилая площадь',
                 value: `${apiData.livingArea || '—'} м²`,
@@ -177,6 +180,18 @@ export class OfferWidget {
                 icon: 'type'
             }
         ];
+
+        if (apiData.complexName && apiData.complexId) {
+            characteristics.splice(1, 0, { 
+                title: 'В составе ЖК',
+                value: apiData.complexName,
+                icon: 'complex', 
+                isComplex: true, 
+                complexId: apiData.complexId 
+            });
+        }
+
+        return characteristics;
     }
 
     getPropertyTypeDisplay(propertyType: string): string {
@@ -201,6 +216,63 @@ export class OfferWidget {
         this.offerCard = new OfferCard(offerData, this.controller);
         const element = await this.offerCard.render();
         this.parent.appendChild(element);
+
+        this.rootEl = element;
+
+        await this.initYandexMap(offerData.address);
+
+        await this.initPriceHistoryChart(offerData.id);
+    }
+
+    private async initYandexMap(address: string | undefined): Promise<void> {
+        if (!address) {
+            console.warn('Адрес объявления отсутствует — карта не будет отображена');
+            return;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        const mapContainer = this.rootEl?.querySelector('#yandex-map') as HTMLElement | null;
+        if (!mapContainer) {
+            console.warn('Контейнер карты #yandex-map не найден в DOM');
+            return;
+        }
+
+        try {
+            await YandexMapService.initMap('yandex-map', address);
+        } catch (error) {
+            console.error('❌ Ошибка при инициализации карты:', error);
+        }
+    }
+
+    private async initPriceHistoryChart(offerId: number): Promise<void> {
+        try {
+            const priceHistory = await this.loadPriceHistory(offerId);
+
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            const chartContainer = this.rootEl?.querySelector('#price-history-chart') as HTMLCanvasElement | null;
+            if (!chartContainer) {
+                console.warn('Контейнер графика #price-history-chart не найден');
+                return;
+            }
+
+            await PriceHistoryChartService.initChart('price-history-chart', priceHistory);
+
+        } catch (error) {
+            console.error('Ошибка при инициализации графика:', error);
+        }
+    }
+
+    private async loadPriceHistory(offerId: number): Promise<Array<{ date: string; price: number }>> {
+        const result = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.PRICE_HISTORY}/${offerId}`);
+        if (result.ok && result.data) {
+            return result.data.map((item: any) => ({
+                date: item.date || item.Date,
+                price: item.price || item.Price
+            }));
+        }
+        throw new Error('Не удалось загрузить историю цен');
     }
 
     renderError(message: string): void {
@@ -226,7 +298,13 @@ export class OfferWidget {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
+
         this.parent.innerHTML = "";
+
+        YandexMapService.destroyMap();
+        PriceHistoryChartService.destroyChart();
+
         this.offerCard = null;
+        this.rootEl = null;
     }
 }
