@@ -94,6 +94,7 @@ export class ProfileWidget {
                 break;
             case "summary":
             default:
+                // Передаем controller вместо state и app
                 component = new Summary(this.controller);
                 break;
         }
@@ -113,6 +114,7 @@ export class ProfileWidget {
             this.renderError("Не удалось загрузить компонент");
         }
     }
+
 
     private renderError(message: string): void {
         if (!this.root) return;
