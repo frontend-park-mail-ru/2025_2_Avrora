@@ -2,8 +2,7 @@ import { MediaService } from '../../../utils/MediaService.ts';
 import { Modal } from '../../../components/OfferCreate/Modal/Modal.ts';
 
 interface StageOptions {
-    state: any;
-    app: any;
+    controller: any;
     dataManager: any;
     isEditing?: boolean;
     editOfferId?: string | null;
@@ -12,12 +11,10 @@ interface StageOptions {
 interface ImageData {
     filename: string;
     url: string;
-    url: string;
 }
 
 export class OfferCreateFifthStage {
-    state: any;
-    app: any;
+    controller: any;
     dataManager: any;
     isEditing: boolean;
     editOfferId: string | null;
@@ -25,9 +22,8 @@ export class OfferCreateFifthStage {
     images: ImageData[];
     isUploading: boolean;
 
-    constructor({ state, app, dataManager, isEditing = false, editOfferId = null }: StageOptions = {}) {
-        this.state = state;
-        this.app = app;
+    constructor({ controller, dataManager, isEditing = false, editOfferId = null }: StageOptions = {}) {
+        this.controller = controller;
         this.dataManager = dataManager;
         this.isEditing = isEditing;
         this.editOfferId = editOfferId;
@@ -93,19 +89,29 @@ export class OfferCreateFifthStage {
         uploadProgress.className = 'create-ad__upload-progress';
         uploadProgress.style.display = 'none';
 
+        const imageCounter = document.createElement('div');
+        imageCounter.className = 'create-ad__image-counter';
+        imageCounter.textContent = `Загружено изображений: ${this.images.length}/10`;
+
+        const uploadInfo = document.createElement('div');
+        uploadInfo.className = 'create-ad__upload-info';
+        uploadInfo.textContent = 'Максимум 10 изображений, каждое до 10MB';
+
         selectBtn.addEventListener('click', () => fileInput.click());
 
         fileInput.addEventListener('change', async (e: Event) => {
             const files = Array.from((e.target as HTMLInputElement).files || []);
             if (files.length === 0) return;
 
-            await this.handleFileUpload(files, uploadedImages, uploadProgress);
+            await this.handleFileUpload(files, uploadedImages, uploadProgress, imageCounter);
             fileInput.value = '';
         });
 
         uploadContainer.appendChild(uploadedImages);
         uploadContainer.appendChild(selectBtn);
         uploadContainer.appendChild(uploadProgress);
+        uploadContainer.appendChild(imageCounter);
+        uploadContainer.appendChild(uploadInfo);
         fileBlock.appendChild(uploadContainer);
         fileBlock.appendChild(fileInput);
         this.root.appendChild(fileBlock);
@@ -113,42 +119,58 @@ export class OfferCreateFifthStage {
         this.root.appendChild(this.createNav({ prev: true, publish: true }));
 
         this.restoreFormData();
+        this.updateImageCounter(imageCounter);
 
         return this.root;
     }
 
-    async handleFileUpload(files: File[], uploadedImagesContainer: HTMLElement, progressContainer: HTMLElement): Promise<void> {
+    async handleFileUpload(files: File[], uploadedImagesContainer: HTMLElement, progressContainer: HTMLElement, counterContainer: HTMLElement): Promise<void> {
+        if (this.isUploading) {
+            Modal.show({
+                title: 'Внимание',
+                message: 'Дождитесь завершения текущей загрузки',
+                type: 'warning'
+            });
+            return;
+        }
+
         this.isUploading = true;
         this.updateUploadState(true);
 
         try {
             progressContainer.style.display = 'block';
-            progressContainer.textContent = 'Загрузка изображений...';
+            progressContainer.textContent = 'Подготовка к загрузке...';
 
-            const validFiles = files.filter(file => {
-                try {
-                    MediaService.validateImage(file);
-                    return true;
-                } catch (error) {
-                    console.warn('File validation failed:', (error as Error).message);
-                    Modal.show({
-                        title: 'Ошибка валидации',
-                        message: `Файл "${file.name}": ${(error as Error).message}`,
-                        type: 'error'
-                    });
-                    return false;
+            // Валидация файлов перед загрузкой
+            const validFiles: File[] = [];
+            const invalidFiles: string[] = [];
+
+            files.forEach(file => {
+                if (!file.type.startsWith('image/')) {
+                    invalidFiles.push(`"${file.name}" - не изображение`);
+                    return;
                 }
+                if (file.size > 10 * 1024 * 1024) {
+                    invalidFiles.push(`"${file.name}" - слишком большой (максимум 10MB)`);
+                    return;
+                }
+                validFiles.push(file);
             });
 
-            if (validFiles.length === 0) {
+            // Показываем ошибки для невалидных файлов
+            if (invalidFiles.length > 0) {
                 Modal.show({
-                    title: 'Внимание',
-                    message: 'Нет валидных файлов для загрузки',
-                    type: 'info'
+                    title: 'Некорректные файлы',
+                    message: `Следующие файлы не были загружены:\n${invalidFiles.join('\n')}`,
+                    type: 'error'
                 });
+            }
+
+            if (validFiles.length === 0) {
                 return;
             }
 
+            // Проверяем лимит изображений
             const currentTotalImages = this.images.length + validFiles.length;
             if (currentTotalImages > 10) {
                 Modal.show({
@@ -159,13 +181,25 @@ export class OfferCreateFifthStage {
                 return;
             }
 
-            const uploadResults: any[] = [];
-            for (const file of validFiles) {
+            // Загружаем файлы последовательно
+            const uploadResults: ImageData[] = [];
+            
+            for (let i = 0; i < validFiles.length; i++) {
+                const file = validFiles[i];
+                
                 try {
+                    progressContainer.textContent = `Загрузка ${i + 1} из ${validFiles.length}: ${file.name}`;
+                    
                     const result = await MediaService.uploadImage(file);
-                    if (result) {
-                        uploadResults.push(result);
-                        progressContainer.textContent = `Загружено ${uploadResults.length} из ${validFiles.length}`;
+                    if (result && result.filename) {
+                        const imageData: ImageData = {
+                            filename: result.filename,
+                            url: MediaService.getImageUrl(result.filename)
+                        };
+                        uploadResults.push(imageData);
+                        
+                        // Сразу создаем превью для успешно загруженного изображения
+                        this.createImagePreview(imageData, uploadedImagesContainer);
                     }
                 } catch (error) {
                     console.error(`Failed to upload ${file.name}:`, error);
@@ -177,23 +211,20 @@ export class OfferCreateFifthStage {
                 }
             }
 
-            uploadResults.forEach(result => {
-                if (result && result.filename) {
-                    const imageData: ImageData = {
-                        filename: result.filename,
-                        url: MediaService.getImageUrl(result.filename)
-                    };
-                    this.images.push(imageData);
-                    this.createImagePreview(imageData, uploadedImagesContainer);
-                }
-            });
-
+            // Добавляем успешно загруженные изображения в общий массив
+            this.images.push(...uploadResults);
             this.saveFormData();
+            this.updateImageCounter(counterContainer);
 
+            // Показываем результат загрузки
             if (uploadResults.length > 0) {
+                const successMessage = uploadResults.length === validFiles.length 
+                    ? `Успешно загружено ${uploadResults.length} изображений`
+                    : `Успешно загружено ${uploadResults.length} из ${validFiles.length} изображений`;
+                    
                 Modal.show({
-                    title: 'Успех',
-                    message: `Успешно загружено ${uploadResults.length} изображений`,
+                    title: 'Загрузка завершена',
+                    message: successMessage,
                     type: 'success'
                 });
             }
@@ -202,7 +233,7 @@ export class OfferCreateFifthStage {
             console.error('Error uploading images:', error);
             Modal.show({
                 title: 'Ошибка загрузки',
-                message: (error as Error).message || 'Не удалось загрузить изображения. Проверьте подключение к интернету.',
+                message: 'Не удалось загрузить изображения. Проверьте подключение к интернету.',
                 type: 'error'
             });
         } finally {
@@ -212,41 +243,39 @@ export class OfferCreateFifthStage {
         }
     }
 
-    validateImages(): { isValid: boolean; message?: string } {
-        if (this.images.length === 0) {
-            return {
-                isValid: false,
-                message: 'Необходимо загрузить минимум одну фотографию'
-            };
-        }
-
-        if (this.images.length > 10) {
-            return {
-                isValid: false,
-                message: 'Можно загрузить не более 10 фотографий'
-            };
-        }
-
-        return { isValid: true };
-    }
-
     createImagePreview(imageData: ImageData, container: HTMLElement): void {
         const imgWrap = document.createElement('div');
         imgWrap.className = 'create-ad__uploaded-image';
 
         const img = document.createElement('img');
-        img.src = MediaService.getImageUrl(imageData.filename);
-        img.alt = `Загруженное изображение ${imageData.filename}`;
+        img.src = imageData.url;
+        img.alt = 'Загруженное изображение';
         img.loading = 'lazy';
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.className = 'create-ad__remove-image';
         removeBtn.textContent = '×';
+        removeBtn.title = 'Удалить изображение';
         removeBtn.addEventListener('click', () => {
+            if (this.isUploading) {
+                Modal.show({
+                    title: 'Внимание',
+                    message: 'Дождитесь завершения загрузки перед удалением изображений',
+                    type: 'warning'
+                });
+                return;
+            }
+
             imgWrap.remove();
             this.images = this.images.filter(img => img.filename !== imageData.filename);
             this.saveFormData();
+            
+            // Обновляем счетчик
+            const counter = this.root!.querySelector('.create-ad__image-counter') as HTMLElement;
+            if (counter) {
+                this.updateImageCounter(counter);
+            }
         });
 
         imgWrap.appendChild(img);
@@ -256,9 +285,25 @@ export class OfferCreateFifthStage {
 
     updateUploadState(isUploading: boolean): void {
         const selectBtn = this.root!.querySelector('.create-ad__file-select-button') as HTMLButtonElement;
+        const publishBtn = this.root!.querySelector('[data-action="publish"]') as HTMLButtonElement;
+        
         if (selectBtn) {
             selectBtn.disabled = isUploading;
             selectBtn.textContent = isUploading ? 'Загрузка...' : 'Выбрать файлы';
+        }
+        
+        if (publishBtn) {
+            publishBtn.disabled = isUploading;
+        }
+    }
+
+    updateImageCounter(counterContainer: HTMLElement): void {
+        counterContainer.textContent = `Загружено изображений: ${this.images.length}/10`;
+        
+        // Обновляем состояние кнопки публикации на основе количества изображений
+        const publishBtn = this.root!.querySelector('[data-action="publish"]') as HTMLButtonElement;
+        if (publishBtn && !this.isUploading) {
+            publishBtn.disabled = this.images.length === 0;
         }
     }
 
@@ -290,27 +335,44 @@ export class OfferCreateFifthStage {
     saveFormData(): void {
         const formData: any = {
             description: (this.root!.querySelector('.create-ad__input_textarea[data-field="description"]') as HTMLTextAreaElement)?.value || '',
-            images: this.images.map(img => ({
-                filename: img.filename,
-                url: MediaService.getImageUrl(img.filename)
-            }))
+            images: [...this.images] // Создаем копию массива
         };
 
-        this.dataManager.updateStage5(formData);
+        console.log('Saving form data with images:', formData.images);
+
+        // Сохраняем данные используя существующие методы dataManager
+        if (this.dataManager.updateStage5) {
+            this.dataManager.updateStage5(formData);
+        } else if (this.dataManager.updateData) {
+            this.dataManager.updateData(5, formData);
+        } else if (this.dataManager.setData) {
+            const currentData = this.dataManager.getData();
+            const updatedData = { ...currentData, ...formData };
+            this.dataManager.setData(updatedData);
+        } else {
+            // Если методы не существуют, сохраняем напрямую
+            const currentData = this.dataManager.getData();
+            const updatedData = { ...currentData, ...formData };
+            this.dataManager.data = updatedData;
+        }
+
+        console.log('Data after save:', this.dataManager.getData());
     }
 
     restoreFormData(): void {
         const currentData = this.dataManager.getData();
+        console.log('Restoring data from dataManager:', currentData);
 
         const descInput = this.root!.querySelector('.create-ad__input_textarea[data-field="description"]') as HTMLTextAreaElement;
         if (descInput && currentData.description) {
             descInput.value = currentData.description;
         }
 
-        if (currentData.images && currentData.images.length > 0) {
-            this.images = currentData.images.map((img: ImageData) => ({
+        // Восстанавливаем изображения
+        if (currentData.images && Array.isArray(currentData.images)) {
+            this.images = currentData.images.map((img: any) => ({
                 filename: img.filename,
-                url: MediaService.getImageUrl(img.filename)
+                url: img.url || MediaService.getImageUrl(img.filename)
             }));
 
             const uploadedImagesContainer = this.root!.querySelector('.create-ad__uploaded-images') as HTMLElement;
@@ -321,6 +383,8 @@ export class OfferCreateFifthStage {
                 });
             }
         }
+
+        console.log('Restored images count:', this.images.length);
     }
 
     createNav({ prev = false, publish = false }: { prev?: boolean; publish?: boolean } = {}): HTMLElement {
@@ -343,7 +407,7 @@ export class OfferCreateFifthStage {
             pub.className = 'create-ad__nav-button create-ad__nav-button_publish';
             pub.textContent = this.isEditing ? 'Сохранить изменения' : 'Опубликовать';
             pub.dataset.action = 'publish';
-            pub.disabled = this.isUploading;
+            pub.disabled = this.isUploading || this.images.length === 0;
             group.appendChild(pub);
         }
 
