@@ -1,3 +1,22 @@
+interface App {
+    router: {
+        navigate(path: string): void;
+    };
+    logout(): void;
+    navigateToCreateAd(): void;
+}
+
+interface User {
+    AvatarURL?: string;
+    avatar?: string;
+    photo_url?: string;
+    avatarUrl?: string;
+}
+
+interface State {
+    user: User | null;
+}
+
 interface TemplateData {
     isAuthenticated: boolean;
     user: {
@@ -8,76 +27,93 @@ interface TemplateData {
 }
 
 export class Header {
-    private container: HTMLElement;
-    private controller: any;
-    private isMenuOpen: boolean = false;
+    private parent: HTMLElement;
+    private state: State;
+    private app: App;
+    private eventListeners: { element: Element; event: string; handler: EventListenerOrEventListenerObject }[];
+    private template: ((data: TemplateData) => string) | null;
+    private container: HTMLElement | null;
 
-    constructor(container: HTMLElement, controller: any) {
-        this.container = container;
-        this.controller = controller;
-        this.render();
+    constructor(parent: HTMLElement, state: State, app: App) {
+        this.parent = parent;
+        this.state = state;
+        this.app = app;
+        this.eventListeners = [];
+        this.template = null;
+        this.container = null;
+    }
+
+    async render(): Promise<void> {
+        this.cleanup();
+
+        const template = await this.loadTemplate();
+        const isLoginPage = window.location.pathname === '/login';
+        const isRegisterPage = window.location.pathname === '/register';
+
+        const user = this.state.user;
+        let userAvatar = "../../images/user.png";
+
+        if (user) {
+            userAvatar = user.AvatarURL ||
+                        user.avatar ||
+                        user.photo_url ||
+                        user.avatarUrl ||
+                        "../../images/user.png";
+        }
+
+        const templateData: TemplateData = {
+            isAuthenticated: !!this.state.user,
+            user: {
+                avatar: userAvatar
+            },
+            isLoginPage,
+            isRegisterPage
+        };
+
+        if (typeof template !== 'function') {
+            console.error('Template is not a function:', template);
+            throw new Error('Header template is not a valid function');
+        }
+
+        const html = template(templateData);
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = html;
+
+        this.container = tempContainer.firstElementChild as HTMLElement;
+        this.parent.appendChild(this.container);
         this.attachEventListeners();
     }
 
-    render(): void {
-        const template = (Handlebars as any).templates['Header.hbs'];
+    private async loadTemplate(): Promise<(data: TemplateData) => string> {
+        if (this.template) return this.template;
 
-        const user = this.controller.model.userModel.user;
-        const isAuthenticated = !!user;
+        try {
+            const templates = (window as any).Handlebars.templates;
+            this.template = templates['Header'] || templates['Header.hbs'];
 
-        const templateData = {
-            user,
-            isAuthenticated,
-            menuIcon: '☰' 
-        };
+            if (!this.template) {
+                throw new Error('Header template not found in compiled templates');
+            }
 
-        const html = template(templateData);
-        this.container.innerHTML = html;
+            if (typeof this.template !== 'function') {
+                throw new Error('Header template is not a function');
+            }
 
-        if (window.innerWidth <= 768) {
-            this.container.classList.add('header--mobile');
+            return this.template;
+        } catch (error) {
+            console.error('Failed to load header template:', error);
+            throw new Error('Header template loading failed');
         }
     }
 
     private attachEventListeners(): void {
-        window.addEventListener('resize', () => {
-            if (window.innerWidth <= 768) {
-                this.container.classList.add('header--mobile');
-            } else {
-                this.container.classList.remove('header--mobile');
-                this.closeMobileMenu(); 
-            }
-        });
+        if (!this.container) return;
 
-        const menuBtn = this.container.querySelector('.header__menu-btn--mobile');
-        if (menuBtn) {
-            menuBtn.addEventListener('click', (e: Event) => {
+        const loginButton = this.container.querySelector('.header__menu-btn--login');
+        if (loginButton) {
+            this.addEventListener(loginButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.toggleMobileMenu();
-            });
-        }
-
-        const logoutButton = this.container.querySelector('.header__menu-btn--logout');
-        if (logoutButton) {
-            this.addEventListener(logoutButton, 'click', (e: Event) => {
-                e.preventDefault();
-                this.controller.logout();
-            });
-        }
-
-        const profileButton = this.container.querySelector('.header__menu-btn--user');
-        if (profileButton) {
-            this.addEventListener(profileButton, 'click', (e: Event) => {
-                e.preventDefault();
-                this.controller.navigate("/profile");
-            });
-        }
-
-        const likeButton = this.container.querySelector('.header__menu-btn--like');
-        if (likeButton) {
-            this.addEventListener(likeButton, 'click', (e: Event) => {
-                e.preventDefault();
-                this.controller.navigate("/profile/myfavorites");
+                this.app.router.navigate("/login");
             });
         }
 
@@ -85,45 +121,79 @@ export class Header {
         if (registerButton) {
             this.addEventListener(registerButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.controller.navigate("/register");
+                this.app.router.navigate("/register");
             });
         }
 
-        const loginButton = this.container.querySelector('.header__menu-btn--login');
-        if (loginButton) {
-            this.addEventListener(loginButton, 'click', (e: Event) => {
+        const logoutButton = this.container.querySelector('.header__menu-btn--logout');
+        if (logoutButton) {
+            this.addEventListener(logoutButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.controller.navigate("/login");
+                this.app.logout();
+            });
+        }
+
+        const profileButton = this.container.querySelector('.header__menu-btn--user');
+        if (profileButton) {
+            this.addEventListener(profileButton, 'click', (e: Event) => {
+                e.preventDefault();
+                this.app.router.navigate("/profile");
+            });
+        }
+
+        const likeButton = this.container.querySelector('.header__menu-btn--like');
+        if (likeButton) {
+            this.addEventListener(likeButton, 'click', (e: Event) => {
+                e.preventDefault();
+                this.handleLikeClick();
+            });
+        }
+
+        const addObjectButton = this.container.querySelector('.header__menu-btn--add-object');
+        if (addObjectButton) {
+            this.addEventListener(addObjectButton, 'click', (e: Event) => {
+                e.preventDefault();
+                this.app.navigateToCreateAd();
+            });
+        }
+
+        const logoLink = this.container.querySelector('.header__logo-link');
+        if (logoLink) {
+            this.addEventListener(logoLink, 'click', (e: Event) => {
+                e.preventDefault();
+                this.app.router.navigate("/");
             });
         }
     }
 
-    private toggleMobileMenu(): void {
-        this.isMenuOpen = !this.isMenuOpen;
-        const menu = this.container.querySelector('.header__menu');
-        if (menu) {
-            menu.style.display = this.isMenuOpen ? 'flex' : 'none';
+    private handleLikeClick(): void {
+        if (this.state.user) {
+            this.app.router.navigate("/profile");
+        } else {
+            this.app.router.navigate("/login");
         }
     }
 
-    private closeMobileMenu(): void {
-        this.isMenuOpen = false;
-        const menu = this.container.querySelector('.header__menu');
-        if (menu) {
-            menu.style.display = 'none';
+    private addEventListener(
+        element: Element,
+        event: string,
+        handler: EventListenerOrEventListenerObject
+    ): void {
+        if (element) {
+            element.addEventListener(event, handler);
+            this.eventListeners.push({ element, event, handler });
         }
     }
 
-    private addEventListener(element: HTMLElement, event: string, handler: EventListenerOrEventListenerObject): void {
-        element.addEventListener(event, handler);
-        this.eventListeners.push({ element, event, handler });
-    }
-
-    cleanup(): void {
+    private cleanup(): void {
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
-        this.container.innerHTML = '';
+
+        if (this.container) {
+            this.container.remove();
+            this.container = null;
+        }
     }
 }

@@ -36,8 +36,8 @@ export class PriceHistoryChartService {
         const height = canvas.height - padding.top - padding.bottom;
 
         const prices = sortedData.map(d => d.price);
-        const minPrice = Math.min(...prices);
-        const maxPrice = Math.max(...prices);
+        let minPrice = Math.min(...prices);
+        let maxPrice = Math.max(...prices);
 
         if (minPrice === maxPrice) {
             minPrice -= 1000;
@@ -81,12 +81,24 @@ export class PriceHistoryChartService {
             return (daysFromStart / totalDays) * width;
         };
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const COLORS = {
+            background: '#f9fbfa',
+            grid: '#cfd8dc',
+            line: '#4CAF50',
+            axisLabel: '#78909c',
+            tooltipBg: '#fff',
+            tooltipBorder: '#ddd',
+            tooltipShadow: 'rgba(0,0,0,0.1)',
+            tooltipText: '#333',
+            tooltipSubtext: '#78909c',
+            pointFill: '#4CAF50'
+        };
 
-        ctx.fillStyle = '#f9fbfa';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = COLORS.background;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.strokeStyle = '#cfd8dc';
+        ctx.strokeStyle = COLORS.grid;
         ctx.lineWidth = 1;
 
         const ySteps = 5;
@@ -98,7 +110,7 @@ export class PriceHistoryChartService {
             ctx.stroke();
 
             const priceLabel = Math.round(minPrice + (i / ySteps) * (maxPrice - minPrice));
-            ctx.fillStyle = '#78909c';
+            ctx.fillStyle = COLORS.axisLabel;
             ctx.font = '12px Arial';
             ctx.textAlign = 'right';
             ctx.fillText(priceLabel.toLocaleString('ru-RU'), padding.left - 10, y + 4);
@@ -115,7 +127,7 @@ export class PriceHistoryChartService {
             ctx.stroke();
 
             const label = formatDate(point.date);
-            ctx.fillStyle = '#78909c';
+            ctx.fillStyle = COLORS.axisLabel;
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(label, x, canvas.height - padding.bottom + 20);
@@ -126,7 +138,7 @@ export class PriceHistoryChartService {
             y: padding.top + priceToY(point.price)
         }));
 
-        const duration = 1200; 
+        const duration = 1200;
         let startTime: number | null = null;
 
         const animateLine = (timestamp: number) => {
@@ -135,8 +147,9 @@ export class PriceHistoryChartService {
             const progress = Math.min(elapsed / duration, 1);
 
             ctx.clearRect(padding.left - 5, padding.top - 5, width + 10, height + 10);
-            ctx.strokeStyle = '#cfd8dc';
+            ctx.strokeStyle = COLORS.grid;
             ctx.lineWidth = 1;
+
             for (let i = 0; i <= ySteps; i++) {
                 const y = padding.top + (i / ySteps) * height;
                 ctx.beginPath();
@@ -153,7 +166,7 @@ export class PriceHistoryChartService {
             }
 
             if (linePoints.length > 1) {
-                ctx.strokeStyle = '#4CAF50';
+                ctx.strokeStyle = COLORS.line;
                 ctx.lineWidth = 2;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -186,10 +199,10 @@ export class PriceHistoryChartService {
                 ctx.stroke();
             }
 
-            ctx.fillStyle = '#4CAF50';
+            ctx.fillStyle = COLORS.pointFill;
             for (let i = 0; i < linePoints.length; i++) {
                 const pointProgress = i / (linePoints.length - 1);
-                if (progress >= pointProgress - 0.05) { 
+                if (progress >= pointProgress - 0.05) {
                     const p = linePoints[i];
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
@@ -207,7 +220,7 @@ export class PriceHistoryChartService {
                     }
                 };
 
-                this.setupTooltip(canvas, sortedData, padding, dateToX, priceToY, getMonthShortName);
+                this.setupTooltip(canvas, sortedData, padding, dateToX, priceToY, getMonthShortName, COLORS);
             }
         };
 
@@ -220,7 +233,14 @@ export class PriceHistoryChartService {
         padding: { top: number; right: number; bottom: number; left: number },
         dateToX: (dateStr: string) => number,
         priceToY: (price: number) => number,
-        getMonthShortName: (monthIndex: number) => string
+        getMonthShortName: (monthIndex: number) => string,
+        COLORS: { 
+            tooltipBg: string; 
+            tooltipBorder: string; 
+            tooltipShadow: string; 
+            tooltipText: string; 
+            tooltipSubtext: string 
+        }
     ) {
         let tooltip: HTMLElement | null = null;
 
@@ -245,20 +265,7 @@ export class PriceHistoryChartService {
             if (closestPoint) {
                 if (!tooltip) {
                     tooltip = document.createElement('div');
-                    tooltip.style.cssText = `
-                        position: absolute;
-                        background: white;
-                        border: 1px solid #ddd;
-                        padding: 8px;
-                        border-radius: 4px;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                        pointer-events: none;
-                        font-size: 14px;
-                        font-weight: bold;
-                        color: #333;
-                        text-align: center;
-                        z-index: 1000;
-                    `;
+                    tooltip.className = 'price-history-tooltip';
                     document.body.appendChild(tooltip);
                 }
 
@@ -266,7 +273,7 @@ export class PriceHistoryChartService {
                 const formattedDate = `${date.getDate()} ${getMonthShortName(date.getMonth())} ${date.getFullYear()}`;
                 tooltip.innerHTML = `
                     <div>${closestPoint.price.toLocaleString('ru-RU')} руб</div>
-                    <div style="color:#78909c; font-weight:normal;">${formattedDate}</div>
+                    <div class="price-history-tooltip__date">${formattedDate}</div>
                 `;
                 tooltip.style.left = `${e.clientX + 10}px`;
                 tooltip.style.top = `${e.clientY - 40}px`;
