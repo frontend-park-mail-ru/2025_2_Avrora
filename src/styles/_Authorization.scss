@@ -184,14 +184,17 @@
     &__toggle {
         position: absolute;
         right: 25px;
-        top: 25%;
-        transform: translateY(-25%);
+        top: 50%;
+        transform: translateY(-50%);
         background: none;
         border: none;
         cursor: pointer;
         width: 18px;
         height: 18px;
         padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         @media (max-width: 480px) {
             right: 22px;
@@ -201,7 +204,6 @@
 
         &::before {
             content: "";
-            position: absolute;
             width: 100%;
             height: 100%;
             background-image: url("../../images/view.png");
@@ -212,6 +214,10 @@
 
         &--visible::before {
             background-image: url("../../images/active__view.png");
+        }
+
+        &:hover::before {
+            opacity: 0.8;
         }
     }
 }

@@ -1,22 +1,3 @@
-interface App {
-    router: {
-        navigate(path: string): void;
-    };
-    logout(): void;
-    navigateToCreateAd(): void;
-}
-
-interface User {
-    AvatarURL?: string;
-    avatar?: string;
-    photo_url?: string;
-    avatarUrl?: string;
-}
-
-interface State {
-    user: User | null;
-}
-
 interface TemplateData {
     isAuthenticated: boolean;
     user: {
@@ -28,16 +9,14 @@ interface TemplateData {
 
 export class Header {
     private parent: HTMLElement;
-    private state: State;
-    private app: App;
+    private controller: any; 
     private eventListeners: { element: Element; event: string; handler: EventListenerOrEventListenerObject }[];
     private template: ((data: TemplateData) => string) | null;
     private container: HTMLElement | null;
 
-    constructor(parent: HTMLElement, state: State, app: App) {
+    constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
-        this.state = state;
-        this.app = app;
+        this.controller = controller;
         this.eventListeners = [];
         this.template = null;
         this.container = null;
@@ -45,12 +24,11 @@ export class Header {
 
     async render(): Promise<void> {
         this.cleanup();
-
         const template = await this.loadTemplate();
         const isLoginPage = window.location.pathname === '/login';
         const isRegisterPage = window.location.pathname === '/register';
 
-        const user = this.state.user;
+        const user = this.controller.user;
         let userAvatar = "../../images/user.png";
 
         if (user) {
@@ -62,7 +40,7 @@ export class Header {
         }
 
         const templateData: TemplateData = {
-            isAuthenticated: !!this.state.user,
+            isAuthenticated: this.controller.isAuthenticated,
             user: {
                 avatar: userAvatar
             },
@@ -78,27 +56,25 @@ export class Header {
         const html = template(templateData);
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = html;
-
         this.container = tempContainer.firstElementChild as HTMLElement;
         this.parent.appendChild(this.container);
         this.attachEventListeners();
+
+        this.checkMenuOverflow();
+        window.addEventListener('resize', () => this.checkMenuOverflow());
     }
 
     private async loadTemplate(): Promise<(data: TemplateData) => string> {
         if (this.template) return this.template;
-
         try {
             const templates = (window as any).Handlebars.templates;
             this.template = templates['Header'] || templates['Header.hbs'];
-
             if (!this.template) {
                 throw new Error('Header template not found in compiled templates');
             }
-
             if (typeof this.template !== 'function') {
                 throw new Error('Header template is not a function');
             }
-
             return this.template;
         } catch (error) {
             console.error('Failed to load header template:', error);
@@ -113,7 +89,7 @@ export class Header {
         if (loginButton) {
             this.addEventListener(loginButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.app.router.navigate("/login");
+                this.controller.navigate("/login");
             });
         }
 
@@ -121,7 +97,7 @@ export class Header {
         if (registerButton) {
             this.addEventListener(registerButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.app.router.navigate("/register");
+                this.controller.navigate("/register"); 
             });
         }
 
@@ -129,7 +105,7 @@ export class Header {
         if (logoutButton) {
             this.addEventListener(logoutButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.app.logout();
+                this.controller.logout();
             });
         }
 
@@ -137,7 +113,7 @@ export class Header {
         if (profileButton) {
             this.addEventListener(profileButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.app.router.navigate("/profile");
+                this.controller.navigate("/profile"); 
             });
         }
 
@@ -153,7 +129,7 @@ export class Header {
         if (addObjectButton) {
             this.addEventListener(addObjectButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.app.navigateToCreateAd();
+                this.controller.navigateToCreateAd();
             });
         }
 
@@ -161,16 +137,31 @@ export class Header {
         if (logoLink) {
             this.addEventListener(logoLink, 'click', (e: Event) => {
                 e.preventDefault();
-                this.app.router.navigate("/");
+                this.controller.navigate("/"); 
+            });
+        }
+
+        const menuBtn = this.container.querySelector('.header__menu-btn--mobile');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', (e: Event) => {
+                e.preventDefault();
+                this.toggleMobileMenu();
             });
         }
     }
 
+    private toggleMobileMenu(): void {
+        this.container?.classList.toggle('header--menu-open');
+        if (!this.container?.classList.contains('header--mobile')) {
+            this.container?.classList.add('header--mobile');
+        }
+    }
+
     private handleLikeClick(): void {
-        if (this.state.user) {
-            this.app.router.navigate("/profile");
+        if (this.controller.isAuthenticated) {
+            this.controller.navigate("/profile");
         } else {
-            this.app.router.navigate("/login");
+            this.controller.navigate("/login");
         }
     }
 
@@ -185,12 +176,25 @@ export class Header {
         }
     }
 
+    private checkMenuOverflow(): void {
+        if (window.innerWidth > 768) return;
+        const menu = this.container?.querySelector('.header__menu') as HTMLElement | null;
+        const container = this.container?.querySelector('.header__container') as HTMLElement | null;
+        if (!menu || !container) return;
+
+        if (menu.scrollWidth > container.clientWidth) {
+            this.container?.classList.add('header--mobile');
+            this.container?.classList.remove('header--menu-open');
+        } else {
+            this.container?.classList.remove('header--mobile');
+        }
+    }
+
     private cleanup(): void {
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
-
         if (this.container) {
             this.container.remove();
             this.container = null;
