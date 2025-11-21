@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
-  root: 'public',
+  root: 'src',
   server: {
     port: 3000,
     proxy: {
@@ -33,8 +33,8 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: 'public/index.html',
-        sw: 'public/sw.js'
+        main: 'src/index.html',
+        sw: 'src/sw.js'
       },
       output: {
         entryFileNames: (chunkInfo) => {

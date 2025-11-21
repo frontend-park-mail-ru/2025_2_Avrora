@@ -6,7 +6,7 @@ export default [
     ...js.configs.recommended,
     ignores: [
       "docs/**",
-      "public/templates/compiled/",
+      "src/templates/compiled/",
       "node_modules/**",
       "dist/**",
     ]
@@ -16,7 +16,7 @@ export default [
     files: ["**/*.js"],
     ignores: [
       "docs/**",
-      "public/templates/compiled/*.js",
+      "src/templates/compiled/*.js",
       "node_modules/**",
       "dist/**",
     ],
@@ -44,7 +44,7 @@ export default [
   },
 
   {
-    files: ["public/templates/compiled/*.js"],
+    files: ["src/templates/compiled/*.js"],
     languageOptions: {
       globals: {
         "Handlebars": "readonly",

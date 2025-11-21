@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function compileTemplates() {
-    const templatesDir = path.join(__dirname, 'public/templates');
-    const outputFile = path.join(__dirname, 'public/templates/compiled/templates.js');
+    const templatesDir = path.join(__dirname, 'src/templates');
+    const outputFile = path.join(__dirname, 'src/templates/compiled/templates.js');
 
     if (!fs.existsSync(path.dirname(outputFile))) {
         fs.mkdirSync(path.dirname(outputFile), { recursive: true });

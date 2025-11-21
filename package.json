@@ -12,14 +12,14 @@
     "lint:report": "eslint . --format stylish",
     "lint:fix": "eslint . --fix",
     "docs": "jsdoc -c jsdoc.json",
-    "build-css": "sass public/styles/index.scss public/styles/index.css",
-    "watch-css": "sass --watch public/styles/index.scss public/styles/index.css",
-    "build-css-prod": "sass public/styles/index.scss public/styles/index.css --style=compressed",
+    "build-css": "sass src/styles/index.scss src/styles/index.css",
+    "watch-css": "sass --watch src/styles/index.scss src/styles/index.css",
+    "build-css-prod": "sass src/styles/index.scss src/styles/index.css --style=compressed",
     "compile-hbs": "node compile-templates.js",
     "sw:unregister": "node -e \"if('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister())) }\"",
     "sw:clean": "node -e \"caches.keys().then(keys => keys.forEach(key => caches.delete(key)))\"",
-    "babel:check": "babel public/js --out-dir dist-check --verbose",
-    "babel:build": "babel public/js --out-dir dist-babel"
+    "babel:check": "babel src/js --out-dir dist-check --verbose",
+    "babel:build": "babel src/js --out-dir dist-babel"
   },
   "keywords": [
     "spa",
