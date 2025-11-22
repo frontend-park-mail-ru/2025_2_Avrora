@@ -206,6 +206,9 @@
 	}
 
 	&__like-btn {
+		position: absolute;
+		top: 16px;
+		right: 16px;
 		height: 40px;
 		width: 40px;
 		border-radius: 50%;
@@ -215,6 +218,7 @@
 		background: rgba(0,0,0,.4);
 		cursor: pointer;
 		border: none;
+		z-index: 10;
 
 		&:hover {
 			background: rgba(0,0,0,.3);
@@ -224,6 +228,18 @@
 		@media (max-width: 480px) {
 			height: 32px;
 			width: 32px;
+			top: 12px;
+			right: 12px;
+		}
+
+		img {
+			width: 20px;
+			height: 20px;
+
+			@media (max-width: 480px) {
+				width: 18px;
+				height: 18px;
+			}
 		}
 	}
 
@@ -251,7 +267,7 @@
 			padding: 4px 0;
 		}
 
-		&::before {
+		&::after {
 			content: "";
 			flex-grow: 1;
 			border-bottom: 1px dotted #A0A8BE;
@@ -657,7 +673,6 @@
 		background-color: #f9fbfa;
 	}
 
-	// Слайдер — адаптив
 	.slider {
 		&__image {
 			position: absolute;

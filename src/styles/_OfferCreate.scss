@@ -230,6 +230,8 @@
         height: 60vh;
         background-color: rgba(48, 145, 100, .15);
         margin-top: 50px;
+        border-radius: 10px; 
+        overflow: hidden; 
 
         @media (max-width: 768px) {
             height: 50vh;

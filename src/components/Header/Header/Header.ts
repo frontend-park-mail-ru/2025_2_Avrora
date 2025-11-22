@@ -59,9 +59,6 @@ export class Header {
         this.container = tempContainer.firstElementChild as HTMLElement;
         this.parent.appendChild(this.container);
         this.attachEventListeners();
-
-        this.checkMenuOverflow();
-        window.addEventListener('resize', () => this.checkMenuOverflow());
     }
 
     private async loadTemplate(): Promise<(data: TemplateData) => string> {
@@ -140,21 +137,6 @@ export class Header {
                 this.controller.navigate("/"); 
             });
         }
-
-        const menuBtn = this.container.querySelector('.header__menu-btn--mobile');
-        if (menuBtn) {
-            menuBtn.addEventListener('click', (e: Event) => {
-                e.preventDefault();
-                this.toggleMobileMenu();
-            });
-        }
-    }
-
-    private toggleMobileMenu(): void {
-        this.container?.classList.toggle('header--menu-open');
-        if (!this.container?.classList.contains('header--mobile')) {
-            this.container?.classList.add('header--mobile');
-        }
     }
 
     private handleLikeClick(): void {
@@ -173,20 +155,6 @@ export class Header {
         if (element) {
             element.addEventListener(event, handler);
             this.eventListeners.push({ element, event, handler });
-        }
-    }
-
-    private checkMenuOverflow(): void {
-        if (window.innerWidth > 768) return;
-        const menu = this.container?.querySelector('.header__menu') as HTMLElement | null;
-        const container = this.container?.querySelector('.header__container') as HTMLElement | null;
-        if (!menu || !container) return;
-
-        if (menu.scrollWidth > container.clientWidth) {
-            this.container?.classList.add('header--mobile');
-            this.container?.classList.remove('header--menu-open');
-        } else {
-            this.container?.classList.remove('header--mobile');
         }
     }
 

@@ -1,4 +1,3 @@
-// OfferCreateSecondStage.ts
 interface StageOptions {
     state: any;
     app: any;
@@ -19,6 +18,8 @@ export class OfferCreateSecondStage {
     editOfferId: string | null;
     root: HTMLElement | null;
     private errorContainer: HTMLElement | null;
+    private mapContainer: HTMLElement | null; 
+    private currentAddress: string = ''; 
 
     constructor({ state, app, dataManager, isEditing = false, editOfferId = null }: StageOptions = {}) {
         this.state = state;
@@ -28,6 +29,7 @@ export class OfferCreateSecondStage {
         this.editOfferId = editOfferId;
         this.root = null;
         this.errorContainer = null;
+        this.mapContainer = null;
     }
 
     render(): HTMLElement {
@@ -36,7 +38,6 @@ export class OfferCreateSecondStage {
 
         this.root.appendChild(this.createProgress('2 этап. Расположение', 40, 40));
 
-        // Создаем контейнер для ошибок
         this.errorContainer = document.createElement('div');
         this.errorContainer.className = 'create-ad__error-container';
         this.errorContainer.style.display = 'none';
@@ -52,7 +53,7 @@ export class OfferCreateSecondStage {
         const addressGroup = document.createElement('div');
         addressGroup.className = 'create-ad__choice-group';
 
-        const addressInput = this.createInput('Введите адрес...', 'address');
+        const addressInput = this.createInput('Город, улица, корпус, подъезд, дом, квартира', 'address');
         addressInput.required = true;
         addressGroup.appendChild(addressInput);
 
@@ -74,9 +75,62 @@ export class OfferCreateSecondStage {
         floorsBlock.appendChild(floorsGroup);
         this.root.appendChild(floorsBlock);
 
+        const complexBlock = document.createElement('div');
+        complexBlock.className = 'create-ad__choice-block';
+
+        const complexTitle = document.createElement('h2');
+        complexTitle.className = 'create-ad__form-label';
+        complexTitle.textContent = 'В составе жилищного комплекса';
+
+        const complexGroup = document.createElement('div');
+        complexGroup.className = 'create-ad__choice-group';
+
+        const yesButton = document.createElement('button');
+        yesButton.className = 'create-ad__choice-button';
+        yesButton.dataset.value = 'yes';
+        yesButton.textContent = 'Да';
+        yesButton.addEventListener('click', () => this.handleComplexToggle('yes'));
+
+        const noButton = document.createElement('button');
+        noButton.className = 'create-ad__choice-button';
+        noButton.dataset.value = 'no';
+        noButton.textContent = 'Нет';
+        noButton.addEventListener('click', () => this.handleComplexToggle('no'));
+
+        complexGroup.appendChild(yesButton);
+        complexGroup.appendChild(noButton);
+        complexBlock.appendChild(complexTitle);
+        complexBlock.appendChild(complexGroup);
+        this.root.appendChild(complexBlock);
+
+        const complexNameBlock = document.createElement('div');
+        complexNameBlock.className = 'create-ad__choice-block';
+        complexNameBlock.id = 'complex-name-block';
+        complexNameBlock.style.display = 'none';
+
+        const complexNameTitle = document.createElement('h2');
+        complexNameTitle.className = 'create-ad__form-label';
+        complexNameTitle.textContent = 'Название жилищного комплекса';
+
+        const complexNameInput = this.createInput('Название ЖК', 'complex_name');
+        complexNameInput.required = false;
+
+        complexNameBlock.appendChild(complexNameTitle);
+        complexNameBlock.appendChild(complexNameInput);
+        this.root.appendChild(complexNameBlock);
+
+        this.mapContainer = document.createElement('div');
+        this.mapContainer.className = 'create-ad__map';
+        this.mapContainer.id = 'yandex-create-map'; 
+        this.root.appendChild(this.mapContainer);
+
         this.root.appendChild(this.createNav({ prev: true, next: true }));
 
         this.restoreFormData();
+
+        setTimeout(() => {
+            this.initMap();
+        }, 0);
 
         return this.root;
     }
@@ -118,6 +172,7 @@ export class OfferCreateSecondStage {
         input.addEventListener('input', () => {
             this.clearError();
             this.saveFormData();
+            this.updateCurrentAddress(input.value); 
         });
 
         input.addEventListener('blur', () => {
@@ -188,21 +243,17 @@ export class OfferCreateSecondStage {
     }
 
     validateFormData(data: FormData): { isValid: boolean; message?: string } {
-        // Проверка обязательного поля адреса
         if (!data.address) {
             return { isValid: false, message: 'Введите адрес' };
         }
 
-        // Проверка корректности этажей
         const floor = data.floor as number;
         const totalFloors = data.total_floors as number;
 
-        // Если заполнено только одно из полей этажей
         if ((floor !== null && totalFloors === null) || (floor === null && totalFloors !== null)) {
             return { isValid: false, message: 'Заполните оба поля: этаж и количество этажей в доме' };
         }
 
-        // Если заполнены оба поля
         if (floor !== null && totalFloors !== null) {
             if (floor < 0) {
                 return { isValid: false, message: 'Этаж не может быть отрицательным числом' };
@@ -229,7 +280,6 @@ export class OfferCreateSecondStage {
         const validationResult = this.validateFormData(formData);
 
         if (!validationResult.isValid) {
-            // Не сохраняем данные при ошибке валидации
             return;
         }
 
@@ -248,7 +298,6 @@ export class OfferCreateSecondStage {
 
         this.errorContainer.appendChild(errorElement);
 
-        // Прокручиваем к ошибке
         this.errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
@@ -269,6 +318,23 @@ export class OfferCreateSecondStage {
                 (input as HTMLInputElement).value = String(currentData[fieldName]);
             }
         });
+
+        if (currentData.complex_status === 'yes') {
+            this.handleComplexToggle('yes');
+        } else if (currentData.complex_status === 'no') {
+            this.handleComplexToggle('no');
+        }
+
+        if (currentData.complex_name) {
+            const complexNameInput = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
+            if (complexNameInput) {
+                complexNameInput.value = currentData.complex_name;
+            }
+        }
+
+        if (currentData.address) {
+            this.currentAddress = currentData.address;
+        }
     }
 
     createNav({ prev = false, next = false }: { prev?: boolean; next?: boolean } = {}): HTMLElement {
@@ -296,5 +362,119 @@ export class OfferCreateSecondStage {
 
         nav.appendChild(group);
         return nav;
+    }
+
+    handleComplexToggle(value: string): void {
+        const yesButton = this.root!.querySelector('[data-value="yes"]') as HTMLButtonElement;
+        const noButton = this.root!.querySelector('[data-value="no"]') as HTMLButtonElement;
+        const complexNameBlock = this.root!.getElementById('complex-name-block');
+
+        if (value === 'yes') {
+            yesButton.classList.add('active');
+            noButton.classList.remove('active');
+            if (complexNameBlock) {
+                complexNameBlock.style.display = 'block';
+            }
+        } else {
+            noButton.classList.add('active');
+            yesButton.classList.remove('active');
+            if (complexNameBlock) {
+                complexNameBlock.style.display = 'none';
+            }
+        }
+
+        const formData = this.collectFormData();
+        formData.complex_status = value;
+        this.dataManager.updateStage2(formData);
+    }
+
+    updateCurrentAddress(address: string): void {
+        this.currentAddress = address;
+        this.initMap(); 
+    }
+
+    async initMap(): Promise<void> {
+        if (!window.ymaps) {
+            console.error('Яндекс.Карты не загружены');
+            return;
+        }
+
+        try {
+            await new Promise(resolve => {
+                if (window.ymaps.ready) {
+                    resolve(true);
+                } else {
+                    window.ymaps.ready(resolve);
+                }
+            });
+
+            const container = document.getElementById('yandex-create-map');
+            if (!container) {
+                console.error('Контейнер для карты не найден');
+                return;
+            }
+
+            if ((window as any).createAdMapInstance) {
+                (window as any).createAdMapInstance.destroy();
+                (window as any).createAdMapInstance = null;
+            }
+
+            (window as any).createAdMapInstance = new ymaps.Map('yandex-create-map', {
+                center: [55.75, 37.62], 
+                zoom: 10,
+                controls: ['zoomControl', 'fullscreenControl']
+            }, {
+                suppressMapOpenBlock: true,
+                balloonMaxWidth: 200,
+                geolocationControlSize: 'large',
+                geolocationControlPosition: { top: '50px', right: '10px' },
+                zoomControlSize: 'small'
+            });
+
+            const mapInstance = (window as any).createAdMapInstance;
+
+            if (this.currentAddress.trim()) {
+                const geocodeResult = await ymaps.geocode(this.currentAddress);
+                const firstGeoObject = geocodeResult.geoObjects.get(0);
+
+                if (firstGeoObject) {
+                    const coords = firstGeoObject.geometry.getCoordinates();
+                    mapInstance.setCenter(coords, 16);
+
+                    const customIcon = new ymaps.Placemark(coords, {
+                        hintContent: this.currentAddress,
+                        balloonContent: this.currentAddress
+                    }, {
+                        iconLayout: 'default#image',
+                        iconImageHref: '/images/map-marker.svg',
+                        iconImageSize: [30, 40],
+                        iconImageOffset: [-15, -40]
+                    });
+
+                    mapInstance.geoObjects.add(customIcon);
+                } else {
+                    console.warn(`Адрес "${this.currentAddress}" не найден на карте`);
+                }
+            }
+
+        } catch (error) {
+            console.error('Ошибка при инициализации карты:', error);
+        }
+    }
+
+    cleanup(): void {
+        if ((window as any).createAdMapInstance) {
+            (window as any).createAdMapInstance.destroy();
+            (window as any).createAdMapInstance = null;
+        }
+
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
+
+        if (this.root) {
+            this.root.remove();
+        }
     }
 }

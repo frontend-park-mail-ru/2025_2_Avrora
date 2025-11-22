@@ -267,8 +267,8 @@
             }
 
             @media (max-width: 480px) {
-                width: 36px;
-                height: 36px;
+                width: 16px; 
+                height: 16px; 
             }
 
             &:hover {
@@ -291,8 +291,8 @@
                 }
 
                 @media (max-width: 480px) {
-                    width: 18px;
-                    height: 18px;
+                    width: 6px; 
+                    height: 6px; 
                 }
             }
         }
@@ -330,8 +330,8 @@
             }
 
             @media (max-width: 480px) {
-                width: 6px;
-                height: 6px;
+                width: 6px; 
+                height: 6px; 
             }
 
             &_active {

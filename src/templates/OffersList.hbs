@@ -37,6 +37,10 @@
                     {{/each}}
                 </div>
                 {{/if}}
+
+                <button class="offer-card__like" data-offer-id="{{id}}">
+                    <img src="{{likeIcon}}" alt="Избранное">
+                </button>
             </div>
 
             <span class="offer-card__price">{{formattedPrice}} ₽</span>

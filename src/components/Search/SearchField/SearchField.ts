@@ -72,9 +72,11 @@ export class SearchField {
 
         this.clearButton = document.createElement('button');
         this.clearButton.type = 'button';
-        this.clearButton.className = 'search-field__clear';
-        this.clearButton.innerHTML = '&times;';
-        this.clearButton.style.display = this.value ? 'flex' : 'none';
+        this.clearButton.className = 'search-field__clear'; 
+        this.clearButton.textContent = '×';
+        if (!this.value) {
+            this.clearButton.classList.add('hidden');
+        }
 
         this.clearButton.addEventListener('click', () => {
             this.setValue('');
@@ -93,7 +95,11 @@ export class SearchField {
     private handleInput(): void {
         this.value = this.input.value;
         if (this.clearButton) {
-            this.clearButton.style.display = this.value ? 'flex' : 'none';
+            if (this.value) {
+                this.clearButton.classList.remove('hidden');
+            } else {
+                this.clearButton.classList.add('hidden');
+            }
         }
 
         if (this.onInput) {

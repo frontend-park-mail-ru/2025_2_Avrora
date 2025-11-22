@@ -24,11 +24,15 @@
 		@media (max-width: 768px) {
 			padding: 8px 16px;
 			gap: 12px;
+			flex-wrap: wrap; 
+			justify-content: start; 
 		}
 
 		@media (max-width: 480px) {
 			padding: 6px 12px;
 			gap: 8px;
+			flex-wrap: wrap; 
+			justify-content: start; 
 		}
 	}
 
@@ -78,12 +82,11 @@
 
 		@media (max-width: 768px) {
 			gap: 16px;
-			flex-wrap: wrap; 
 		}
 
 		@media (max-width: 480px) {
 			gap: 12px;
-			flex-wrap: wrap;
+			flex-wrap: wrap; 
 		}
 
 		.header__menu-item {
@@ -108,11 +111,13 @@
 		text-align: center;
 		cursor: pointer;
 		transition: background-color 0.2s linear;
+		min-width: 100px;
 
 		@media (max-width: 768px) {
 			font-size: 15px;
 			padding: 9px 24px;
 			min-height: 40px;
+			min-width: 80px;
 		}
 
 		@media (max-width: 480px) {
@@ -120,8 +125,10 @@
 			padding: 8px 20px;
 			min-height: 36px;
 			width: 100%;
+			min-width: 60px;
 			text-align: left;
 			justify-content: flex-start;
+			flex-shrink: 0;
 		}
 
 		&:hover {
@@ -169,83 +176,6 @@
 				height: 100%;
 				border-radius: 50%;
 			}
-		}
-	}
-
-	&__menu-btn--mobile {
-		display: none;
-		font-size: 24px;
-		width: 40px;
-		height: 40px;
-		background: none;
-		border: none;
-		color: #1FBB72;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-		transition: all 0.3s ease;
-
-		@media (max-width: 768px) {
-			display: flex;
-			width: 36px;
-			height: 36px;
-			font-size: 20px;
-		}
-
-		&:hover {
-			background-color: rgba(31, 187, 114, 0.1);
-		}
-	}
-
-	&--mobile {
-		.header__menu {
-			display: none;
-			position: fixed;
-			top: 12vh;
-			left: 0;
-			right: 0;
-			background: white;
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-			flex-direction: column;
-			align-items: flex-start;
-			padding: 16px;
-			z-index: 1000;
-			border-bottom: 2px solid #A0A8BE;
-
-			@media (max-width: 480px) {
-				top: 10vh;
-				padding: 12px;
-			}
-
-			.header__menu-btn {
-				width: 100%;
-				justify-content: flex-start;
-				text-align: left;
-				padding: 12px 16px;
-				font-size: 16px;
-
-				@media (max-width: 480px) {
-					font-size: 15px;
-					padding: 10px 14px;
-				}
-
-				&--like,
-				&--user {
-					width: 24px;
-					height: 24px;
-
-					@media (max-width: 480px) {
-						width: 22px;
-						height: 22px;
-					}
-				}
-			}
-		}
-
-		&.header--menu-open .header__menu {
-			display: flex;
 		}
 	}
 }
