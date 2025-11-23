@@ -1,3 +1,4 @@
+// OfferCreateFourthStage.ts
 interface StageOptions {
     state: any;
     app: any;

@@ -351,6 +351,10 @@
 		font-weight: 600;
 		font-size: 16px;
 		margin-left: 20px;
+		white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
 
 		@media (max-width: 768px) {
 			margin-left: 0;
@@ -376,6 +380,7 @@
 		font-size: 16px;
 		width: 60%;
 		line-height: 1.6;
+		overflow-wrap: break-word;
 
 		@media (max-width: 768px) {
 			width: 100%;

@@ -41,7 +41,6 @@ export class OfferCreateFifthStage {
 
         this.root.appendChild(this.createProgress('5 этап. Фотографии и описание', 100, 100));
 
-        // Создаем контейнер для ошибок
         this.errorContainer = document.createElement('div');
         this.errorContainer.className = 'create-ad__error-container';
         this.errorContainer.style.display = 'none';
@@ -150,24 +149,20 @@ export class OfferCreateFifthStage {
             progressContainer.style.display = 'block';
             progressContainer.textContent = 'Подготовка к загрузке...';
 
-            // Валидация файлов перед загрузкой
             const validFiles: File[] = [];
             const invalidFiles: string[] = [];
 
             files.forEach(file => {
-                // Проверка типа файла
                 if (!file.type.startsWith('image/')) {
                     invalidFiles.push(`"${file.name}" - не изображение`);
                     return;
                 }
 
-                // Проверка размера файла
                 if (file.size > 10 * 1024 * 1024) {
                     invalidFiles.push(`"${file.name}" - слишком большой (максимум 10MB)`);
                     return;
                 }
 
-                // Проверка расширения файла
                 const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
                 const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
                 if (!validExtensions.includes(fileExtension || '')) {
@@ -178,7 +173,6 @@ export class OfferCreateFifthStage {
                 validFiles.push(file);
             });
 
-            // Показываем ошибки для невалидных файлов
             if (invalidFiles.length > 0) {
                 this.showError(`Некорректные файлы:\n${invalidFiles.join('\n')}`);
             }
@@ -187,14 +181,12 @@ export class OfferCreateFifthStage {
                 return;
             }
 
-            // Проверяем лимит изображений
             const currentTotalImages = this.images.length + validFiles.length;
             if (currentTotalImages > 10) {
                 this.showError(`Можно загрузить не более 10 изображений. У вас уже ${this.images.length} изображений.`);
                 return;
             }
 
-            // Загружаем файлы последовательно
             const uploadResults: ImageData[] = [];
 
             for (let i = 0; i < validFiles.length; i++) {
@@ -203,7 +195,6 @@ export class OfferCreateFifthStage {
                 try {
                     progressContainer.textContent = `Загрузка ${i + 1} из ${validFiles.length}: ${file.name}`;
 
-                    // Валидация через MediaService
                     MediaService.validateImage(file);
 
                     const result = await MediaService.uploadImage(file);
@@ -214,22 +205,18 @@ export class OfferCreateFifthStage {
                         };
                         uploadResults.push(imageData);
 
-                        // Сразу создаем превью для успешно загруженного изображения
                         this.createImagePreview(imageData, uploadedImagesContainer);
                     }
                 } catch (error) {
-                    console.error(`Failed to upload ${file.name}:`, error);
                     this.showError(`Не удалось загрузить файл "${file.name}": ${(error as Error).message}`);
                 }
             }
 
-            // Добавляем успешно загруженные изображения в общий массив
             this.images.push(...uploadResults);
             this.saveFormData();
             this.updateImageCounter(counterContainer);
             this.clearError();
 
-            // Показываем результат загрузки
             if (uploadResults.length > 0) {
                 const successMessage = uploadResults.length === validFiles.length
                     ? `Успешно загружено ${uploadResults.length} изображений`
@@ -243,7 +230,6 @@ export class OfferCreateFifthStage {
             }
 
         } catch (error) {
-            console.error('Error uploading images:', error);
             this.showError(`Не удалось загрузить изображения: ${(error as Error).message}`);
         } finally {
             this.isUploading = false;
@@ -261,9 +247,7 @@ export class OfferCreateFifthStage {
         img.alt = 'Загруженное изображение';
         img.loading = 'lazy';
 
-        // Добавляем обработчик ошибки загрузки изображения
         img.onerror = () => {
-            console.error('Failed to load image:', imageData.url);
             img.src = '../../images/default_offer.jpg';
         };
 
@@ -287,7 +271,6 @@ export class OfferCreateFifthStage {
             this.saveFormData();
             this.clearError();
 
-            // Обновляем счетчик
             const counter = this.root!.querySelector('.create-ad__image-counter') as HTMLElement;
             if (counter) {
                 this.updateImageCounter(counter);
@@ -309,18 +292,12 @@ export class OfferCreateFifthStage {
         }
 
         if (publishBtn) {
-            publishBtn.disabled = isUploading || this.images.length === 0;
+            publishBtn.disabled = isUploading;
         }
     }
 
     updateImageCounter(counterContainer: HTMLElement): void {
         counterContainer.textContent = `Загружено изображений: ${this.images.length}/10`;
-
-        // Обновляем состояние кнопки публикации на основе количества изображений
-        const publishBtn = this.root!.querySelector('[data-action="publish"]') as HTMLButtonElement;
-        if (publishBtn && !this.isUploading) {
-            publishBtn.disabled = this.images.length === 0;
-        }
     }
 
     createProgress(titleText: string, value: number, ariaNow: number): HTMLElement {
@@ -351,44 +328,23 @@ export class OfferCreateFifthStage {
     saveFormData(): void {
         const formData: any = {
             description: (this.root!.querySelector('.create-ad__input_textarea[data-field="description"]') as HTMLTextAreaElement)?.value || '',
-            images: [...this.images] // Создаем копию массива
+            images: [...this.images]
         };
 
-        console.log('Saving form data with images:', formData.images);
-
-        // Валидация перед сохранением
-        const validationResult = this.validateFormData(formData);
-        if (!validationResult.isValid) {
-            console.warn('Form data validation failed:', validationResult.message);
-            return;
-        }
-
-        // Сохраняем данные используя существующие методы dataManager
-        if (this.dataManager.updateStage5) {
-            this.dataManager.updateStage5(formData);
-        } else if (this.dataManager.updateData) {
-            this.dataManager.updateData(5, formData);
-        } else if (this.dataManager.setData) {
-            const currentData = this.dataManager.getData();
-            const updatedData = { ...currentData, ...formData };
-            this.dataManager.setData(updatedData);
-        } else {
-            // Если методы не существуют, сохраняем напрямую
-            const currentData = this.dataManager.getData();
-            const updatedData = { ...currentData, ...formData };
-            this.dataManager.data = updatedData;
-        }
-
-        console.log('Data after save:', this.dataManager.getData());
+        // ВАЖНО: убираем блокировку сохранения при невалидных данных
+        // Данные должны сохраняться всегда, а валидация происходить при навигации
+        this.dataManager.updateStage5(formData);
     }
 
-    validateFormData(formData: any): { isValid: boolean; message?: string } {
+    validateFormData(): { isValid: boolean; message?: string } {
+        const currentData = this.dataManager.getData();
+
         // Проверка изображений
-        if (!formData.images || !Array.isArray(formData.images)) {
+        if (!currentData.images || !Array.isArray(currentData.images)) {
             return { isValid: false, message: 'Ошибка данных изображений' };
         }
 
-        const validImages = formData.images.filter((img: any) =>
+        const validImages = currentData.images.filter((img: any) =>
             img &&
             typeof img === 'object' &&
             img.filename &&
@@ -404,16 +360,16 @@ export class OfferCreateFifthStage {
             return { isValid: false, message: 'Можно загрузить не более 10 фотографий' };
         }
 
-        // Проверка описания (опционально)
-        if (!formData.description || formData.description.trim() === '') {
+        // Проверка описания
+        if (!currentData.description || currentData.description.trim() === '') {
             return { isValid: false, message: 'Введите описание объявления' };
         }
 
-        if (formData.description.length < 10) {
+        if (currentData.description.length < 10) {
             return { isValid: false, message: 'Описание должно содержать минимум 10 символов' };
         }
 
-        if (formData.description.length > 2000) {
+        if (currentData.description.length > 2000) {
             return { isValid: false, message: 'Описание не должно превышать 2000 символов' };
         }
 
@@ -422,25 +378,20 @@ export class OfferCreateFifthStage {
 
     restoreFormData(): void {
         const currentData = this.dataManager.getData();
-        console.log('Restoring data from dataManager:', currentData);
 
         const descInput = this.root!.querySelector('.create-ad__input_textarea[data-field="description"]') as HTMLTextAreaElement;
         if (descInput && currentData.description) {
             descInput.value = currentData.description;
         }
 
-        // Восстанавливаем изображения
         if (currentData.images && Array.isArray(currentData.images)) {
             this.images = currentData.images.map((img: any) => {
-                // Нормализуем данные изображения
                 const normalizedImg = {
                     filename: img.filename || img.url?.split('/').pop() || '',
                     url: img.url || MediaService.getImageUrl(img.filename)
                 };
 
-                // Проверяем, что filename не пустой
                 if (!normalizedImg.filename) {
-                    console.warn('Invalid image data during restore:', img);
                     return null;
                 }
 
@@ -454,18 +405,6 @@ export class OfferCreateFifthStage {
                     this.createImagePreview(image, uploadedImagesContainer);
                 });
             }
-        }
-
-        console.log('Restored images count:', this.images.length);
-
-        // Проверяем валидность восстановленных данных
-        const validationResult = this.validateFormData({
-            description: descInput?.value || '',
-            images: this.images
-        });
-
-        if (!validationResult.isValid) {
-            console.warn('Restored data validation failed:', validationResult.message);
         }
     }
 
@@ -481,7 +420,6 @@ export class OfferCreateFifthStage {
 
         this.errorContainer.appendChild(errorElement);
 
-        // Прокручиваем к ошибке
         this.errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
@@ -512,7 +450,7 @@ export class OfferCreateFifthStage {
             pub.className = 'create-ad__nav-button create-ad__nav-button_publish';
             pub.textContent = this.isEditing ? 'Сохранить изменения' : 'Опубликовать';
             pub.dataset.action = 'publish';
-            pub.disabled = this.isUploading || this.images.length === 0;
+            pub.disabled = this.isUploading;
             group.appendChild(pub);
         }
 

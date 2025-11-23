@@ -145,7 +145,6 @@ export class OfferCreateThirdStage {
             btn.classList.add('active');
 
             const update: any = {};
-            // Сохраняем как число для rooms
             if (field === 'rooms') {
                 update[field] = parseInt(value) || 0;
             } else {
@@ -177,7 +176,6 @@ export class OfferCreateThirdStage {
             const fieldName = (button as HTMLElement).dataset.field!;
             const value = (button as HTMLElement).dataset.value!;
 
-            // Для rooms сохраняем как число
             if (fieldName === 'rooms') {
                 formData[fieldName] = parseInt(value) || 0;
             } else {

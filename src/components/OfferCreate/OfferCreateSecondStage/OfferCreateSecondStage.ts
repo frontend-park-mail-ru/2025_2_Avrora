@@ -1,3 +1,4 @@
+// OfferCreateSecondStage.ts
 interface StageOptions {
     state: any;
     app: any;
@@ -18,8 +19,8 @@ export class OfferCreateSecondStage {
     editOfferId: string | null;
     root: HTMLElement | null;
     private errorContainer: HTMLElement | null;
-    private mapContainer: HTMLElement | null; 
-    private currentAddress: string = ''; 
+    private mapContainer: HTMLElement | null;
+    private currentAddress: string = '';
 
     constructor({ state, app, dataManager, isEditing = false, editOfferId = null }: StageOptions = {}) {
         this.state = state;
@@ -121,7 +122,7 @@ export class OfferCreateSecondStage {
 
         this.mapContainer = document.createElement('div');
         this.mapContainer.className = 'create-ad__map';
-        this.mapContainer.id = 'yandex-create-map'; 
+        this.mapContainer.id = 'yandex-create-map';
         this.root.appendChild(this.mapContainer);
 
         this.root.appendChild(this.createNav({ prev: true, next: true }));
@@ -172,7 +173,7 @@ export class OfferCreateSecondStage {
         input.addEventListener('input', () => {
             this.clearError();
             this.saveFormData();
-            this.updateCurrentAddress(input.value); 
+            this.updateCurrentAddress(input.value);
         });
 
         input.addEventListener('blur', () => {
@@ -243,35 +244,8 @@ export class OfferCreateSecondStage {
     }
 
     validateFormData(data: FormData): { isValid: boolean; message?: string } {
-        if (!data.address) {
-            return { isValid: false, message: 'Введите адрес' };
-        }
-
         const floor = data.floor as number;
         const totalFloors = data.total_floors as number;
-
-        if ((floor !== null && totalFloors === null) || (floor === null && totalFloors !== null)) {
-            return { isValid: false, message: 'Заполните оба поля: этаж и количество этажей в доме' };
-        }
-
-        if (floor !== null && totalFloors !== null) {
-            if (floor < 0) {
-                return { isValid: false, message: 'Этаж не может быть отрицательным числом' };
-            }
-
-            if (totalFloors <= 0) {
-                return { isValid: false, message: 'Общее количество этажей должно быть положительным числом' };
-            }
-
-            if (floor > totalFloors) {
-                return { isValid: false, message: 'Этаж не может быть больше общего количества этажей в доме' };
-            }
-
-            if (floor === 0 && totalFloors > 0) {
-                return { isValid: false, message: 'Этаж 0 обычно не используется. Используйте 1 для первого этажа.' };
-            }
-        }
-
         return { isValid: true };
     }
 
@@ -367,7 +341,7 @@ export class OfferCreateSecondStage {
     handleComplexToggle(value: string): void {
         const yesButton = this.root!.querySelector('[data-value="yes"]') as HTMLButtonElement;
         const noButton = this.root!.querySelector('[data-value="no"]') as HTMLButtonElement;
-        const complexNameBlock = this.root!.getElementById('complex-name-block');
+        const complexNameBlock = this.root!.querySelector('#complex-name-block') as HTMLElement;
 
         if (value === 'yes') {
             yesButton.classList.add('active');
@@ -390,12 +364,11 @@ export class OfferCreateSecondStage {
 
     updateCurrentAddress(address: string): void {
         this.currentAddress = address;
-        this.initMap(); 
+        this.initMap();
     }
 
     async initMap(): Promise<void> {
         if (!window.ymaps) {
-            console.error('Яндекс.Карты не загружены');
             return;
         }
 
@@ -410,7 +383,6 @@ export class OfferCreateSecondStage {
 
             const container = document.getElementById('yandex-create-map');
             if (!container) {
-                console.error('Контейнер для карты не найден');
                 return;
             }
 
@@ -420,7 +392,7 @@ export class OfferCreateSecondStage {
             }
 
             (window as any).createAdMapInstance = new ymaps.Map('yandex-create-map', {
-                center: [55.75, 37.62], 
+                center: [55.75, 37.62],
                 zoom: 10,
                 controls: ['zoomControl', 'fullscreenControl']
             }, {
@@ -452,29 +424,11 @@ export class OfferCreateSecondStage {
                     });
 
                     mapInstance.geoObjects.add(customIcon);
-                } else {
-                    console.warn(`Адрес "${this.currentAddress}" не найден на карте`);
                 }
             }
 
         } catch (error) {
-            console.error('Ошибка при инициализации карты:', error);
-        }
-    }
-
-    cleanup(): void {
-        if ((window as any).createAdMapInstance) {
-            (window as any).createAdMapInstance.destroy();
-            (window as any).createAdMapInstance = null;
-        }
-
-        this.eventListeners.forEach(({ element, event, handler }) => {
-            element.removeEventListener(event, handler);
-        });
-        this.eventListeners = [];
-
-        if (this.root) {
-            this.root.remove();
+            // Ошибка инициализации карты обрабатывается молча
         }
     }
 }

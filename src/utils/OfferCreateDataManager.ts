@@ -130,7 +130,6 @@ export class OfferCreateDataManager {
 
     updateStage3(data: Stage3Data): void {
         if (data.rooms !== undefined) {
-            // Нормализуем rooms в число
             this.data.rooms = this.normalizeNumber(data.rooms);
         }
         if (data.area !== undefined) this.data.area = this.normalizeNumber(data.area);

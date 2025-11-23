@@ -62,7 +62,6 @@ export class OfferCreateWidget {
         try {
             await this.controller.loadOfferData(offerId, this.dataManager);
         } catch (error) {
-            console.error('Error loading offer data:', error);
             this.showError('Ошибка при загрузке данных объявления');
         }
     }
@@ -122,7 +121,6 @@ export class OfferCreateWidget {
                 this.saveCurrentStepData();
 
                 const validationResult = this.validateCurrentStep();
-                console.log('Step validation result:', validationResult, 'Current data:', this.dataManager.getData());
                 if (!validationResult.isValid) {
                     this.showError(validationResult.message!);
                     return;
@@ -139,19 +137,9 @@ export class OfferCreateWidget {
                 this.saveCurrentStepData();
 
                 const validationResult = this.validateCurrentStep();
-                console.log('Publish validation result:', validationResult, 'Current data:', this.dataManager.getData());
                 if (!validationResult.isValid) {
                     this.showError(validationResult.message!);
                     return;
-                }
-
-                // Дополнительная проверка для 5 этапа
-                if (this.step === 5) {
-                    const imagesValidation = this.validateImages();
-                    if (!imagesValidation.isValid) {
-                        this.showError(imagesValidation.message!);
-                        return;
-                    }
                 }
 
                 await this.handlePublish();
@@ -172,15 +160,13 @@ export class OfferCreateWidget {
                 }
             });
 
-            // Используем метод updateStage для текущего шага
             this.updateStageData(this.step, formData);
         } catch (error) {
-            console.error('Error saving step data:', error);
+            // Ошибка сохранения данных обрабатывается молча
         }
     }
 
     private updateStageData(step: number, formData: any): void {
-        // Используем соответствующий метод updateStage для каждого шага
         switch (step) {
             case 1:
                 if (this.dataManager.updateStage1) {
@@ -227,22 +213,18 @@ export class OfferCreateWidget {
         const currentData = this.dataManager.getData();
         const updatedData = { ...currentData, ...formData };
 
-        // Используем существующие методы dataManager
         if (this.dataManager.updateData) {
             this.dataManager.updateData(this.step, updatedData);
         } else if (this.dataManager.setData) {
             this.dataManager.setData(updatedData);
         } else {
-            // Если метод updateData не существует, сохраняем напрямую
             this.dataManager.data = updatedData;
         }
     }
 
     validateCurrentStep(): { isValid: boolean; message?: string } {
         const currentData = this.dataManager.getData();
-        console.log('Validating step', this.step, 'with data:', currentData);
 
-        // Специальная валидация для каждого шага
         switch (this.step) {
             case 1:
                 if (!currentData.offer_type) {
@@ -261,7 +243,6 @@ export class OfferCreateWidget {
                     return { isValid: false, message: 'Введите адрес' };
                 }
 
-                // Детальная валидация этажей
                 const floorValidation = this.validateFloors(currentData);
                 if (!floorValidation.isValid) {
                     return floorValidation;
@@ -276,7 +257,6 @@ export class OfferCreateWidget {
                     return { isValid: false, message: 'Введите общую площадь' };
                 }
 
-                // Валидация площадей
                 const areaValidation = this.validateAreas(currentData);
                 if (!areaValidation.isValid) {
                     return areaValidation;
@@ -288,7 +268,6 @@ export class OfferCreateWidget {
                     return { isValid: false, message: 'Введите цену' };
                 }
 
-                // Валидация цены и дополнительных полей
                 const priceValidation = this.validatePrice(currentData);
                 if (!priceValidation.isValid) {
                     return priceValidation;
@@ -296,23 +275,13 @@ export class OfferCreateWidget {
                 break;
 
             case 5:
-                const imagesValidation = this.validateImages();
-                if (!imagesValidation.isValid) {
-                    return imagesValidation;
-                }
-
-                // Валидация описания
-                if (!currentData.description || currentData.description.trim() === '') {
-                    return { isValid: false, message: 'Введите описание объявления' };
-                }
-
-                if (currentData.description.length < 10) {
-                    return { isValid: false, message: 'Описание должно содержать минимум 10 символов' };
+                const fifthStageValidation = this.validateFifthStage(currentData);
+                if (!fifthStageValidation.isValid) {
+                    return fifthStageValidation;
                 }
                 break;
         }
 
-        // Дополнительная валидация от контроллера
         if (this.controller.validateOfferStep) {
             const controllerValidation = this.controller.validateOfferStep(this.step, currentData);
             if (!controllerValidation) {
@@ -323,16 +292,52 @@ export class OfferCreateWidget {
         return { isValid: true };
     }
 
+    private validateFifthStage(data: any): { isValid: boolean; message?: string } {
+        // Проверка изображений
+        if (!data.images || !Array.isArray(data.images)) {
+            return { isValid: false, message: 'Ошибка данных изображений' };
+        }
+
+        const validImages = data.images.filter((img: any) =>
+            img &&
+            typeof img === 'object' &&
+            img.filename &&
+            typeof img.filename === 'string' &&
+            img.filename.trim() !== ''
+        );
+
+        if (validImages.length === 0) {
+            return { isValid: false, message: 'Необходимо загрузить минимум одну фотографию' };
+        }
+
+        if (validImages.length > 10) {
+            return { isValid: false, message: 'Можно загрузить не более 10 фотографий' };
+        }
+
+        // Проверка описания
+        if (!data.description || data.description.trim() === '') {
+            return { isValid: false, message: 'Введите описание объявления' };
+        }
+
+        if (data.description.length < 10) {
+            return { isValid: false, message: 'Описание должно содержать минимум 10 символов' };
+        }
+
+        if (data.description.length > 2000) {
+            return { isValid: false, message: 'Описание не должно превышать 2000 символов' };
+        }
+
+        return { isValid: true };
+    }
+
     private validateFloors(data: any): { isValid: boolean; message?: string } {
         const floor = data.floor;
         const totalFloors = data.total_floors;
 
-        // Если заполнено только одно из полей
         if ((floor !== null && totalFloors === null) || (floor === null && totalFloors !== null)) {
             return { isValid: false, message: 'Заполните оба поля: этаж и количество этажей в доме' };
         }
 
-        // Если заполнены оба поля
         if (floor !== null && totalFloors !== null) {
             if (floor < 0) {
                 return { isValid: false, message: 'Этаж не может быть отрицательным числом' };
@@ -402,39 +407,6 @@ export class OfferCreateWidget {
         return { isValid: true };
     }
 
-    private validateImages(): { isValid: boolean; message?: string } {
-        const currentData = this.dataManager.getData();
-        const images = currentData.images || [];
-        console.log('Validating images count:', images.length, 'images:', images);
-
-        // Детальная проверка массива изображений
-        if (!Array.isArray(images)) {
-            console.error('Images is not an array:', images);
-            return { isValid: false, message: 'Ошибка данных изображений' };
-        }
-
-        // Фильтруем только валидные изображения
-        const validImages = images.filter(img =>
-            img &&
-            typeof img === 'object' &&
-            img.filename &&
-            typeof img.filename === 'string' &&
-            img.filename.trim() !== ''
-        );
-
-        console.log('Valid images count:', validImages.length, 'valid images:', validImages);
-
-        if (validImages.length === 0) {
-            return { isValid: false, message: 'Необходимо загрузить минимум одну фотографию' };
-        }
-
-        if (validImages.length > 10) {
-            return { isValid: false, message: 'Можно загрузить не более 10 фотографий' };
-        }
-
-        return { isValid: true };
-    }
-
     collectFormData(formElement: HTMLElement): any {
         const formData: any = {};
 
@@ -443,7 +415,6 @@ export class OfferCreateWidget {
             const field = (button as HTMLElement).dataset.field;
             if (field) {
                 const value = (button as HTMLElement).dataset.value;
-                // Преобразуем числовые поля
                 if (field === 'rooms') {
                     formData[field] = value !== null && value !== undefined ? parseInt(value) || null : null;
                 } else {
@@ -495,11 +466,8 @@ export class OfferCreateWidget {
         try {
             this.saveCurrentStepData();
             const currentData = this.dataManager.getData();
-            console.log('Publishing with data:', currentData);
 
-            // Автоматически заполняем обязательные поля перед отправкой
             const preparedData = this.prepareOfferData(currentData);
-            console.log('Prepared data for API:', preparedData);
 
             const validationResult = this.controller.validateOfferData ?
                 this.controller.validateOfferData(preparedData) :
@@ -544,7 +512,6 @@ export class OfferCreateWidget {
                 }
             }
         } catch (error) {
-            console.error('Network error during publish:', error);
             this.showError(`Сетевая ошибка: ${(error as Error).message}`);
         } finally {
             const publishBtn = this.parent.querySelector('[data-action="publish"]') as HTMLButtonElement;
@@ -558,7 +525,6 @@ export class OfferCreateWidget {
     private prepareOfferData(data: any): any {
         const preparedData = { ...data };
 
-        // Нормализация числовых полей
         if (preparedData.rooms !== undefined && preparedData.rooms !== null) {
             preparedData.rooms = parseInt(preparedData.rooms) || 0;
         }
@@ -595,34 +561,28 @@ export class OfferCreateWidget {
             preparedData.commission = parseFloat(preparedData.commission) || null;
         }
 
-        // Автоматически генерируем заголовок на основе данных
         if (!preparedData.title && this.shouldGenerateTitle(data)) {
             preparedData.title = this.generateTitle(data);
         }
 
-        // Автоматически заполняем ID пользователя
         if (!preparedData.user_id && this.controller.user?.id) {
             preparedData.user_id = this.controller.user.id;
         }
 
-        // Заполняем другие обязательные поля, если они отсутствуют
         if (!preparedData.status) {
             preparedData.status = 'active';
         }
 
-        // Нормализуем данные изображений для API
         if (preparedData.images && Array.isArray(preparedData.images)) {
             preparedData.image_urls = preparedData.images.map((img: any) => img.filename);
         }
 
-        // Удаляем временные поля, которые не нужны API
         delete preparedData.images;
 
         return preparedData;
     }
 
     private shouldGenerateTitle(data: any): boolean {
-        // Проверяем, есть ли достаточно данных для генерации заголовка
         return data.property_type && data.rooms !== undefined && data.area;
     }
 
