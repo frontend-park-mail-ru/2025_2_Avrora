@@ -1,4 +1,3 @@
-// OfferCreateSecondStage.ts
 interface StageOptions {
     state: any;
     app: any;
@@ -8,7 +7,11 @@ interface StageOptions {
 }
 
 interface FormData {
-    [key: string]: string | number | null;
+    [key: string]: string | number | boolean | null;
+    complex_status?: string | null;
+    complex_name?: string | null;
+    in_housing_complex?: boolean;
+    housing_complex?: string | null;
 }
 
 export class OfferCreateSecondStage {
@@ -21,6 +24,7 @@ export class OfferCreateSecondStage {
     private errorContainer: HTMLElement | null;
     private mapContainer: HTMLElement | null;
     private currentAddress: string = '';
+    private eventListeners: Array<{element: EventTarget, event: string, handler: EventListenerOrEventListenerObject}> = [];
 
     constructor({ state, app, dataManager, isEditing = false, editOfferId = null }: StageOptions = {}) {
         this.state = state;
@@ -90,13 +94,13 @@ export class OfferCreateSecondStage {
         yesButton.className = 'create-ad__choice-button';
         yesButton.dataset.value = 'yes';
         yesButton.textContent = 'Да';
-        yesButton.addEventListener('click', () => this.handleComplexToggle('yes'));
+        this.addEventListener(yesButton, 'click', () => this.handleComplexToggle('yes'));
 
         const noButton = document.createElement('button');
         noButton.className = 'create-ad__choice-button';
         noButton.dataset.value = 'no';
         noButton.textContent = 'Нет';
-        noButton.addEventListener('click', () => this.handleComplexToggle('no'));
+        this.addEventListener(noButton, 'click', () => this.handleComplexToggle('no'));
 
         complexGroup.appendChild(yesButton);
         complexGroup.appendChild(noButton);
@@ -115,6 +119,11 @@ export class OfferCreateSecondStage {
 
         const complexNameInput = this.createInput('Название ЖК', 'complex_name');
         complexNameInput.required = false;
+
+        this.addEventListener(complexNameInput, 'input', () => {
+            this.clearError();
+            this.saveComplexData();
+        });
 
         complexNameBlock.appendChild(complexNameTitle);
         complexNameBlock.appendChild(complexNameInput);
@@ -170,13 +179,13 @@ export class OfferCreateSecondStage {
         input.dataset.field = fieldName;
         input.required = fieldName === 'address';
 
-        input.addEventListener('input', () => {
+        this.addEventListener(input, 'input', () => {
             this.clearError();
             this.saveFormData();
             this.updateCurrentAddress(input.value);
         });
 
-        input.addEventListener('blur', () => {
+        this.addEventListener(input, 'blur', () => {
             this.validateAndSave();
         });
 
@@ -198,12 +207,12 @@ export class OfferCreateSecondStage {
         input.dataset.field = fieldName;
         input.min = fieldName === 'floor' || fieldName === 'total_floors' ? '0' : undefined;
 
-        input.addEventListener('input', () => {
+        this.addEventListener(input, 'input', () => {
             this.clearError();
             this.saveFormData();
         });
 
-        input.addEventListener('blur', () => {
+        this.addEventListener(input, 'blur', () => {
             this.validateAndSave();
         });
 
@@ -214,14 +223,41 @@ export class OfferCreateSecondStage {
 
     validateAndSave(): void {
         const formData: FormData = this.collectFormData();
-        const validationResult = this.validateFormData(formData);
+        const validation = this.validateFormData(formData);
 
-        if (!validationResult.isValid) {
-            this.showError(validationResult.message!);
+        if (!validation.isValid) {
+            this.showError(validation.message!);
             return;
         }
 
+        this.clearError();
         this.saveFormData();
+    }
+
+    validateFormData(formData: FormData): { isValid: boolean; message?: string } {
+        if (formData.floor !== null && formData.total_floors !== null) {
+            if (formData.floor < 0) {
+                return { isValid: false, message: 'Этаж не может быть отрицательным числом' };
+            }
+
+            if (formData.total_floors !== null && formData.total_floors <= 0) {
+                return { isValid: false, message: 'Общее количество этажей должно быть положительным числом' };
+            }
+
+            if (formData.floor > formData.total_floors) {
+                return { isValid: false, message: 'Этаж не может быть больше общего количества этажей в доме' };
+            }
+
+            if (formData.floor === 0 && formData.total_floors > 0) {
+                return { isValid: false, message: 'Этаж 0 обычно не используется. Используйте 1 для первого этажа.' };
+            }
+        }
+
+        if (formData.complex_status === 'yes' && (!formData.complex_name || formData.complex_name.trim() === '')) {
+            return { isValid: false, message: 'Введите название жилищного комплекса' };
+        }
+
+        return { isValid: true };
     }
 
     collectFormData(): FormData {
@@ -240,24 +276,45 @@ export class OfferCreateSecondStage {
             }
         });
 
-        return formData;
-    }
+        const yesButton = this.root!.querySelector('[data-value="yes"]') as HTMLButtonElement;
+        const noButton = this.root!.querySelector('[data-value="no"]') as HTMLButtonElement;
 
-    validateFormData(data: FormData): { isValid: boolean; message?: string } {
-        const floor = data.floor as number;
-        const totalFloors = data.total_floors as number;
-        return { isValid: true };
+        if (yesButton && yesButton.classList.contains('active')) {
+            formData.complex_status = 'yes';
+            formData.in_housing_complex = true;
+        } else if (noButton && noButton.classList.contains('active')) {
+            formData.complex_status = 'no';
+            formData.in_housing_complex = false;
+        } else {
+            formData.complex_status = 'no';
+            formData.in_housing_complex = false;
+        }
+
+        if (formData.complex_status === 'yes' && formData.complex_name) {
+            formData.housing_complex = formData.complex_name;
+        } else {
+            formData.housing_complex = null;
+        }
+
+        return formData;
     }
 
     saveFormData(): void {
         const formData: FormData = this.collectFormData();
-        const validationResult = this.validateFormData(formData);
-
-        if (!validationResult.isValid) {
-            return;
-        }
-
         this.dataManager.updateStage2(formData);
+    }
+
+    saveComplexData(): void {
+        const formData: FormData = this.collectFormData();
+
+        const complexData = {
+            complex_status: formData.complex_status,
+            in_housing_complex: formData.in_housing_complex,
+            complex_name: formData.complex_name,
+            housing_complex: formData.housing_complex
+        };
+
+        this.dataManager.updateStage2(complexData);
     }
 
     showError(message: string): void {
@@ -293,17 +350,29 @@ export class OfferCreateSecondStage {
             }
         });
 
-        if (currentData.complex_status === 'yes') {
-            this.handleComplexToggle('yes');
-        } else if (currentData.complex_status === 'no') {
-            this.handleComplexToggle('no');
+        let complexStatus = currentData.complex_status;
+
+        if (!complexStatus && currentData.in_housing_complex !== undefined) {
+            complexStatus = currentData.in_housing_complex ? 'yes' : 'no';
+        } else if (!complexStatus) {
+            complexStatus = 'no';
         }
 
-        if (currentData.complex_name) {
-            const complexNameInput = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
-            if (complexNameInput) {
-                complexNameInput.value = currentData.complex_name;
+        if (complexStatus === 'yes') {
+            this.handleComplexToggle('yes');
+
+            if (currentData.housing_complex && !currentData.complex_name) {
+                const complexNameInput = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
+                if (complexNameInput) {
+                    complexNameInput.value = currentData.housing_complex;
+                }
+                this.dataManager.updateStage2({
+                    complex_name: currentData.housing_complex,
+                    housing_complex: currentData.housing_complex
+                });
             }
+        } else {
+            this.handleComplexToggle('no');
         }
 
         if (currentData.address) {
@@ -323,6 +392,9 @@ export class OfferCreateSecondStage {
             back.className = 'create-ad__nav-button create-ad__nav-button_prev';
             back.textContent = 'Назад';
             back.dataset.action = 'prev';
+            this.addEventListener(back, 'click', () => {
+                this.saveFormData();
+            });
             group.appendChild(back);
         }
 
@@ -331,6 +403,14 @@ export class OfferCreateSecondStage {
             nextBtn.className = 'create-ad__nav-button create-ad__nav-button_next';
             nextBtn.textContent = 'Дальше';
             nextBtn.dataset.action = 'next';
+            this.addEventListener(nextBtn, 'click', () => {
+                const validation = this.validateFormData(this.collectFormData());
+                if (!validation.isValid) {
+                    this.showError(validation.message!);
+                    return;
+                }
+                this.saveFormData();
+            });
             group.appendChild(nextBtn);
         }
 
@@ -357,8 +437,26 @@ export class OfferCreateSecondStage {
             }
         }
 
-        const formData = this.collectFormData();
+        const formData: FormData = this.collectFormData();
+
         formData.complex_status = value;
+        formData.in_housing_complex = value === 'yes';
+
+        if (value === 'no') {
+            formData.complex_name = null;
+            formData.housing_complex = null;
+
+            const complexNameInput = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
+            if (complexNameInput) {
+                complexNameInput.value = '';
+            }
+        } else if (value === 'yes') {
+            const complexNameInput = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
+            if (complexNameInput && complexNameInput.value) {
+                formData.housing_complex = complexNameInput.value;
+            }
+        }
+
         this.dataManager.updateStage2(formData);
     }
 
@@ -428,7 +526,24 @@ export class OfferCreateSecondStage {
             }
 
         } catch (error) {
-            // Ошибка инициализации карты обрабатывается молча
+
+        }
+    }
+
+    addEventListener(element: EventTarget, event: string, handler: EventListenerOrEventListenerObject): void {
+        element.addEventListener(event, handler);
+        this.eventListeners.push({ element, event, handler });
+    }
+
+    cleanup(): void {
+        this.eventListeners.forEach(({ element, event, handler }) =>
+            element.removeEventListener(event, handler)
+        );
+        this.eventListeners = [];
+
+        if ((window as any).createAdMapInstance) {
+            (window as any).createAdMapInstance.destroy();
+            (window as any).createAdMapInstance = null;
         }
     }
 }

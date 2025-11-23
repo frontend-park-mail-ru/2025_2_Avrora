@@ -1,4 +1,3 @@
-// OfferCreateFifthStage.ts
 import { MediaService } from '../../../utils/MediaService.ts';
 import { Modal } from '../../../components/OfferCreate/Modal/Modal.ts';
 
@@ -331,15 +330,12 @@ export class OfferCreateFifthStage {
             images: [...this.images]
         };
 
-        // ВАЖНО: убираем блокировку сохранения при невалидных данных
-        // Данные должны сохраняться всегда, а валидация происходить при навигации
         this.dataManager.updateStage5(formData);
     }
 
     validateFormData(): { isValid: boolean; message?: string } {
         const currentData = this.dataManager.getData();
 
-        // Проверка изображений
         if (!currentData.images || !Array.isArray(currentData.images)) {
             return { isValid: false, message: 'Ошибка данных изображений' };
         }
@@ -360,7 +356,6 @@ export class OfferCreateFifthStage {
             return { isValid: false, message: 'Можно загрузить не более 10 фотографий' };
         }
 
-        // Проверка описания
         if (!currentData.description || currentData.description.trim() === '') {
             return { isValid: false, message: 'Введите описание объявления' };
         }

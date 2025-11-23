@@ -101,7 +101,8 @@ class App {
         const root = document.getElementById('root');
         if (!root) throw new Error('Root element not found');
 
-        this.headerElement = document.createElement('header');
+        this.headerElement = document.createElement('div');
+        this.headerElement.className = "header";
         root.appendChild(this.headerElement);
 
         this.mainElement = document.createElement('main');

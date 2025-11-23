@@ -1,5 +1,5 @@
 import { OfferCard } from "../components/Offer/OfferCard/OfferCard.ts";
-import { YandexMapService } from "../utils/YandexMapService.ts"; 
+import { YandexMapService } from "../utils/YandexMapService.ts";
 import { PriceHistoryChartService } from "../utils/PriceHistoryChartService.ts";
 
 export class OfferWidget {
@@ -30,7 +30,6 @@ export class OfferWidget {
             const offerData = await this.loadOffer();
             await this.renderContent(offerData);
         } catch (error) {
-            console.error("Error rendering offer:", error);
             this.renderError("Не удалось загрузить объявление");
         } finally {
             this.isLoading = false;
@@ -49,8 +48,12 @@ export class OfferWidget {
 
         const result = await this.controller.loadOffer(this.offerId);
         if (result.ok && result.data) {
+
             const sellerData = await this.controller.loadSellerData(result.data.user_id || result.data.UserID);
-            return this.formatOffer(result.data, sellerData);
+            const formattedOffer = this.formatOffer(result.data, sellerData);
+
+
+            return formattedOffer;
         }
         throw new Error(result.error || "Ошибка загрузки объявления");
     }
@@ -71,8 +74,8 @@ export class OfferWidget {
         const description = apiData.description || apiData.Description;
         const title = apiData.title || apiData.Title;
 
-        const complexName = apiData.complex_name || apiData.ComplexName || '';
-        const complexId = apiData.complex_id || apiData.ComplexID || null;
+        const housingComplexId = apiData.housing_complex_id || apiData.HousingComplexID || apiData.housing_complex || null;
+        const housingComplexName = apiData.housing_complex_name || apiData.HousingComplexName || apiData.complex_name || null;
 
         const images = this.controller.getOfferImages(apiData);
         const sellerInfo = this.controller.getSellerInfo(sellerData);
@@ -96,14 +99,16 @@ export class OfferWidget {
                 floor: floor,
                 totalFloors: totalFloors,
                 rooms: rooms,
-                complexName: complexName, 
-                complexId: complexId  
+                housingComplexId: housingComplexId,
+                housingComplexName: housingComplexName
             }),
             offerType: offerType,
             deposit: apiData.deposit || apiData.Deposit || 0,
             commission: apiData.commission || apiData.Commission || 0,
             rentalPeriod: this.formatRentalPeriod(apiData.rental_period || apiData.RentalPeriod),
             userId: userId,
+            housingComplexId: housingComplexId,
+            housingComplexName: housingComplexName,
             showOwnerActions: this.controller.isOfferOwner(apiData),
             showContactBtn: !this.controller.isOfferOwner(apiData),
             showPhone: this.controller.isOfferOwner(apiData)
@@ -181,13 +186,13 @@ export class OfferWidget {
             }
         ];
 
-        if (apiData.complexName && apiData.complexId) {
-            characteristics.splice(1, 0, { 
+        if (apiData.housingComplexId) {
+            characteristics.splice(1, 0, {
                 title: 'В составе ЖК',
-                value: apiData.complexName,
-                icon: 'complex', 
-                isComplex: true, 
-                complexId: apiData.complexId 
+                value: apiData.housingComplexName || "...",
+                icon: 'complex',
+                isComplex: true,
+                complexId: apiData.housingComplexId
             });
         }
 
@@ -226,7 +231,6 @@ export class OfferWidget {
 
     private async initYandexMap(address: string | undefined): Promise<void> {
         if (!address) {
-            console.warn('Адрес объявления отсутствует — карта не будет отображена');
             return;
         }
 
@@ -234,14 +238,13 @@ export class OfferWidget {
 
         const mapContainer = this.rootEl?.querySelector('#yandex-map') as HTMLElement | null;
         if (!mapContainer) {
-            console.warn('Контейнер карты #yandex-map не найден в DOM');
             return;
         }
 
         try {
             await YandexMapService.initMap('yandex-map', address);
         } catch (error) {
-            console.error('❌ Ошибка при инициализации карты:', error);
+
         }
     }
 
@@ -253,14 +256,13 @@ export class OfferWidget {
 
             const chartContainer = this.rootEl?.querySelector('#price-history-chart') as HTMLCanvasElement | null;
             if (!chartContainer) {
-                console.warn('Контейнер графика #price-history-chart не найден');
                 return;
             }
 
             await PriceHistoryChartService.initChart('price-history-chart', priceHistory);
 
         } catch (error) {
-            console.error('Ошибка при инициализации графика:', error);
+
         }
     }
 

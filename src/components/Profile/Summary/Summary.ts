@@ -18,10 +18,12 @@ interface OfferData {
 export class Summary {
     private controller: any;
     private myOffers: OfferData[];
+    private favoriteOffers: OfferData[];
 
     constructor(controller: any) {
         this.controller = controller;
         this.myOffers = [];
+        this.favoriteOffers = [];
     }
 
     async render(): Promise<HTMLElement> {
@@ -30,7 +32,7 @@ export class Summary {
 
         const quickAdBlock = this.createQuickAdBlock();
         const myAdsBlock = await this.createMyAdsBlock();
-        const favoritesBlock = this.createFavoritesBlock();
+        const favoritesBlock = await this.createFavoritesBlock();
 
         content.appendChild(quickAdBlock);
         content.appendChild(myAdsBlock);
@@ -81,11 +83,11 @@ export class Summary {
 
         const title = document.createElement("h1");
         title.className = "profile__title";
-        title.textContent = "Мои объявления";
-        block.appendChild(title);
 
         try {
             this.myOffers = await ProfileService.getMyOffers();
+            title.textContent = `Мои объявления (${this.myOffers.length})`;
+            block.appendChild(title);
 
             if (this.myOffers.length === 0) {
                 const ad = this.createAd(
@@ -102,7 +104,9 @@ export class Summary {
                 });
             }
         } catch (error) {
-            console.error('Error loading my offers in summary:', error);
+            title.textContent = "Мои объявления";
+            block.appendChild(title);
+
             const ad = this.createAd(
                 null,
                 "Не удалось загрузить объявления",
@@ -120,6 +124,38 @@ export class Summary {
             this.controller.navigate("/profile/myoffers");
         });
 
+        block.appendChild(link);
+
+        return block;
+    }
+
+    private async createFavoritesBlock(): Promise<HTMLElement> {
+        const block = document.createElement("div");
+        block.className = "profile__block";
+
+        const title = document.createElement("h1");
+        title.className = "profile__title";
+
+        try {
+            this.favoriteOffers = [];
+            title.textContent = `Избранное (${this.favoriteOffers.length})`;
+        } catch (error) {
+            title.textContent = "Избранное";
+        }
+
+        const favorite = this.createAd(
+            null,
+            "В избранном пока пусто",
+            "Добавляйте объявления в избранное, чтобы они появились здесь"
+        );
+
+        const link = document.createElement("button");
+        link.type = "button";
+        link.className = "profile__link";
+        link.textContent = "Все избранные объявления";
+
+        block.appendChild(title);
+        block.appendChild(favorite);
         block.appendChild(link);
 
         return block;
@@ -172,32 +208,6 @@ export class Summary {
         return ad;
     }
 
-    private createFavoritesBlock(): HTMLElement {
-        const block = document.createElement("div");
-        block.className = "profile__block";
-
-        const title = document.createElement("h1");
-        title.className = "profile__title";
-        title.textContent = "Избранное";
-
-        const favorite = this.createAd(
-            null,
-            "В избранном пока пусто",
-            "Добавляйте объявления в избранное, чтобы они появились здесь"
-        );
-
-        const link = document.createElement("button");
-        link.type = "button";
-        link.className = "profile__link";
-        link.textContent = "Все избранные объявления";
-
-        block.appendChild(title);
-        block.appendChild(favorite);
-        block.appendChild(link);
-
-        return block;
-    }
-
     private createAd(imgSrc: string | null, titleText: string, description: string): HTMLElement {
         const ad = document.createElement("div");
         ad.className = "profile__ad";
@@ -233,7 +243,6 @@ export class Summary {
         const types: { [key: string]: string } = {
             'flat': 'кв.',
             'house': 'дом',
-            'garage': 'гараж',
             'apartment': 'апартаменты',
             'studio': 'студия'
         };

@@ -2,6 +2,7 @@ import { Summary } from '../components/Profile/Summary/Summary.ts';
 import { Profile } from '../components/Profile/Profile/Profile.ts';
 import { Safety } from '../components/Profile/Safety/Safety.ts';
 import { MyAdvertisements } from '../components/Profile/MyAdvertisements/MyAdvertisements.ts';
+import { ProfileService } from '../utils/ProfileService.ts';
 
 interface User {
     id?: string;
@@ -40,6 +41,7 @@ export class ProfileWidget {
     private eventListeners: EventListener[];
     private root: HTMLElement | null;
     private currentComponent: Component | null;
+    private myOffersCount: number;
 
     constructor(parent: HTMLElement, controller: any, options: ProfileWidgetOptions = {}) {
         this.parent = parent;
@@ -48,6 +50,7 @@ export class ProfileWidget {
         this.eventListeners = [];
         this.root = null;
         this.currentComponent = null;
+        this.myOffersCount = 0;
     }
 
     private resolveViewFromLocation(): string {
@@ -62,6 +65,13 @@ export class ProfileWidget {
         this.cleanup();
 
         this.view = this.resolveViewFromLocation();
+
+        try {
+            const offers = await ProfileService.getMyOffers();
+            this.myOffersCount = offers.length;
+        } catch (error) {
+            this.myOffersCount = 0;
+        }
 
         this.root = document.createElement("div");
         this.root.className = "profile";
@@ -105,11 +115,9 @@ export class ProfileWidget {
             if (componentElement && componentElement.nodeType) {
                 this.root.appendChild(componentElement);
             } else {
-                console.error('Component render did not return a valid DOM node:', componentElement);
                 this.renderError("Ошибка при загрузке компонента");
             }
         } catch (error) {
-            console.error('Error rendering profile component:', error);
             this.renderError("Не удалось загрузить компонент");
         }
     }
@@ -208,7 +216,7 @@ export class ProfileWidget {
         const navItems = [
             { key: "summary", text: "Сводка", path: "/profile" },
             { key: "profile", text: "Профиль", path: "/profile/edit" },
-            { key: "myads", text: "Мои объявления", path: "/profile/myoffers" },
+            { key: "myads", text: `Мои объявления (${this.myOffersCount})`, path: "/profile/myoffers" },
             { key: "safety", text: "Безопасность", path: "/profile/security" }
         ];
 

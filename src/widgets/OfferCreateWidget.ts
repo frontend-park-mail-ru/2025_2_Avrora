@@ -1,4 +1,3 @@
-// OfferCreateWidget.ts
 import { OfferCreateFirstStage } from '../components/OfferCreate/OfferCreateFirstStage/OfferCreateFirstStage.ts';
 import { OfferCreateSecondStage } from '../components/OfferCreate/OfferCreateSecondStage/OfferCreateSecondStage.ts';
 import { OfferCreateThirdStage } from '../components/OfferCreate/OfferCreateThirdStage/OfferCreateThirdStage.ts';
@@ -80,7 +79,9 @@ export class OfferCreateWidget {
 
         switch (this.step) {
             case 2:
-                stageEl = new OfferCreateSecondStage(stageOptions).render();
+                const secondStage = new OfferCreateSecondStage(stageOptions);
+                stageEl = secondStage.render();
+                this.addEventListener(stageEl, 'cleanup', () => secondStage.cleanup());
                 break;
             case 3:
                 stageEl = new OfferCreateThirdStage(stageOptions).render();
@@ -142,6 +143,17 @@ export class OfferCreateWidget {
                     return;
                 }
 
+                if (this.step === 5) {
+                    const fifthStage = this.currentStageElement as any;
+                    if (fifthStage && fifthStage.validateFormData) {
+                        const fifthStageValidation = fifthStage.validateFormData();
+                        if (!fifthStageValidation.isValid) {
+                            this.showError(fifthStageValidation.message!);
+                            return;
+                        }
+                    }
+                }
+
                 await this.handlePublish();
             });
         }
@@ -162,7 +174,7 @@ export class OfferCreateWidget {
 
             this.updateStageData(this.step, formData);
         } catch (error) {
-            // Ошибка сохранения данных обрабатывается молча
+
         }
     }
 
@@ -243,6 +255,10 @@ export class OfferCreateWidget {
                     return { isValid: false, message: 'Введите адрес' };
                 }
 
+                if (currentData.complex_status === 'yes' && (!currentData.complex_name || currentData.complex_name.trim() === '')) {
+                    return { isValid: false, message: 'Введите название жилищного комплекса' };
+                }
+
                 const floorValidation = this.validateFloors(currentData);
                 if (!floorValidation.isValid) {
                     return floorValidation;
@@ -293,7 +309,6 @@ export class OfferCreateWidget {
     }
 
     private validateFifthStage(data: any): { isValid: boolean; message?: string } {
-        // Проверка изображений
         if (!data.images || !Array.isArray(data.images)) {
             return { isValid: false, message: 'Ошибка данных изображений' };
         }
@@ -314,7 +329,6 @@ export class OfferCreateWidget {
             return { isValid: false, message: 'Можно загрузить не более 10 фотографий' };
         }
 
-        // Проверка описания
         if (!data.description || data.description.trim() === '') {
             return { isValid: false, message: 'Введите описание объявления' };
         }
@@ -505,10 +519,20 @@ export class OfferCreateWidget {
                     this.controller.navigate('/profile/myoffers');
                 }, 2000);
             } else {
+                let errorMessage = 'Произошла ошибка при публикации объявления';
+
+                if (result && result.message) {
+                    errorMessage = result.message;
+                } else if (result && result.error) {
+                    errorMessage = result.error;
+                } else if (result && result.errors) {
+                    errorMessage = Object.values(result.errors).join(', ');
+                }
+
                 if (this.controller.handleAPIError) {
                     this.controller.handleAPIError(result, this.isEditing);
                 } else {
-                    this.showError(result?.message || 'Произошла ошибка при публикации объявления');
+                    this.showError(errorMessage);
                 }
             }
         } catch (error) {
@@ -561,6 +585,18 @@ export class OfferCreateWidget {
             preparedData.commission = parseFloat(preparedData.commission) || null;
         }
 
+        if (preparedData.in_housing_complex !== undefined) {
+            preparedData.in_housing_complex = Boolean(preparedData.in_housing_complex);
+        } else {
+            preparedData.in_housing_complex = false;
+        }
+
+        if (preparedData.housing_complex !== undefined && preparedData.housing_complex !== null) {
+            preparedData.housing_complex = String(preparedData.housing_complex);
+        } else {
+            preparedData.housing_complex = '';
+        }
+
         if (!preparedData.title && this.shouldGenerateTitle(data)) {
             preparedData.title = this.generateTitle(data);
         }
@@ -578,6 +614,9 @@ export class OfferCreateWidget {
         }
 
         delete preparedData.images;
+        delete preparedData.complex_status;
+        delete preparedData.complex_name;
+
 
         return preparedData;
     }

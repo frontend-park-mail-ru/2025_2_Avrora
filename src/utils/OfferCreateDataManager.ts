@@ -1,4 +1,3 @@
-// OfferCreateDataManager.ts
 interface OfferData {
     category: string | null;
     offer_type: string | null;
@@ -17,6 +16,10 @@ interface OfferData {
     description: string | null;
     images: ImageData[];
     status: string;
+    in_housing_complex: boolean;
+    housing_complex: string | null;
+    complex_status: string | null;
+    complex_name: string | null;
 }
 
 interface ImageData {
@@ -34,6 +37,10 @@ interface Stage2Data {
     address?: string | null;
     floor?: number | null;
     total_floors?: number | null;
+    in_housing_complex?: boolean;
+    housing_complex?: string | null;
+    complex_status?: string | null;
+    complex_name?: string | null;
 }
 
 interface Stage3Data {
@@ -89,6 +96,8 @@ interface APIOfferData {
     image_urls?: any[];
     ImageURLs?: any[];
     status?: string;
+    in_housing_complex?: boolean;
+    housing_complex?: string;
 }
 
 export class OfferCreateDataManager {
@@ -112,7 +121,11 @@ export class OfferCreateDataManager {
             rental_period: null,
             description: null,
             images: [],
-            status: 'active'
+            status: 'active',
+            in_housing_complex: false,
+            housing_complex: null,
+            complex_status: null,
+            complex_name: null
         };
     }
 
@@ -126,6 +139,35 @@ export class OfferCreateDataManager {
         if (data.address !== undefined) this.data.address = data.address;
         if (data.floor !== undefined) this.data.floor = this.normalizeNumber(data.floor);
         if (data.total_floors !== undefined) this.data.total_floors = this.normalizeNumber(data.total_floors);
+
+        if (data.complex_status !== undefined) {
+            this.data.complex_status = data.complex_status;
+            this.data.in_housing_complex = data.complex_status === 'yes';
+        }
+
+        if (data.in_housing_complex !== undefined) {
+            this.data.in_housing_complex = data.in_housing_complex;
+            this.data.complex_status = data.in_housing_complex ? 'yes' : 'no';
+        }
+
+        if (data.complex_name !== undefined) {
+            this.data.complex_name = data.complex_name;
+            if (this.data.in_housing_complex && data.complex_name) {
+                this.data.housing_complex = data.complex_name;
+            }
+        }
+
+        if (data.housing_complex !== undefined) {
+            this.data.housing_complex = data.housing_complex;
+            if (this.data.in_housing_complex && data.housing_complex) {
+                this.data.complex_name = data.housing_complex;
+            }
+        }
+
+        if (!this.data.in_housing_complex) {
+            this.data.housing_complex = null;
+            this.data.complex_name = null;
+        }
     }
 
     updateStage3(data: Stage3Data): void {
@@ -171,11 +213,18 @@ export class OfferCreateDataManager {
             rental_period: null,
             description: null,
             images: [],
-            status: 'active'
+            status: 'active',
+            in_housing_complex: false,
+            housing_complex: null,
+            complex_status: null,
+            complex_name: null
         };
     }
 
     populateFromAPI(apiData: APIOfferData): void {
+        const inHousingComplex = apiData.in_housing_complex || false;
+        const housingComplex = apiData.housing_complex || null;
+
         this.data = {
             category: apiData.category || 'secondary',
             offer_type: apiData.offer_type || apiData.OfferType || 'sale',
@@ -193,7 +242,11 @@ export class OfferCreateDataManager {
             rental_period: apiData.rental_period || apiData.RentalPeriod || null,
             description: apiData.description || apiData.Description || null,
             images: this.normalizeImages(apiData.images || apiData.image_urls || apiData.ImageURLs || []),
-            status: apiData.status || 'active'
+            status: apiData.status || 'active',
+            in_housing_complex: inHousingComplex,
+            housing_complex: housingComplex,
+            complex_status: inHousingComplex ? 'yes' : 'no',
+            complex_name: housingComplex
         };
     }
 

@@ -61,6 +61,7 @@ export class MyAdvertisements {
 
         try {
             this.offers = await ProfileService.getMyOffers();
+            title.textContent = `Мои объявления (${this.offers.length})`;
 
             if (this.offers.length === 0) {
                 const emptyMessage = document.createElement("div");
@@ -68,8 +69,6 @@ export class MyAdvertisements {
                 emptyMessage.textContent = "У вас пока нет объявлений";
                 block.appendChild(emptyMessage);
             } else {
-                title.textContent = `Мои объявления (${this.offers.length})`;
-
                 this.offers.forEach(offerData => {
                     const ad = this.createAd(offerData);
                     block.appendChild(ad);
@@ -77,7 +76,7 @@ export class MyAdvertisements {
             }
 
         } catch (error) {
-            console.error('Error loading my offers:', error);
+            title.textContent = "Мои объявления";
 
             const errorDiv = document.createElement("div");
             errorDiv.className = "profile__error";
@@ -228,7 +227,6 @@ export class MyAdvertisements {
                 }
             }
         } catch (error) {
-            console.error('Error deleting offer:', error);
             Modal.show({
                 title: 'Ошибка',
                 message: (error as Error).message || 'Не удалось удалить объявление',

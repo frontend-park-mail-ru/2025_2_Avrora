@@ -145,7 +145,9 @@
                 <div class="offer__feature-info">
                     <div class="offer__feature-title">{{title}}</div>
                     {{#if isComplex}}
-                        <a href="/complexes/{{complexId}}" class="offer__feature-value offer__feature-value--complex">
+                        <a href="/complexes/{{complexId}}"
+                           class="offer__feature-value offer__feature-value--complex"
+                           data-complex-id="{{complexId}}">
                             {{value}}
                         </a>
                     {{else}}

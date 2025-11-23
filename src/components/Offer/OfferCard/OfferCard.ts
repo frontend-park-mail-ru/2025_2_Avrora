@@ -17,6 +17,8 @@ interface OfferCardData {
         title: string;
         value: string;
         icon: string;
+        isComplex?: boolean;
+        complexId?: string | number;
     }>;
     offerType: string;
     deposit: number;
@@ -26,6 +28,8 @@ interface OfferCardData {
     userPhone: string;
     userAvatar: string;
     views: number;
+    housingComplexId?: string | number | null;
+    housingComplexName?: string | null;
 }
 
 interface OfferCardState {
@@ -82,6 +86,8 @@ export class OfferCard {
             userPhone: data.userPhone || "+7 XXX XXX-XX-XX",
             userAvatar: data.userAvatar || MediaService.getImageUrl('user.png'),
             views: data.views || 0,
+            housingComplexId: data.housingComplexId || data.housing_complex_id || null,
+            housingComplexName: data.housingComplexName || data.housing_complex_name || null,
         };
 
         this.state = state;
@@ -99,20 +105,35 @@ export class OfferCard {
             if (this.data.userId) {
                 await this.loadSellerData();
             }
-            try {
-                await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.INCREMENT_VIEWS.replace(':id', this.data.id.toString())}`, {});
-            } catch (viewError) {
-                console.warn('Failed to increment views:', viewError);
-            }
+
             const template = (Handlebars as any).templates['Offer.hbs'];
 
             const processedImages = this.data.images.map((img: string) =>
                 img.startsWith('http') ? img : MediaService.getImageUrl(img)
             );
 
+            const characteristicsWithComplex = [...this.data.characteristics];
+
+            if (this.data.housingComplexId) {
+                const existingComplexIndex = characteristicsWithComplex.findIndex(
+                    char => char.title === 'В составе ЖК'
+                );
+
+                if (existingComplexIndex === -1) {
+                    characteristicsWithComplex.splice(1, 0, {
+                        title: 'В составе ЖК',
+                        value: this.data.housingComplexName || "...",
+                        icon: 'complex',
+                        isComplex: true,
+                        complexId: this.data.housingComplexId
+                    });
+                }
+            }
+
             const templateData = {
                 ...this.data,
                 images: processedImages.length > 0 ? processedImages : [MediaService.getImageUrl('default_offer.jpg')],
+                characteristics: characteristicsWithComplex,
                 userAvatar: this.sellerData?.photo_url ?
                     (this.sellerData.photo_url.startsWith('http') ?
                         this.sellerData.photo_url :
@@ -149,7 +170,6 @@ export class OfferCard {
 
             return this.rootEl;
         } catch (error) {
-            console.error('Error in OfferCard.render:', error);
             const fallbackElement = document.createElement('div');
             fallbackElement.className = 'offer-card-error';
             fallbackElement.textContent = 'Ошибка загрузки объявления';
@@ -161,7 +181,6 @@ export class OfferCard {
         try {
             this.sellerData = await ProfileService.getProfile(this.data.userId);
         } catch (error) {
-            console.error('Error loading seller data:', error);
             this.sellerData = null;
         }
     }
@@ -225,6 +244,36 @@ export class OfferCard {
         if (likeButton) {
             likeButton.addEventListener('click', () => this.handleLike());
         }
+
+        this.rootEl!.addEventListener('click', (e) => {
+            const target = e.target as HTMLElement;
+            const complexLink = target.closest('.offer__feature-value--complex');
+
+            if (complexLink) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const complexId = complexLink.getAttribute('data-complex-id');
+
+                if (complexId) {
+                    this.handleComplexNavigation(complexId);
+                }
+            }
+        });
+
+        const complexLinks = this.rootEl!.querySelectorAll('.offer__feature-value--complex');
+        complexLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const complexId = link.getAttribute('data-complex-id');
+
+                if (complexId) {
+                    this.handleComplexNavigation(complexId);
+                }
+            });
+        });
     }
 
     attachSliderEvents(): void {
@@ -368,6 +417,19 @@ export class OfferCard {
 
         document.addEventListener('keydown', keyHandler);
         (overlay as any)._keyHandler = keyHandler;
+    }
+
+    handleComplexNavigation(complexId: string | number): void {
+        if (!complexId) return;
+
+        if (this.app?.router?.navigate) {
+            this.app.router.navigate(`/complexes/${complexId}`);
+        } else if (window.history && window.history.pushState) {
+            window.history.pushState({}, "", `/complexes/${complexId}`);
+            window.dispatchEvent(new PopStateEvent("popstate"));
+        } else {
+            window.location.href = `/complexes/${complexId}`;
+        }
     }
 
     handleCall(): void {
