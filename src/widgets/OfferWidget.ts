@@ -52,7 +52,6 @@ export class OfferWidget {
             const sellerData = await this.controller.loadSellerData(result.data.user_id || result.data.UserID);
             const formattedOffer = this.formatOffer(result.data, sellerData);
 
-
             return formattedOffer;
         }
         throw new Error(result.error || "Ошибка загрузки объявления");
@@ -230,11 +229,13 @@ export class OfferWidget {
     }
 
     private async initYandexMap(address: string | undefined): Promise<void> {
+
         if (!address) {
             return;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 0));
+        // Даем время на рендеринг DOM
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         const mapContainer = this.rootEl?.querySelector('#yandex-map') as HTMLElement | null;
         if (!mapContainer) {
@@ -245,6 +246,16 @@ export class OfferWidget {
             await YandexMapService.initMap('yandex-map', address);
         } catch (error) {
 
+        }
+    }
+
+    private removeMapLoader(): void {
+        const mapContainer = this.rootEl?.querySelector('#yandex-map') as HTMLElement | null;
+        if (!mapContainer) return;
+
+        const loader = mapContainer.querySelector('.map-loader');
+        if (loader) {
+            loader.remove();
         }
     }
 

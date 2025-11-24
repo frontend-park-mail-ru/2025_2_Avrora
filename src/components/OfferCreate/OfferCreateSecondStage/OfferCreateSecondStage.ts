@@ -1,3 +1,4 @@
+// OfferCreateSecondStage.ts
 interface StageOptions {
     state: any;
     app: any;
@@ -46,10 +47,11 @@ export class OfferCreateSecondStage {
     private allHousingComplexes: HousingComplex[] = [];
     private filteredComplexes: HousingComplex[] = [];
     private complexSearchTimeout: number | null = null;
-    private isSearching: boolean = false;
     private selectedComplex: HousingComplex | null = null;
     private complexesLoaded: boolean = false;
     private pendingComplexRestoration: string | null = null;
+    private mapInitialized: boolean = false;
+    private updateMapTimeout: number | null = null;
 
     constructor({ state, app, dataManager, isEditing = false, editOfferId = null }: StageOptions = {}) {
         this.state = state;
@@ -146,7 +148,7 @@ export class OfferCreateSecondStage {
         complexNameContainer.className = 'create-ad__autocomplete-container';
 
         const complexNameInput = this.createAutocompleteInput('Начните вводить название ЖК...', 'complex_name');
-        
+
         const dropdown = document.createElement('div');
         dropdown.className = 'create-ad__autocomplete-dropdown';
         dropdown.style.display = 'none';
@@ -163,16 +165,21 @@ export class OfferCreateSecondStage {
         complexNameBlock.appendChild(complexNameContainer);
         this.root.appendChild(complexNameBlock);
 
+        // Карта
         this.mapContainer = document.createElement('div');
         this.mapContainer.className = 'create-ad__map';
         this.mapContainer.id = 'yandex-create-map';
+        this.mapContainer.style.height = '400px';
+        this.mapContainer.style.marginTop = '20px';
+        this.mapContainer.style.borderRadius = '8px';
+        this.mapContainer.style.overflow = 'hidden';
+        this.mapContainer.style.border = '1px solid #e0e0e0';
         this.root.appendChild(this.mapContainer);
 
         this.root.appendChild(this.createNav({ prev: true, next: true }));
 
         // Загружаем все ЖК при инициализации
         this.loadAllComplexes().then(() => {
-            // После загрузки ЖК восстанавливаем данные формы
             this.restoreFormData();
         });
 
@@ -202,7 +209,6 @@ export class OfferCreateSecondStage {
             if (value.length > 0 && this.filteredComplexes.length > 0) {
                 this.showAutocompleteDropdown(this.filteredComplexes);
             } else if (value.length === 0 && this.complexesLoaded) {
-                // Показываем все комплексы при фокусе на пустом поле
                 this.showAutocompleteDropdown(this.allHousingComplexes.slice(0, 10));
             }
         });
@@ -232,13 +238,12 @@ export class OfferCreateSecondStage {
     async loadAllComplexes(): Promise<void> {
         try {
             const response = await fetch('/api/v1/complexes/list?limit=100');
-            
+
             if (response.ok) {
                 const data: ComplexesResponse = await response.json();
                 this.allHousingComplexes = data.Complexes || [];
                 this.complexesLoaded = true;
 
-                // Если есть отложенное восстановление комплекса, выполняем его
                 if (this.pendingComplexRestoration) {
                     this.restoreComplexSelection(this.pendingComplexRestoration);
                     this.pendingComplexRestoration = null;
@@ -258,7 +263,6 @@ export class OfferCreateSecondStage {
             clearTimeout(this.complexSearchTimeout);
         }
 
-        // Сбрасываем выбранный комплекс при изменении текста
         if (this.selectedComplex && searchTerm !== this.selectedComplex.Name) {
             this.selectedComplex = null;
             this.hideSelectedComplexInfo();
@@ -285,7 +289,6 @@ export class OfferCreateSecondStage {
             return;
         }
 
-        // Фильтруем комплексы по названию (регистронезависимо)
         this.filteredComplexes = this.allHousingComplexes.filter(complex =>
             complex.Name.toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -298,18 +301,16 @@ export class OfferCreateSecondStage {
         if (!dropdown) return;
 
         dropdown.innerHTML = '';
-        
+
         if (complexes.length === 0) {
             this.showNoResults();
         } else {
-            // Ограничиваем показ 10 результатами
             const limitedComplexes = complexes.slice(0, 10);
             limitedComplexes.forEach(complex => {
                 const item = this.createComplexItem(complex);
                 dropdown.appendChild(item);
             });
 
-            // Показываем количество результатов если их больше 10
             if (complexes.length > 10) {
                 const moreResults = document.createElement('div');
                 moreResults.className = 'create-ad__autocomplete-more-results';
@@ -317,7 +318,7 @@ export class OfferCreateSecondStage {
                 dropdown.appendChild(moreResults);
             }
         }
-        
+
         dropdown.style.display = 'block';
     }
 
@@ -365,12 +366,12 @@ export class OfferCreateSecondStage {
         if (!dropdown) return;
 
         dropdown.innerHTML = '';
-        
+
         const noResults = document.createElement('div');
         noResults.className = 'create-ad__autocomplete-item create-ad__autocomplete-item--no-results';
         noResults.textContent = 'Жилищные комплексы не найдены';
         dropdown.appendChild(noResults);
-        
+
         dropdown.style.display = 'block';
     }
 
@@ -379,12 +380,12 @@ export class OfferCreateSecondStage {
         if (!dropdown) return;
 
         dropdown.innerHTML = '';
-        
+
         const loading = document.createElement('div');
         loading.className = 'create-ad__autocomplete-item create-ad__autocomplete-item--loading';
         loading.textContent = 'Загрузка списка ЖК...';
         dropdown.appendChild(loading);
-        
+
         dropdown.style.display = 'block';
     }
 
@@ -405,11 +406,11 @@ export class OfferCreateSecondStage {
         this.hideAutocompleteDropdown();
         this.showSelectedComplexInfo(complex);
         this.clearError();
-        
+
         const formData: FormData = this.collectFormData();
         formData.complex_name = complex.Name;
         formData.housing_complex = complex.Name;
-        formData.housing_complex_id = complex.ID; // Сохраняем ID ЖК
+        formData.housing_complex_id = complex.ID;
         formData.in_housing_complex = true;
         this.dataManager.updateStage2(formData);
     }
@@ -471,7 +472,7 @@ export class OfferCreateSecondStage {
         this.selectedComplex = null;
         this.hideSelectedComplexInfo();
         this.clearError();
-        
+
         const formData: FormData = this.collectFormData();
         formData.complex_name = null;
         formData.housing_complex = null;
@@ -480,7 +481,6 @@ export class OfferCreateSecondStage {
         this.dataManager.updateStage2(formData);
     }
 
-    // Восстановление выбора комплекса по названию
     private restoreComplexSelection(complexName: string): void {
         if (!this.complexesLoaded) {
             this.pendingComplexRestoration = complexName;
@@ -491,7 +491,7 @@ export class OfferCreateSecondStage {
         if (complex) {
             this.selectedComplex = complex;
             this.showSelectedComplexInfo(complex);
-            
+
             const input = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
             if (input) {
                 input.value = complex.Name;
@@ -672,8 +672,7 @@ export class OfferCreateSecondStage {
             this.hideAutocompleteDropdown();
             this.hideSelectedComplexInfo();
             this.selectedComplex = null;
-            
-            // Очищаем данные о ЖК при выборе "Нет"
+
             const formData: FormData = this.collectFormData();
             formData.complex_name = null;
             formData.housing_complex = null;
@@ -834,7 +833,6 @@ export class OfferCreateSecondStage {
             formData.in_housing_complex = false;
         }
 
-        // Сохраняем данные о выбранном комплексе
         if (this.selectedComplex) {
             formData.complex_name = this.selectedComplex.Name;
             formData.housing_complex = this.selectedComplex.Name;
@@ -852,20 +850,6 @@ export class OfferCreateSecondStage {
     saveFormData(): void {
         const formData: FormData = this.collectFormData();
         this.dataManager.updateStage2(formData);
-    }
-
-    saveComplexData(): void {
-        const formData: FormData = this.collectFormData();
-
-        const complexData = {
-            complex_status: formData.complex_status,
-            in_housing_complex: formData.in_housing_complex,
-            complex_name: formData.complex_name,
-            housing_complex: formData.housing_complex,
-            housing_complex_id: formData.housing_complex_id
-        };
-
-        this.dataManager.updateStage2(complexData);
     }
 
     showError(message: string): void {
@@ -901,11 +885,9 @@ export class OfferCreateSecondStage {
             }
         });
 
-        // Восстанавливаем выбор ЖК
         let complexStatus = currentData.complex_status;
 
         if (!complexStatus) {
-            // Определяем статус на основе наличия housing_complex или in_housing_complex
             if (currentData.housing_complex || currentData.in_housing_complex) {
                 complexStatus = 'yes';
             } else {
@@ -913,16 +895,15 @@ export class OfferCreateSecondStage {
             }
         }
 
-        // Устанавливаем переключатель
         this.handleComplexToggle(complexStatus);
 
-        // Если выбран "Да" и есть housing_complex, восстанавливаем выбор комплекса
         if (complexStatus === 'yes' && currentData.housing_complex) {
             this.restoreComplexSelection(currentData.housing_complex);
         }
 
         if (currentData.address) {
             this.currentAddress = currentData.address;
+            this.initMap();
         }
     }
 
@@ -966,71 +947,50 @@ export class OfferCreateSecondStage {
 
     updateCurrentAddress(address: string): void {
         this.currentAddress = address;
-        this.initMap();
+
+        // Добавляем задержку для избежания частых обновлений карты
+        if (this.updateMapTimeout) {
+            clearTimeout(this.updateMapTimeout);
+        }
+
+        this.updateMapTimeout = window.setTimeout(() => {
+            this.initMap();
+        }, 500); // Задержка 500ms
     }
 
     async initMap(): Promise<void> {
-        if (!window.ymaps) {
+        if (!this.currentAddress || this.currentAddress.trim().length < 5) {
+            // Показываем placeholder если адрес короткий
+            const mapContainer = document.getElementById('yandex-create-map');
+            if (mapContainer && mapContainer.innerHTML === '') {
+                mapContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px; text-align: center; padding: 20px; background: #f5f5f5;">
+                        Введите адрес для отображения на карте
+                    </div>
+                `;
+            }
             return;
         }
 
         try {
-            await new Promise(resolve => {
-                if (window.ymaps.ready) {
-                    resolve(true);
-                } else {
-                    window.ymaps.ready(resolve);
-                }
-            });
+            // Используем YandexMapService для ymaps3
+            const { YandexMapService } = await import('../../../utils/YandexMapService.js');
 
-            const container = document.getElementById('yandex-create-map');
-            if (!container) {
-                return;
-            }
-
-            if ((window as any).createAdMapInstance) {
-                (window as any).createAdMapInstance.destroy();
-                (window as any).createAdMapInstance = null;
-            }
-
-            (window as any).createAdMapInstance = new ymaps.Map('yandex-create-map', {
-                center: [55.75, 37.62],
-                zoom: 10,
-                controls: ['zoomControl', 'fullscreenControl']
-            }, {
-                suppressMapOpenBlock: true,
-                balloonMaxWidth: 200,
-                geolocationControlSize: 'large',
-                geolocationControlPosition: { top: '50px', right: '10px' },
-                zoomControlSize: 'small'
-            });
-
-            const mapInstance = (window as any).createAdMapInstance;
-
-            if (this.currentAddress.trim()) {
-                const geocodeResult = await ymaps.geocode(this.currentAddress);
-                const firstGeoObject = geocodeResult.geoObjects.get(0);
-
-                if (firstGeoObject) {
-                    const coords = firstGeoObject.geometry.getCoordinates();
-                    mapInstance.setCenter(coords, 16);
-
-                    const customIcon = new ymaps.Placemark(coords, {
-                        hintContent: this.currentAddress,
-                        balloonContent: this.currentAddress
-                    }, {
-                        iconLayout: 'default#image',
-                        iconImageHref: '/images/map-marker.svg',
-                        iconImageSize: [30, 40],
-                        iconImageOffset: [-15, -40]
-                    });
-
-                    mapInstance.geoObjects.add(customIcon);
-                }
-            }
-
+            // Используем безопасный метод обновления карты
+            await YandexMapService.updateMap('yandex-create-map', this.currentAddress);
+            this.mapInitialized = true;
         } catch (error) {
-            // Игнорируем ошибки инициализации карты
+            console.error('Error initializing map:', error);
+
+            // Показываем сообщение об ошибке в контейнере карты
+            const mapContainer = document.getElementById('yandex-create-map');
+            if (mapContainer) {
+                mapContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px; text-align: center; padding: 20px;">
+                        Не удалось загрузить карту для адреса: "${this.currentAddress}"
+                    </div>
+                `;
+            }
         }
     }
 
@@ -1049,9 +1009,14 @@ export class OfferCreateSecondStage {
             clearTimeout(this.complexSearchTimeout);
         }
 
-        if ((window as any).createAdMapInstance) {
-            (window as any).createAdMapInstance.destroy();
-            (window as any).createAdMapInstance = null;
-        }
+        // Уничтожаем карту при очистке с задержкой для избежания конфликтов
+        setTimeout(async () => {
+            try {
+                const { YandexMapService } = await import('../../../utils/YandexMapService.js');
+                YandexMapService.destroyMap();
+            } catch (error) {
+                console.error('Error destroying map:', error);
+            }
+        }, 100);
     }
 }

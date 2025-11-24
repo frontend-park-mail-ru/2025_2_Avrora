@@ -1,3 +1,4 @@
+// ProfileWidget.ts
 import { Summary } from '../components/Profile/Summary/Summary.ts';
 import { Profile } from '../components/Profile/Profile/Profile.ts';
 import { Safety } from '../components/Profile/Safety/Safety.ts';
@@ -94,7 +95,7 @@ export class ProfileWidget {
         let component: Component;
         switch (this.view) {
             case "profile":
-                component = new Profile(this.controller);
+                component = new Profile(this.controller, this); // Передаем this как parentWidget
                 break;
             case "safety":
                 component = new Safety(this.controller);
@@ -119,6 +120,35 @@ export class ProfileWidget {
             }
         } catch (error) {
             this.renderError("Не удалось загрузить компонент");
+        }
+    }
+
+    // Новый метод для обновления сайдбара в реальном времени
+    updateSidebar(): void {
+        if (!this.root) return;
+
+        const oldSidebar = this.root.querySelector('.profile__sidebar');
+        if (oldSidebar) {
+            const newSidebar = this.createSidebar();
+            this.root.replaceChild(newSidebar, oldSidebar);
+        }
+
+        // Также обновляем счетчик объявлений в навигации
+        this.updateMyOffersCount();
+    }
+
+    private async updateMyOffersCount(): Promise<void> {
+        try {
+            const offers = await ProfileService.getMyOffers();
+            this.myOffersCount = offers.length;
+
+            // Обновляем текст в навигации
+            const myAdsButton = this.root?.querySelector('[data-path="/profile/myoffers"]');
+            if (myAdsButton) {
+                myAdsButton.textContent = `Мои объявления (${this.myOffersCount})`;
+            }
+        } catch (error) {
+            this.myOffersCount = 0;
         }
     }
 

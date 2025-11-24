@@ -1,3 +1,4 @@
+// Safety.ts
 import { ProfileService } from '../../../utils/ProfileService.ts';
 import { Modal } from '../../OfferCreate/Modal/Modal.ts';
 import { showFieldErrors, clearFieldError, validPassword } from '../../../utils/Validator.ts';
@@ -205,16 +206,16 @@ export class Safety {
 
             this.showLoading(false);
 
+            // Очищаем поля после успешного обновления
+            inputs.forEach(input => {
+                (input as HTMLInputElement).value = '';
+                clearFieldError(input as HTMLInputElement);
+            });
+
             Modal.show({
                 title: 'Успех',
                 message: 'Пароль успешно изменен!',
-                type: 'info',
-                onConfirm: () => {
-                    inputs.forEach(input => {
-                        (input as HTMLInputElement).value = '';
-                        clearFieldError(input as HTMLInputElement);
-                    });
-                }
+                type: 'info'
             });
 
         } catch (error) {

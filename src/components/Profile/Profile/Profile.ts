@@ -1,3 +1,4 @@
+// Profile.ts
 import { ProfileService } from '../../../utils/ProfileService.ts';
 import { MediaService } from '../../../utils/MediaService.ts';
 import { Modal } from '../../OfferCreate/Modal/Modal.ts';
@@ -41,9 +42,11 @@ export class Profile {
     private isLoading: boolean;
     private profileData: ProfileData | null;
     private originalEmail: string;
+    private parentWidget: any;
 
-    constructor(controller: any) {
+    constructor(controller: any, parentWidget?: any) {
         this.controller = controller;
+        this.parentWidget = parentWidget;
         this.currentAvatarUrl = null;
         this.isLoading = false;
         this.profileData = null;
@@ -222,6 +225,11 @@ export class Profile {
                             avatar: avatarUrl,
                             photo_url: avatarUrl
                         });
+                    }
+
+                    // Обновляем сайдбар в реальном времени
+                    if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
+                        this.parentWidget.updateSidebar();
                     }
 
                     this.showLoading(false);
@@ -429,15 +437,20 @@ export class Profile {
                 ...profileData
             } as ProfileData;
 
+            // Обновляем UI в реальном времени
+            this.controller.updateUI();
+
+            // Обновляем сайдбар в реальном времени
+            if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
+                this.parentWidget.updateSidebar();
+            }
+
             this.showLoading(false);
 
             Modal.show({
                 title: 'Успех',
                 message: 'Профиль успешно сохранен!',
-                type: 'info',
-                onConfirm: () => {
-                    this.controller.updateUI();
-                }
+                type: 'info'
             });
 
         } catch (error) {

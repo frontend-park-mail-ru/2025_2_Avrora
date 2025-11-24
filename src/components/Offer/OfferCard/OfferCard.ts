@@ -692,7 +692,7 @@ export class OfferCard {
 
     handleLike(): void {
         // Заглушка для функционала лайков
-    }Ф
+    }
 
     formatCurrency(amount: number): string {
         if (!amount && amount !== 0) return '—';

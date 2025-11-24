@@ -1324,6 +1324,7 @@
   flex-direction: column;
   height: 100vh;
   background-color: #fff;
+  position: relative;
 }
 @media (max-width: 768px) {
   .search-map {
@@ -1335,6 +1336,8 @@
   padding: 16px 24px;
   border-bottom: 1px solid #e0e0e0;
   background-color: #f9fbfa;
+  z-index: 10;
+  position: relative;
 }
 @media (max-width: 768px) {
   .search-map__header {
@@ -1354,15 +1357,56 @@
 .search-map__container {
   flex: 1;
   position: relative;
+  display: flex;
 }
 @media (max-width: 768px) {
   .search-map__container {
     height: 60vh;
+    flex-direction: column;
   }
 }
 @media (max-width: 480px) {
   .search-map__container {
     height: 50vh;
+  }
+}
+.search-map__sidebar {
+  position: absolute;
+  width: 400px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: all 0.3s ease;
+}
+.search-map__sidebar--visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+@media (max-width: 768px) {
+  .search-map__sidebar {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    height: 300px;
+    top: 0;
+    left: 0;
+    margin-bottom: 10px;
+  }
+}
+.search-map__map {
+  flex: 1;
+  position: relative;
+  background: #f5f5f5;
+}
+@media (max-width: 768px) {
+  .search-map__map {
+    height: 400px;
   }
 }
 .search-map__placeholder {
@@ -1411,174 +1455,97 @@
   }
 }
 
-.map-sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 360px;
-  background-color: white;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-@media (max-width: 768px) {
-  .map-sidebar {
-    width: 100%;
-    height: 100vh;
-    top: 80px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1001;
-  }
-}
-@media (max-width: 480px) {
-  .map-sidebar {
-    top: 60px;
-  }
-}
-.map-sidebar__header {
+.sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f9fbfa;
 }
-@media (max-width: 768px) {
-  .map-sidebar__header {
-    padding: 12px 16px;
-  }
-}
-.map-sidebar__header h3 {
+.sidebar-header__title {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
+  color: #333;
+  line-height: 1.4;
 }
-@media (max-width: 768px) {
-  .map-sidebar__header h3 {
-    font-size: 16px;
-  }
-}
-.map-sidebar__close {
+.sidebar-header__close {
   background: none;
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #78909c;
-  padding: 4px;
+  color: #666;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 4px;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 16px;
 }
-@media (max-width: 768px) {
-  .map-sidebar__close {
-    font-size: 20px;
-    padding: 2px;
-  }
+.sidebar-header__close:hover {
+  background: #f0f0f0;
+  color: #333;
 }
-.map-sidebar__close:hover {
-  color: #4CAF50;
-}
-.map-sidebar__content {
-  padding: 16px 24px;
+
+.offers-list {
   flex: 1;
   overflow-y: auto;
+  padding: 0;
 }
-@media (max-width: 768px) {
-  .map-sidebar__content {
-    padding: 12px 16px;
-  }
-}
-.map-sidebar__offer-card {
-  display: flex;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+.offers-list__item {
+  border-bottom: 1px solid #e0e0e0;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: background-color 0.2s;
+  background: white;
 }
-@media (max-width: 768px) {
-  .map-sidebar__offer-card {
-    padding: 10px;
-    gap: 10px;
-  }
+.offers-list__item:hover {
+  background-color: #f8f9fa;
 }
-.map-sidebar__offer-card:hover {
-  background-color: #f5f5f5;
-  transform: translateY(-2px);
+.offers-list__item:last-child {
+  border-bottom: none;
 }
-.map-sidebar__offer-image {
-  width: 80px;
-  height: 80px;
-  border-radius: 8px;
-  background-size: cover;
-  background-position: center;
-  flex-shrink: 0;
-}
-@media (max-width: 768px) {
-  .map-sidebar__offer-image {
-    width: 72px;
-    height: 72px;
-    border-radius: 6px;
-  }
-}
-@media (max-width: 480px) {
-  .map-sidebar__offer-image {
-    width: 64px;
-    height: 64px;
-  }
-}
-.map-sidebar__offer-info {
-  flex: 1;
+.offers-list__empty {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  text-align: center;
+  color: #666;
+  padding: 20px;
 }
-@media (max-width: 768px) {
-  .map-sidebar__offer-info {
-    font-size: 13px;
-  }
+
+.initial-state-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+  color: #666;
 }
-.map-sidebar__offer-price {
+.initial-state-message__icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+.initial-state-message__title {
   font-size: 18px;
   font-weight: 600;
-  color: #4CAF50;
-}
-@media (max-width: 768px) {
-  .map-sidebar__offer-price {
-    font-size: 16px;
-  }
-}
-.map-sidebar__offer-desc {
-  font-size: 14px;
+  margin-bottom: 8px;
   color: #333;
-  margin-top: 4px;
 }
-@media (max-width: 768px) {
-  .map-sidebar__offer-desc {
-    font-size: 13px;
-    margin-top: 3px;
-  }
-}
-.map-sidebar__offer-address {
-  font-size: 12px;
-  color: #78909c;
-  margin-top: 4px;
-}
-@media (max-width: 768px) {
-  .map-sidebar__offer-address {
-    font-size: 12px;
-    margin-top: 3px;
-  }
-}
-@media (max-width: 480px) {
-  .map-sidebar__offer-address {
-    font-size: 11px;
-  }
+.initial-state-message__description {
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 300px;
 }
 
 .offer {
@@ -2184,26 +2151,6 @@
   .offer__map {
     height: 240px;
     border-radius: 6px;
-  }
-}
-.offer__map:before {
-  content: "Загрузка карты...";
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
-  z-index: 1;
-  font-size: 16px;
-  color: #666;
-}
-@media (max-width: 768px) {
-  .offer__map:before {
-    font-size: 14px;
   }
 }
 .offer__price-history-section {
