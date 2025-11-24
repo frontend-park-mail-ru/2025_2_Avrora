@@ -13,7 +13,7 @@ export const API_CONFIG = {
         UPDATE: '/offers/update/',
         DELETE: '/offers/delete/',
         MY_OFFERS: '/profile/myoffers/',
-        PRICE_HISTORY: ''
+        PRICE_HISTORY: '/offers/pricehistory'
     },
     COMPLEXES: {
         LIST: '/complexes/list',

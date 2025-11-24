@@ -484,7 +484,7 @@ const templates = {
     + ((stack1 = lookupProperty(helpers,"if").call(alias1,(depth0 != null ? lookupProperty(depth0,"description") : depth0),{"name":"if","hash":{},"fn":container.program(36, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":162,"column":4},"end":{"line":167,"column":11}}})) != null ? stack1 : "")
     + "\r\n    <div class=\"offer__section offer__map-section\">\r\n        <h2 class=\"offer__section-title\">Местоположение на карте</h2>\r\n        <div id=\"yandex-map\" class=\"offer__map\" data-address=\""
     + alias4(((helper = (helper = lookupProperty(helpers,"address") || (depth0 != null ? lookupProperty(depth0,"address") : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"address","hash":{},"data":data,"loc":{"start":{"line":171,"column":62},"end":{"line":171,"column":73}}}) : helper)))
-    + "\"></div>\r\n    </div>\r\n\r\n    <div class=\"offer__section offer__price-history-section\">\r\n        <h2 class=\"offer__section-title\">История изменения цены</h2>\r\n        <div class=\"offer__price-history-container\">\r\n            <canvas id=\"price-history-chart\" width=\"800\" height=\"400\"></canvas>\r\n        </div>\r\n    </div>\r\n</div>";
+    + "\"></div>\r\n    </div>\r\n\r\n    <div class=\"offer__section offer__price-history-section\">\r\n        <h2 class=\"offer__section-title\">История изменения цены</h2>\r\n        <div class=\"offer__price-history-container\" id=\"price-history-chart\">\r\n        </div>\r\n    </div>\r\n</div>";
 },"useData":true}),
   'OffersList': Handlebars.template({"1":function(container,depth0,helpers,partials,data) {
     return "    <h1 class=\"offers__title\">Популярные объявления</h1>\r\n";

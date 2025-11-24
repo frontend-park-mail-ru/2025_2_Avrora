@@ -30,6 +30,7 @@ interface OfferCardData {
     views: number;
     housingComplexId?: string | number | null;
     housingComplexName?: string | null;
+    priceHistory?: Array<{ date: string; price: number }>;
 }
 
 interface OfferCardState {
@@ -88,6 +89,7 @@ export class OfferCard {
             views: data.views || 0,
             housingComplexId: data.housingComplexId || data.housing_complex_id || null,
             housingComplexName: data.housingComplexName || data.housing_complex_name || null,
+            priceHistory: data.priceHistory || []
         };
 
         this.state = state;
@@ -105,7 +107,8 @@ export class OfferCard {
             // Загружаем данные параллельно для оптимизации
             await Promise.all([
                 this.data.userId ? this.loadSellerData() : Promise.resolve(),
-                this.data.housingComplexId ? this.loadComplexData() : Promise.resolve()
+                this.data.housingComplexId ? this.loadComplexData() : Promise.resolve(),
+                this.data.id ? this.loadPriceHistory() : Promise.resolve() // Добавляем загрузку истории цен
             ]);
 
             const template = (Handlebars as any).templates['Offer.hbs'];
@@ -209,6 +212,40 @@ export class OfferCard {
             console.error('Error loading complex data:', error);
             this.data.housingComplexName = null;
         }
+    }
+
+    async loadPriceHistory(): Promise<void> {
+        if (!this.data.id) return;
+
+        try {
+            const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.PRICE_HISTORY}/${this.data.id}`;
+            const response = await API.get(endpoint);
+            
+            if (response.ok && response.data) {
+                this.data.priceHistory = this.transformPriceHistoryData(response.data);
+            }
+        } catch (error) {
+            console.error('Error loading price history:', error);
+        }
+    }
+
+    private transformPriceHistoryData(apiData: any): Array<{ date: string; price: number }> {
+        if (Array.isArray(apiData)) {
+            return apiData.map((item: any) => ({
+                date: item.date || item.Date || item.created_at || new Date().toISOString(),
+                price: item.price || item.Price || item.price_value || 0
+            }));
+        }
+        
+        if (apiData.points && Array.isArray(apiData.points)) {
+            return this.transformPriceHistoryData(apiData.points);
+        }
+        
+        if (apiData.data && Array.isArray(apiData.data)) {
+            return this.transformPriceHistoryData(apiData.data);
+        }
+
+        return [];
     }
 
     initializeSlider(): void {
