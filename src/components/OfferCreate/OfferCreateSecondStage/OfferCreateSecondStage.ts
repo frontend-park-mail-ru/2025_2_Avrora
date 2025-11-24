@@ -12,6 +12,24 @@ interface FormData {
     complex_name?: string | null;
     in_housing_complex?: boolean;
     housing_complex?: string | null;
+    housing_complex_id?: string | null;
+}
+
+interface HousingComplex {
+    ID: string;
+    Name: string;
+    Address?: string;
+    Metro?: string;
+    StartingPrice?: number;
+    ImageURL?: string;
+}
+
+interface ComplexesResponse {
+    Meta: {
+        Total: number;
+        Offset: number;
+    };
+    Complexes: HousingComplex[];
 }
 
 export class OfferCreateSecondStage {
@@ -25,6 +43,13 @@ export class OfferCreateSecondStage {
     private mapContainer: HTMLElement | null;
     private currentAddress: string = '';
     private eventListeners: Array<{element: EventTarget, event: string, handler: EventListenerOrEventListenerObject}> = [];
+    private allHousingComplexes: HousingComplex[] = [];
+    private filteredComplexes: HousingComplex[] = [];
+    private complexSearchTimeout: number | null = null;
+    private isSearching: boolean = false;
+    private selectedComplex: HousingComplex | null = null;
+    private complexesLoaded: boolean = false;
+    private pendingComplexRestoration: string | null = null;
 
     constructor({ state, app, dataManager, isEditing = false, editOfferId = null }: StageOptions = {}) {
         this.state = state;
@@ -117,16 +142,25 @@ export class OfferCreateSecondStage {
         complexNameTitle.className = 'create-ad__form-label';
         complexNameTitle.textContent = 'Название жилищного комплекса';
 
-        const complexNameInput = this.createInput('Название ЖК', 'complex_name');
-        complexNameInput.required = false;
+        const complexNameContainer = document.createElement('div');
+        complexNameContainer.className = 'create-ad__autocomplete-container';
 
-        this.addEventListener(complexNameInput, 'input', () => {
-            this.clearError();
-            this.saveComplexData();
-        });
+        const complexNameInput = this.createAutocompleteInput('Начните вводить название ЖК...', 'complex_name');
+        
+        const dropdown = document.createElement('div');
+        dropdown.className = 'create-ad__autocomplete-dropdown';
+        dropdown.style.display = 'none';
+
+        const selectedComplexInfo = document.createElement('div');
+        selectedComplexInfo.className = 'create-ad__selected-complex';
+        selectedComplexInfo.style.display = 'none';
+
+        complexNameContainer.appendChild(complexNameInput);
+        complexNameContainer.appendChild(dropdown);
+        complexNameContainer.appendChild(selectedComplexInfo);
 
         complexNameBlock.appendChild(complexNameTitle);
-        complexNameBlock.appendChild(complexNameInput);
+        complexNameBlock.appendChild(complexNameContainer);
         this.root.appendChild(complexNameBlock);
 
         this.mapContainer = document.createElement('div');
@@ -136,13 +170,523 @@ export class OfferCreateSecondStage {
 
         this.root.appendChild(this.createNav({ prev: true, next: true }));
 
-        this.restoreFormData();
+        // Загружаем все ЖК при инициализации
+        this.loadAllComplexes().then(() => {
+            // После загрузки ЖК восстанавливаем данные формы
+            this.restoreFormData();
+        });
 
         setTimeout(() => {
             this.initMap();
+            this.injectAutocompleteStyles();
         }, 0);
 
         return this.root;
+    }
+
+    createAutocompleteInput(placeholder: string, fieldName: string): HTMLInputElement {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'create-ad__input create-ad__input--autocomplete';
+        input.placeholder = placeholder;
+        input.dataset.field = fieldName;
+        input.autocomplete = 'off';
+
+        this.addEventListener(input, 'input', (e: Event) => {
+            const value = (e.target as HTMLInputElement).value;
+            this.handleComplexSearch(value);
+        });
+
+        this.addEventListener(input, 'focus', (e: Event) => {
+            const value = (e.target as HTMLInputElement).value;
+            if (value.length > 0 && this.filteredComplexes.length > 0) {
+                this.showAutocompleteDropdown(this.filteredComplexes);
+            } else if (value.length === 0 && this.complexesLoaded) {
+                // Показываем все комплексы при фокусе на пустом поле
+                this.showAutocompleteDropdown(this.allHousingComplexes.slice(0, 10));
+            }
+        });
+
+        this.addEventListener(input, 'blur', () => {
+            setTimeout(() => {
+                this.hideAutocompleteDropdown();
+            }, 200);
+        });
+
+        this.addEventListener(input, 'keydown', (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                this.hideAutocompleteDropdown();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const dropdown = this.root!.querySelector('.create-ad__autocomplete-dropdown') as HTMLElement;
+                const firstItem = dropdown?.querySelector('.create-ad__autocomplete-item') as HTMLElement;
+                if (firstItem && !firstItem.classList.contains('create-ad__autocomplete-item--no-results')) {
+                    firstItem.click();
+                }
+            }
+        });
+
+        return input;
+    }
+
+    async loadAllComplexes(): Promise<void> {
+        try {
+            const response = await fetch('/api/v1/complexes/list?limit=100');
+            
+            if (response.ok) {
+                const data: ComplexesResponse = await response.json();
+                this.allHousingComplexes = data.Complexes || [];
+                this.complexesLoaded = true;
+
+                // Если есть отложенное восстановление комплекса, выполняем его
+                if (this.pendingComplexRestoration) {
+                    this.restoreComplexSelection(this.pendingComplexRestoration);
+                    this.pendingComplexRestoration = null;
+                }
+            } else {
+                console.error('Failed to load housing complexes');
+                this.allHousingComplexes = [];
+            }
+        } catch (error) {
+            console.error('Error loading housing complexes:', error);
+            this.allHousingComplexes = [];
+        }
+    }
+
+    handleComplexSearch(searchTerm: string): void {
+        if (this.complexSearchTimeout) {
+            clearTimeout(this.complexSearchTimeout);
+        }
+
+        // Сбрасываем выбранный комплекс при изменении текста
+        if (this.selectedComplex && searchTerm !== this.selectedComplex.Name) {
+            this.selectedComplex = null;
+            this.hideSelectedComplexInfo();
+        }
+
+        if (!this.complexesLoaded) {
+            this.showLoadingMessage();
+            return;
+        }
+
+        if (searchTerm.length === 0) {
+            this.hideAutocompleteDropdown();
+            return;
+        }
+
+        this.complexSearchTimeout = window.setTimeout(() => {
+            this.performComplexSearch(searchTerm);
+        }, 300);
+    }
+
+    performComplexSearch(searchTerm: string): void {
+        if (!this.complexesLoaded) {
+            this.showLoadingMessage();
+            return;
+        }
+
+        // Фильтруем комплексы по названию (регистронезависимо)
+        this.filteredComplexes = this.allHousingComplexes.filter(complex =>
+            complex.Name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        this.showAutocompleteDropdown(this.filteredComplexes);
+    }
+
+    showAutocompleteDropdown(complexes: HousingComplex[]): void {
+        const dropdown = this.root!.querySelector('.create-ad__autocomplete-dropdown') as HTMLElement;
+        if (!dropdown) return;
+
+        dropdown.innerHTML = '';
+        
+        if (complexes.length === 0) {
+            this.showNoResults();
+        } else {
+            // Ограничиваем показ 10 результатами
+            const limitedComplexes = complexes.slice(0, 10);
+            limitedComplexes.forEach(complex => {
+                const item = this.createComplexItem(complex);
+                dropdown.appendChild(item);
+            });
+
+            // Показываем количество результатов если их больше 10
+            if (complexes.length > 10) {
+                const moreResults = document.createElement('div');
+                moreResults.className = 'create-ad__autocomplete-more-results';
+                moreResults.textContent = `... и еще ${complexes.length - 10} результатов`;
+                dropdown.appendChild(moreResults);
+            }
+        }
+        
+        dropdown.style.display = 'block';
+    }
+
+    createComplexItem(complex: HousingComplex): HTMLElement {
+        const item = document.createElement('div');
+        item.className = 'create-ad__autocomplete-item';
+        item.dataset.complexId = complex.ID;
+
+        const name = document.createElement('div');
+        name.className = 'create-ad__autocomplete-item-name';
+        name.textContent = complex.Name;
+        item.appendChild(name);
+
+        if (complex.Address) {
+            const address = document.createElement('div');
+            address.className = 'create-ad__autocomplete-item-address';
+            address.textContent = complex.Address;
+            item.appendChild(address);
+        }
+
+        if (complex.Metro) {
+            const metro = document.createElement('div');
+            metro.className = 'create-ad__autocomplete-item-metro';
+            metro.textContent = `🚇 ${complex.Metro}`;
+            item.appendChild(metro);
+        }
+
+        if (complex.StartingPrice) {
+            const price = document.createElement('div');
+            price.className = 'create-ad__autocomplete-item-price';
+            price.textContent = `от ${this.formatPrice(complex.StartingPrice)} руб.`;
+            item.appendChild(price);
+        }
+
+        this.addEventListener(item, 'mousedown', (e: Event) => {
+            e.preventDefault();
+            this.selectHousingComplex(complex);
+        });
+
+        return item;
+    }
+
+    showNoResults(): void {
+        const dropdown = this.root!.querySelector('.create-ad__autocomplete-dropdown') as HTMLElement;
+        if (!dropdown) return;
+
+        dropdown.innerHTML = '';
+        
+        const noResults = document.createElement('div');
+        noResults.className = 'create-ad__autocomplete-item create-ad__autocomplete-item--no-results';
+        noResults.textContent = 'Жилищные комплексы не найдены';
+        dropdown.appendChild(noResults);
+        
+        dropdown.style.display = 'block';
+    }
+
+    showLoadingMessage(): void {
+        const dropdown = this.root!.querySelector('.create-ad__autocomplete-dropdown') as HTMLElement;
+        if (!dropdown) return;
+
+        dropdown.innerHTML = '';
+        
+        const loading = document.createElement('div');
+        loading.className = 'create-ad__autocomplete-item create-ad__autocomplete-item--loading';
+        loading.textContent = 'Загрузка списка ЖК...';
+        dropdown.appendChild(loading);
+        
+        dropdown.style.display = 'block';
+    }
+
+    hideAutocompleteDropdown(): void {
+        const dropdown = this.root!.querySelector('.create-ad__autocomplete-dropdown') as HTMLElement;
+        if (dropdown) {
+            dropdown.style.display = 'none';
+        }
+    }
+
+    selectHousingComplex(complex: HousingComplex): void {
+        const input = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
+        if (input) {
+            input.value = complex.Name;
+        }
+
+        this.selectedComplex = complex;
+        this.hideAutocompleteDropdown();
+        this.showSelectedComplexInfo(complex);
+        this.clearError();
+        
+        const formData: FormData = this.collectFormData();
+        formData.complex_name = complex.Name;
+        formData.housing_complex = complex.Name;
+        formData.housing_complex_id = complex.ID; // Сохраняем ID ЖК
+        formData.in_housing_complex = true;
+        this.dataManager.updateStage2(formData);
+    }
+
+    showSelectedComplexInfo(complex: HousingComplex): void {
+        const container = this.root!.querySelector('.create-ad__selected-complex') as HTMLElement;
+        if (!container) return;
+
+        container.innerHTML = '';
+        container.style.display = 'block';
+
+        const info = document.createElement('div');
+        info.className = 'create-ad__selected-complex-info';
+
+        const name = document.createElement('div');
+        name.className = 'create-ad__selected-complex-name';
+        name.textContent = complex.Name;
+        info.appendChild(name);
+
+        if (complex.Address) {
+            const address = document.createElement('div');
+            address.className = 'create-ad__selected-complex-address';
+            address.textContent = complex.Address;
+            info.appendChild(address);
+        }
+
+        if (complex.Metro) {
+            const metro = document.createElement('div');
+            metro.className = 'create-ad__selected-complex-metro';
+            metro.textContent = `Метро: ${complex.Metro}`;
+            info.appendChild(metro);
+        }
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'create-ad__selected-complex-clear';
+        clearBtn.textContent = '×';
+        clearBtn.title = 'Очистить выбор';
+        this.addEventListener(clearBtn, 'click', () => this.clearSelectedComplex());
+
+        container.appendChild(info);
+        container.appendChild(clearBtn);
+    }
+
+    hideSelectedComplexInfo(): void {
+        const container = this.root!.querySelector('.create-ad__selected-complex') as HTMLElement;
+        if (container) {
+            container.style.display = 'none';
+            container.innerHTML = '';
+        }
+    }
+
+    clearSelectedComplex(): void {
+        const input = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
+        if (input) {
+            input.value = '';
+        }
+
+        this.selectedComplex = null;
+        this.hideSelectedComplexInfo();
+        this.clearError();
+        
+        const formData: FormData = this.collectFormData();
+        formData.complex_name = null;
+        formData.housing_complex = null;
+        formData.housing_complex_id = null;
+        formData.in_housing_complex = false;
+        this.dataManager.updateStage2(formData);
+    }
+
+    // Восстановление выбора комплекса по названию
+    private restoreComplexSelection(complexName: string): void {
+        if (!this.complexesLoaded) {
+            this.pendingComplexRestoration = complexName;
+            return;
+        }
+
+        const complex = this.allHousingComplexes.find(c => c.Name === complexName);
+        if (complex) {
+            this.selectedComplex = complex;
+            this.showSelectedComplexInfo(complex);
+            
+            const input = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
+            if (input) {
+                input.value = complex.Name;
+            }
+        }
+    }
+
+    formatPrice(price: number): string {
+        return new Intl.NumberFormat('ru-RU').format(price);
+    }
+
+    private injectAutocompleteStyles(): void {
+        if (document.querySelector('#autocomplete-styles')) return;
+
+        const styles = `
+            .create-ad__autocomplete-container {
+                position: relative;
+                width: 100%;
+            }
+
+            .create-ad__input--autocomplete {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .create-ad__autocomplete-dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                max-height: 400px;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+
+            .create-ad__autocomplete-item {
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background-color 0.2s;
+            }
+
+            .create-ad__autocomplete-item:hover {
+                background-color: #f8f9fa;
+            }
+
+            .create-ad__autocomplete-item:last-child {
+                border-bottom: none;
+            }
+
+            .create-ad__autocomplete-item--no-results {
+                color: #6c757d;
+                cursor: default;
+                font-style: italic;
+                text-align: center;
+            }
+
+            .create-ad__autocomplete-item--loading {
+                color: #6c757d;
+                cursor: default;
+                text-align: center;
+            }
+
+            .create-ad__autocomplete-item--no-results:hover,
+            .create-ad__autocomplete-item--loading:hover {
+                background-color: white;
+            }
+
+            .create-ad__autocomplete-item-name {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 4px;
+            }
+
+            .create-ad__autocomplete-item-address {
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 2px;
+            }
+
+            .create-ad__autocomplete-item-metro {
+                font-size: 13px;
+                color: #007bff;
+                margin-bottom: 2px;
+            }
+
+            .create-ad__autocomplete-item-price {
+                font-size: 12px;
+                color: #28a745;
+                font-weight: 500;
+            }
+
+            .create-ad__autocomplete-more-results {
+                padding: 8px 16px;
+                font-size: 12px;
+                color: #6c757d;
+                text-align: center;
+                border-top: 1px solid #f0f0f0;
+                background-color: #f8f9fa;
+            }
+
+            .create-ad__selected-complex {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 4px;
+                padding: 12px;
+                margin-top: 8px;
+            }
+
+            .create-ad__selected-complex-info {
+                flex: 1;
+            }
+
+            .create-ad__selected-complex-name {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 4px;
+            }
+
+            .create-ad__selected-complex-address {
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 2px;
+            }
+
+            .create-ad__selected-complex-metro {
+                font-size: 13px;
+                color: #007bff;
+            }
+
+            .create-ad__selected-complex-clear {
+                background: none;
+                border: none;
+                font-size: 18px;
+                color: #6c757d;
+                cursor: pointer;
+                padding: 0 4px;
+                margin-left: 8px;
+                line-height: 1;
+            }
+
+            .create-ad__selected-complex-clear:hover {
+                color: #dc3545;
+            }
+        `;
+
+        const styleElement = document.createElement('style');
+        styleElement.id = 'autocomplete-styles';
+        styleElement.textContent = styles;
+        document.head.appendChild(styleElement);
+    }
+
+    handleComplexToggle(value: string): void {
+        const yesButton = this.root!.querySelector('[data-value="yes"]') as HTMLButtonElement;
+        const noButton = this.root!.querySelector('[data-value="no"]') as HTMLButtonElement;
+        const complexNameBlock = this.root!.querySelector('#complex-name-block') as HTMLElement;
+
+        if (value === 'yes') {
+            yesButton.classList.add('active');
+            noButton.classList.remove('active');
+            if (complexNameBlock) {
+                complexNameBlock.style.display = 'block';
+            }
+        } else {
+            noButton.classList.add('active');
+            yesButton.classList.remove('active');
+            if (complexNameBlock) {
+                complexNameBlock.style.display = 'none';
+            }
+            this.hideAutocompleteDropdown();
+            this.hideSelectedComplexInfo();
+            this.selectedComplex = null;
+            
+            // Очищаем данные о ЖК при выборе "Нет"
+            const formData: FormData = this.collectFormData();
+            formData.complex_name = null;
+            formData.housing_complex = null;
+            formData.housing_complex_id = null;
+            formData.in_housing_complex = false;
+            this.dataManager.updateStage2(formData);
+        }
+
+        const formData: FormData = this.collectFormData();
+        formData.complex_status = value;
+        formData.in_housing_complex = value === 'yes';
+
+        this.dataManager.updateStage2(formData);
     }
 
     createProgress(titleText: string, value: number, ariaNow: number): HTMLElement {
@@ -290,10 +834,16 @@ export class OfferCreateSecondStage {
             formData.in_housing_complex = false;
         }
 
-        if (formData.complex_status === 'yes' && formData.complex_name) {
+        // Сохраняем данные о выбранном комплексе
+        if (this.selectedComplex) {
+            formData.complex_name = this.selectedComplex.Name;
+            formData.housing_complex = this.selectedComplex.Name;
+            formData.housing_complex_id = this.selectedComplex.ID;
+        } else if (formData.complex_status === 'yes' && formData.complex_name) {
             formData.housing_complex = formData.complex_name;
         } else {
             formData.housing_complex = null;
+            formData.housing_complex_id = null;
         }
 
         return formData;
@@ -311,7 +861,8 @@ export class OfferCreateSecondStage {
             complex_status: formData.complex_status,
             in_housing_complex: formData.in_housing_complex,
             complex_name: formData.complex_name,
-            housing_complex: formData.housing_complex
+            housing_complex: formData.housing_complex,
+            housing_complex_id: formData.housing_complex_id
         };
 
         this.dataManager.updateStage2(complexData);
@@ -350,29 +901,24 @@ export class OfferCreateSecondStage {
             }
         });
 
+        // Восстанавливаем выбор ЖК
         let complexStatus = currentData.complex_status;
 
-        if (!complexStatus && currentData.in_housing_complex !== undefined) {
-            complexStatus = currentData.in_housing_complex ? 'yes' : 'no';
-        } else if (!complexStatus) {
-            complexStatus = 'no';
+        if (!complexStatus) {
+            // Определяем статус на основе наличия housing_complex или in_housing_complex
+            if (currentData.housing_complex || currentData.in_housing_complex) {
+                complexStatus = 'yes';
+            } else {
+                complexStatus = 'no';
+            }
         }
 
-        if (complexStatus === 'yes') {
-            this.handleComplexToggle('yes');
+        // Устанавливаем переключатель
+        this.handleComplexToggle(complexStatus);
 
-            if (currentData.housing_complex && !currentData.complex_name) {
-                const complexNameInput = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
-                if (complexNameInput) {
-                    complexNameInput.value = currentData.housing_complex;
-                }
-                this.dataManager.updateStage2({
-                    complex_name: currentData.housing_complex,
-                    housing_complex: currentData.housing_complex
-                });
-            }
-        } else {
-            this.handleComplexToggle('no');
+        // Если выбран "Да" и есть housing_complex, восстанавливаем выбор комплекса
+        if (complexStatus === 'yes' && currentData.housing_complex) {
+            this.restoreComplexSelection(currentData.housing_complex);
         }
 
         if (currentData.address) {
@@ -416,48 +962,6 @@ export class OfferCreateSecondStage {
 
         nav.appendChild(group);
         return nav;
-    }
-
-    handleComplexToggle(value: string): void {
-        const yesButton = this.root!.querySelector('[data-value="yes"]') as HTMLButtonElement;
-        const noButton = this.root!.querySelector('[data-value="no"]') as HTMLButtonElement;
-        const complexNameBlock = this.root!.querySelector('#complex-name-block') as HTMLElement;
-
-        if (value === 'yes') {
-            yesButton.classList.add('active');
-            noButton.classList.remove('active');
-            if (complexNameBlock) {
-                complexNameBlock.style.display = 'block';
-            }
-        } else {
-            noButton.classList.add('active');
-            yesButton.classList.remove('active');
-            if (complexNameBlock) {
-                complexNameBlock.style.display = 'none';
-            }
-        }
-
-        const formData: FormData = this.collectFormData();
-
-        formData.complex_status = value;
-        formData.in_housing_complex = value === 'yes';
-
-        if (value === 'no') {
-            formData.complex_name = null;
-            formData.housing_complex = null;
-
-            const complexNameInput = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
-            if (complexNameInput) {
-                complexNameInput.value = '';
-            }
-        } else if (value === 'yes') {
-            const complexNameInput = this.root!.querySelector('input[data-field="complex_name"]') as HTMLInputElement;
-            if (complexNameInput && complexNameInput.value) {
-                formData.housing_complex = complexNameInput.value;
-            }
-        }
-
-        this.dataManager.updateStage2(formData);
     }
 
     updateCurrentAddress(address: string): void {
@@ -526,7 +1030,7 @@ export class OfferCreateSecondStage {
             }
 
         } catch (error) {
-
+            // Игнорируем ошибки инициализации карты
         }
     }
 
@@ -540,6 +1044,10 @@ export class OfferCreateSecondStage {
             element.removeEventListener(event, handler)
         );
         this.eventListeners = [];
+
+        if (this.complexSearchTimeout) {
+            clearTimeout(this.complexSearchTimeout);
+        }
 
         if ((window as any).createAdMapInstance) {
             (window as any).createAdMapInstance.destroy();
