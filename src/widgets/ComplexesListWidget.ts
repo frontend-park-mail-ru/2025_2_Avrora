@@ -168,7 +168,8 @@ export class ComplexesListWidget {
                 }
             });
 
-            card.render();
+            // Убрали вызов card.render() здесь, так как он уже вызывается в конструкторе
+            // и вызов здесь приведет к двойному рендеру
             return card;
         });
     }

@@ -21,7 +21,6 @@
             {{/each}}
 
             {{#if multipleImages}}
-            <!-- Кнопки управления -->
             <div class="complex__slider-controls">
                 <button class="complex__slider-btn complex__slider-btn_prev" type="button">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -35,7 +34,6 @@
                 </button>
             </div>
 
-            <!-- Точки навигации -->
             <div class="complex__slider-dots">
                 {{#each images}}
                 <button class="complex__slider-dot {{#if @first}}complex__slider-dot_active{{/if}}" type="button"></button>
@@ -45,7 +43,6 @@
         </div>
     </div>
 
-    <!-- Остальной код без изменений -->
     <div class="complex__block">
         <span class="complex__suptitle">Адрес</span>
         <h1 class="complex__title">{{address}}</h1>
@@ -74,7 +71,7 @@
     <div class="complex__block">
         <h2 class="complex__subtitle">Доступные апартаменты</h2>
         <div class="complex__apartments">
-            <p class="complex__empty">Нет доступных апартаментов</p>
+            <p class="complex__empty">Загрузка доступных апартаментов...</p>
         </div>
     </div>
 </div>

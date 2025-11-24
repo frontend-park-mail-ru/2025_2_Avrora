@@ -2786,31 +2786,13 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
   cursor: pointer;
   overflow: hidden;
 }
-@media (max-width: 480px) {
-  .offer-card {
-    border-radius: 10px;
-    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.15);
-  }
-}
 .offer-card:hover {
-  transform: translate(-5px, -5px);
-  box-shadow: 10px 10px 5px rgba(0, 0, 0, 0.2);
-  transition: 0.2s linear;
-}
-@media (max-width: 768px) {
-  .offer-card:hover {
-    transform: translate(-3px, -3px);
-  }
-}
-@media (hover: none) {
-  .offer-card:hover {
-    transform: none;
-    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.2);
-  }
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+  transition: 0.3s linear;
 }
 .offer-card__gallery {
   position: relative;
@@ -3772,29 +3754,14 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
   cursor: pointer;
   background-color: #fff;
   overflow: hidden;
 }
-@media (max-width: 768px) {
-  .complexes-list__item {
-    border-radius: 6px;
-    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.15);
-  }
-}
 .complexes-list__item:hover {
-  transform: translate(-5px, -5px);
-}
-@media (max-width: 768px) {
-  .complexes-list__item:hover {
-    transform: translate(-3px, -3px);
-  }
-}
-@media (hover: none) {
-  .complexes-list__item:hover {
-    transform: none;
-  }
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+  transition: 0.3s linear;
 }
 .complexes-list__image {
   width: 100%;

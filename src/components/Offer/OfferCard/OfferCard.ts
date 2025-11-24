@@ -102,9 +102,11 @@ export class OfferCard {
 
     async render(): Promise<HTMLElement> {
         try {
-            if (this.data.userId) {
-                await this.loadSellerData();
-            }
+            // Загружаем данные параллельно для оптимизации
+            await Promise.all([
+                this.data.userId ? this.loadSellerData() : Promise.resolve(),
+                this.data.housingComplexId ? this.loadComplexData() : Promise.resolve()
+            ]);
 
             const template = (Handlebars as any).templates['Offer.hbs'];
 
@@ -114,6 +116,7 @@ export class OfferCard {
 
             const characteristicsWithComplex = [...this.data.characteristics];
 
+            // Добавляем характеристику ЖК если есть housingComplexId
             if (this.data.housingComplexId) {
                 const existingComplexIndex = characteristicsWithComplex.findIndex(
                     char => char.title === 'В составе ЖК'
@@ -127,6 +130,9 @@ export class OfferCard {
                         isComplex: true,
                         complexId: this.data.housingComplexId
                     });
+                } else {
+                    // Обновляем существующую характеристику
+                    characteristicsWithComplex[existingComplexIndex].value = this.data.housingComplexName || "...";
                 }
             }
 
@@ -170,6 +176,7 @@ export class OfferCard {
 
             return this.rootEl;
         } catch (error) {
+            console.error('Error rendering offer card:', error);
             const fallbackElement = document.createElement('div');
             fallbackElement.className = 'offer-card-error';
             fallbackElement.textContent = 'Ошибка загрузки объявления';
@@ -181,7 +188,26 @@ export class OfferCard {
         try {
             this.sellerData = await ProfileService.getProfile(this.data.userId);
         } catch (error) {
+            console.error('Error loading seller data:', error);
             this.sellerData = null;
+        }
+    }
+
+    async loadComplexData(): Promise<void> {
+        if (!this.data.housingComplexId) return;
+
+        try {
+            const response = await API.get(`${API_CONFIG.ENDPOINTS.COMPLEXES.BY_ID}${this.data.housingComplexId}`);
+            
+            if (response.ok && response.data) {
+                this.data.housingComplexName = response.data.name || response.data.Name || null;
+            } else {
+                console.warn('Failed to load complex data:', response.error);
+                this.data.housingComplexName = null;
+            }
+        } catch (error) {
+            console.error('Error loading complex data:', error);
+            this.data.housingComplexName = null;
         }
     }
 
@@ -665,7 +691,8 @@ export class OfferCard {
     }
 
     handleLike(): void {
-    }
+        // Заглушка для функционала лайков
+    }Ф
 
     formatCurrency(amount: number): string {
         if (!amount && amount !== 0) return '—';

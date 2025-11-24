@@ -72,26 +72,14 @@
         display: flex;
         flex-direction: column;
         position: relative;
-        box-shadow: 5px 5px 5px rgba(0,0,0,0.2);
+        box-shadow: 0 0 5px rgba(0,0,0,0.15);
         cursor: pointer;
         background-color: #fff;
         overflow: hidden;
 
-        @media (max-width: 768px) {
-            border-radius: 6px;
-            box-shadow: 3px 3px 5px rgba(0,0,0,0.15);
-        }
-
         &:hover {
-            transform: translate(-5px, -5px);
-
-            @media (max-width: 768px) {
-                transform: translate(-3px, -3px);
-            }
-
-            @media (hover: none) {
-                transform: none;
-            }
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            transition: .3s linear;
         }
     }
 

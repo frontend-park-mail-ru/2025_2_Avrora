@@ -37,8 +37,7 @@ function compileTemplates() {
     compiledCode += `templates['Authorization.hbs'] = templates['Authorization'];\n`;
     compiledCode += `templates['Complex.hbs'] = templates['Complex'];\n`;
     compiledCode += `templates['ComplexesList.hbs'] = templates['ComplexesList'];\n`;
-    compiledCode += `templates['Offer.hbs'] = templates['Offer'];\n`;
-    compiledCode += `templates['OffersList.hbs'] = templates['OffersList'];\n\n`;
+    compiledCode += `templates['Offer.hbs'] = templates['Offer'];\n\n`;
 
     compiledCode += `export { templates };\n`;
     compiledCode += `export default templates;\n`;

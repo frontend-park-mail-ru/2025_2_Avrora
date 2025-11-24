@@ -44,6 +44,14 @@ interface OfferData {
     images?: string[];
     image_url?: string;
     ImageURL?: string;
+    housing_complex_id?: number;
+    HousingComplexID?: number;
+    complex_id?: number;
+    ComplexID?: number;
+    housing_complex_name?: string;
+    HousingComplexName?: string;
+    complex_name?: string;
+    ComplexName?: string;
 }
 
 interface FormattedComplexData {
@@ -83,6 +91,7 @@ export class ComplexWidget {
     parent: HTMLElement;
     controller: any;
     complexId: number | null;
+    complexData: FormattedComplexData | null;
     eventListeners: EventListener[];
     isLoading: boolean;
     template: HandlebarsTemplateDelegate | null;
@@ -93,6 +102,7 @@ export class ComplexWidget {
         this.parent = parent;
         this.controller = controller;
         this.complexId = null;
+        this.complexData = null;
         this.eventListeners = [];
         this.isLoading = false;
         this.template = null;
@@ -106,7 +116,6 @@ export class ComplexWidget {
             this.template = Handlebars.templates['Complex.hbs'];
             return this.template;
         } catch (error) {
-            console.error('Failed to load template:', error);
             throw new Error('Template loading failed');
         }
     }
@@ -127,10 +136,10 @@ export class ComplexWidget {
             }
 
             const complexData = await this.loadComplex();
+            this.complexData = complexData;
             await this.renderContent(complexData);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
-            console.error("Error rendering complex detail:", error);
             this.renderError("Не удалось загрузить информацию о ЖК");
         } finally {
             this.isLoading = false;
@@ -222,17 +231,22 @@ export class ComplexWidget {
             const offers = await this.loadComplexOffers();
             this.renderApartments(offers);
         } catch (error) {
-            console.error('Error loading complex offers:', error);
             this.renderEmptyApartments();
         }
     }
 
     async loadComplexOffers(): Promise<FormattedOfferData[]> {
-        const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, {
-            complex_id: this.complexId
-        });
+        if (!this.complexId) {
+            return [];
+        }
 
-        if (result.ok) {
+        try {
+            const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, { limit: 10 });
+
+            if (!result.ok) {
+                throw new Error(result.error || "Ошибка загрузки объявлений");
+            }
+
             const responseData = result.data || result;
             let offers: OfferData[] = [];
 
@@ -244,10 +258,58 @@ export class ComplexWidget {
                 offers = responseData.data;
             }
 
-            return offers.map(offer => this.formatOfferData(offer));
-        }
 
-        throw new Error(result.error || "Ошибка загрузки объявлений ЖК");
+            const offersWithDetails: OfferData[] = [];
+            
+            for (const offer of offers) {
+                try {
+                    const offerId = offer.id || offer.ID;
+                    if (!offerId) {
+                        continue;
+                    }
+
+                    const offerDetailResult = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.BY_ID}/${offerId}`);
+                    
+                    if (offerDetailResult.ok && offerDetailResult.data) {
+                        const fullOffer = offerDetailResult.data;
+                        
+                        const images = this.controller.getOfferImages(offerDetailResult.data);
+                        
+                        const detailedOffer: OfferData = {
+                            id: fullOffer.id || fullOffer.ID,
+                            price: fullOffer.price || fullOffer.Price,
+                            rooms: fullOffer.rooms || fullOffer.Rooms,
+                            area: fullOffer.area || fullOffer.Area,
+                            address: fullOffer.address || fullOffer.Address,
+                            title: fullOffer.title,
+                            metro: fullOffer.metro || fullOffer.Metro,
+                            images: images,
+                            housing_complex_id: fullOffer.housing_complex_id || fullOffer.HousingComplexID,
+                            complex_id: fullOffer.complex_id || fullOffer.ComplexID
+                        };
+                        
+                        offersWithDetails.push(detailedOffer);
+                    } 
+                } catch (error) {
+
+                }
+            }
+
+            const filteredOffers = offersWithDetails.filter(offer => {
+                const offerComplexId = offer.housing_complex_id || offer.HousingComplexID || offer.complex_id || offer.ComplexID;
+                
+                if (offerComplexId && offerComplexId == this.complexId) {
+                    return true;
+                }
+                
+                return false;
+            });
+
+
+            return filteredOffers.map(offer => this.formatOfferData(offer));
+        } catch (error) {
+            throw error;
+        }
     }
 
     formatOfferData(apiData: OfferData): FormattedOfferData {
@@ -294,14 +356,154 @@ export class ComplexWidget {
             return;
         }
 
-        this.offersWidget = new OffersListWidget(apartmentsContainer as HTMLElement, this.controller);
-        (this.offersWidget as any).renderWithOffers(offers, false);
+        apartmentsContainer.innerHTML = '';
+        
+        const offersContainer = document.createElement('div');
+        offersContainer.className = 'offers__container';
+        
+        offers.forEach(offer => {
+            const offerElement = document.createElement('div');
+            offerElement.className = 'offer-card';
+            offerElement.setAttribute('data-offer-id', offer.id.toString());
+            
+            offerElement.innerHTML = `
+                <div class="offer-card__gallery">
+                    ${offer.images.map((img, index) => `
+                        <img class="slider__image ${index === 0 ? 'slider__image_active' : ''}"
+                             src="${img}" 
+                             alt="Фото объявления ${index}"
+                             loading="lazy">
+                    `).join('')}
+                    
+                    ${offer.multipleImages ? `
+                        <button class="slider__btn slider__btn_prev">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2"></path>
+                            </svg>
+                        </button>
+                        <button class="slider__btn slider__btn_next">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2"></path>
+                            </svg>
+                        </button>
+                        
+                        <div class="slider__dots">
+                            ${offer.images.map((_, index) => `
+                                <button class="slider__dot ${index === 0 ? 'slider__dot_active' : ''}"
+                                        data-index="${index}"></button>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    <button class="offer-card__like" data-offer-id="${offer.id}">
+                        <img src="${this.controller.isOfferLiked ? this.controller.isOfferLiked(offer.id) ? '../../images/active__like.png' : '../../images/like.png' : '../../images/like.png'}" alt="Избранное">
+                    </button>
+                </div>
+                
+                <span class="offer-card__price">${offer.formattedPrice} ₽</span>
+                <span class="offer-card__description">
+                    ${offer.rooms > 0 ? `${offer.rooms}-комн.` : 'Студия'} · ${offer.area}м²
+                </span>
+                <span class="offer-card__metro">
+                    <img src="../images/metro.png" alt="Метро">
+                    ${offer.metro || 'Метро не указано'}
+                </span>
+                <span class="offer-card__address">${offer.address}</span>
+            `;
+            
+            offersContainer.appendChild(offerElement);
+            
+            this.initializeOfferCardSlider(offerElement, offer);
+            
+            this.addEventListener(offerElement, 'click', (e: Event) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('.slider__btn') || target.closest('.slider__dot') || target.closest('.offer-card__like')) {
+                    return;
+                }
+                this.navigateToOffer(offer.id);
+            });
+            
+            const likeButton = offerElement.querySelector('.offer-card__like');
+            if (likeButton) {
+                this.addEventListener(likeButton, 'click', (e: Event) => {
+                    e.stopPropagation();
+                    this.handleLike(offer.id, likeButton as HTMLElement);
+                });
+            }
+        });
+        
+        apartmentsContainer.appendChild(offersContainer);
+    }
+
+    initializeOfferCardSlider(offerElement: HTMLElement, offer: FormattedOfferData): void {
+        if (!offer.multipleImages) return;
+
+        const images = offerElement.querySelectorAll('.slider__image');
+        const dots = offerElement.querySelectorAll('.slider__dot');
+        const prevBtn = offerElement.querySelector('.slider__btn_prev');
+        const nextBtn = offerElement.querySelector('.slider__btn_next');
+
+        let currentSlide = 0;
+
+        const showSlide = (index: number) => {
+            images.forEach((img, i) => {
+                img.classList.toggle('slider__image_active', i === index);
+            });
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('slider__dot_active', i === index);
+            });
+            currentSlide = index;
+        };
+
+        if (prevBtn) {
+            this.addEventListener(prevBtn, 'click', (e: Event) => {
+                e.stopPropagation();
+                const newIndex = (currentSlide - 1 + images.length) % images.length;
+                showSlide(newIndex);
+            });
+        }
+
+        if (nextBtn) {
+            this.addEventListener(nextBtn, 'click', (e: Event) => {
+                e.stopPropagation();
+                const newIndex = (currentSlide + 1) % images.length;
+                showSlide(newIndex);
+            });
+        }
+
+        dots.forEach((dot, index) => {
+            this.addEventListener(dot, 'click', (e: Event) => {
+                e.stopPropagation();
+                showSlide(index);
+            });
+        });
+    }
+
+    navigateToOffer(offerId: number): void {
+        const path = `/offers/${offerId}`;
+        if (this.controller.router?.navigate) {
+            this.controller.router.navigate(path);
+        } else {
+            window.history.pushState({}, "", path);
+            window.dispatchEvent(new PopStateEvent("popstate"));
+        }
+    }
+
+    handleLike(offerId: number, likeButton: HTMLElement): void {
+        if (this.controller.toggleOfferLike) {
+            this.controller.toggleOfferLike(offerId);
+            const img = likeButton.querySelector('img');
+            if (img) {
+                const isLiked = this.controller.isOfferLiked ? this.controller.isOfferLiked(offerId) : false;
+                img.src = isLiked ? '../../images/active__like.png' : '../../images/like.png';
+            }
+        }
     }
 
     renderEmptyApartments(): void {
         const apartmentsContainer = this.parent.querySelector('.complex__apartments');
         if (apartmentsContainer) {
-            apartmentsContainer.innerHTML = '<p class="complex__empty">Нет доступных апартаментов</p>';
+            apartmentsContainer.innerHTML = '<p class="complex__empty">Нет доступных апартаментов в этом ЖК</p>';
         }
     }
 

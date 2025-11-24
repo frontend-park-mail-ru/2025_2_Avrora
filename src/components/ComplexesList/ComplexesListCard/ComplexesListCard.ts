@@ -19,6 +19,7 @@ export default class ComplexesListCard {
     navigate: ((path: string) => void) | null;
     imageEl: HTMLImageElement | null;
     onCardClick: (e: Event) => void;
+    onImageError: () => void;
 
     constructor(rootEl: HTMLElement, data: ComplexCardData = {}, options: ComplexesListCardOptions = {}) {
         if (!rootEl) throw new Error('ComplexesListCard: root element is required');
@@ -28,6 +29,7 @@ export default class ComplexesListCard {
 
         this.navigate = typeof options.navigate === 'function' ? options.navigate : null;
         this.onCardClick = this.onCardClick.bind(this);
+        this.onImageError = this.onImageError.bind(this);
 
         this.mount();
     }
@@ -38,29 +40,38 @@ export default class ComplexesListCard {
     }
 
     render(): void {
-        const template = Handlebars.templates['ComplexesList.hbs'];
-
-        const rendered = template({
-            complexes: [this.data]
-        });
-
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = rendered;
-
-        const cardElement = tempDiv.querySelector('.complexes-list__item');
-
-        this.rootEl.innerHTML = '';
-        if (cardElement) {
-            this.rootEl.appendChild(cardElement);
+        // Создаем HTML напрямую без использования шаблона списка
+        const complexId = this.data.id || this.data.ID;
+        
+        let imageHtml = '';
+        if (this.data.imageUrl) {
+            imageHtml = `<img class="complexes-list__image" src="${this.data.imageUrl}" alt="Фото ЖК ${this.data.title}" loading="lazy">`;
         }
+
+        const html = `
+            ${imageHtml}
+            <span class="complexes-list__item-title">${this.data.title || ''}</span>
+            <span class="complexes-list__status">${this.data.status || ''}</span>
+            <span class="complexes-list__metro">
+                <img src="../../images/metro.png" alt="Метро"> ${this.data.metro || ''}
+            </span>
+            <span class="complexes-list__address">${this.data.address || ''}</span>
+        `;
+
+        this.rootEl.innerHTML = html;
+        this.rootEl.setAttribute('data-complex-id', complexId?.toString() || '');
 
         this.imageEl = this.rootEl.querySelector('.complexes-list__image');
 
         if (this.imageEl) {
-            this.imageEl.addEventListener('error', () => {
-                this.imageEl.src = '../images/default_complex.jpg';
-                this.imageEl.alt = 'Изображение недоступно';
-            });
+            this.imageEl.addEventListener('error', this.onImageError);
+        }
+    }
+
+    onImageError(): void {
+        if (this.imageEl) {
+            this.imageEl.src = '../images/default_complex.jpg';
+            this.imageEl.alt = 'Изображение недоступно';
         }
     }
 
@@ -88,7 +99,7 @@ export default class ComplexesListCard {
     destroy(): void {
         this.rootEl.removeEventListener('click', this.onCardClick);
         if (this.imageEl) {
-            this.imageEl.removeEventListener('error', () => {});
+            this.imageEl.removeEventListener('error', this.onImageError);
         }
     }
 }

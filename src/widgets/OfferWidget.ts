@@ -189,7 +189,7 @@ export class OfferWidget {
         if (apiData.housingComplexId) {
             characteristics.splice(1, 0, {
                 title: 'В составе ЖК',
-                value: apiData.housingComplexName || "...",
+                value: apiData.housingComplexName,
                 icon: 'complex',
                 isComplex: true,
                 complexId: apiData.housingComplexId

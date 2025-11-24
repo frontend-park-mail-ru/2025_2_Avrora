@@ -1,11 +1,9 @@
-import { OffersListCard } from "../components/OffersList/OffersListCard/OffersListCard.ts";
-
 export class OffersListWidget {
     private parent: HTMLElement;
     private controller: any;
     private eventListeners: Array<{element: HTMLElement, event: string, handler: EventListenerOrEventListenerObject}>;
     private isLoading: boolean;
-    private offerCards: OffersListCard[];
+    private offerCards: any[];
     private currentPage: number;
     private totalPages: number;
     private limit: number;
@@ -34,7 +32,6 @@ export class OffersListWidget {
             });
             await this.renderContent(result.offers, result.meta);
         } catch (error) {
-            console.error("Error rendering offers:", error);
             this.renderError("Не удалось загрузить объявления");
         } finally {
             this.isLoading = false;
@@ -52,7 +49,6 @@ export class OffersListWidget {
             const paginatedOffers = this.getPaginatedOffers();
             await this.renderContent(paginatedOffers, { total_pages: this.totalPages }, showTitle);
         } catch (error) {
-            console.error("Error rendering offers:", error);
             this.renderError("Не удалось отобразить объявления");
         } finally {
             this.isLoading = false;
@@ -73,19 +69,24 @@ export class OffersListWidget {
             return;
         }
 
-        const template = await this.loadTemplate();
+        const offersContainer = document.createElement('div');
+        offersContainer.className = 'offers';
+
+        if (showTitle) {
+            const title = document.createElement('h1');
+            title.className = 'offers__title';
+            title.textContent = 'Популярные объявления';
+            offersContainer.appendChild(title);
+        }
+
+        const cardsContainer = document.createElement('div');
+        cardsContainer.className = 'offers__container';
+        offersContainer.appendChild(cardsContainer);
+
+        this.parent.appendChild(offersContainer);
+
         const formattedOffers = offers.map(offer => this.formatOffer(offer));
-        
-        const html = template({
-            offers: formattedOffers,
-            showTitle: showTitle
-        });
-
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        this.parent.appendChild(container.firstElementChild as HTMLElement);
-
-        await this.initializeOfferCards(formattedOffers);
+        await this.initializeOfferCards(cardsContainer, formattedOffers);
 
         if (meta && meta.total_pages && meta.total_pages > 1) {
             this.renderPagination(meta);
@@ -116,20 +117,57 @@ export class OffersListWidget {
         };
     }
 
-    async initializeOfferCards(offers: any[]): Promise<void> {
-        const offerElements = this.parent.querySelectorAll('.offer-card');
+    async initializeOfferCards(container: HTMLElement, offers: any[]): Promise<void> {
+        this.offerCards = [];
 
-        this.offerCards = Array.from(offerElements).map((element, index) => {
-            const offerData = offers[index];
-            if (!offerData || !offerData.id) return null;
+        for (const offerData of offers) {
+            if (!offerData || !offerData.id) continue;
 
-            return new OffersListCard(element as HTMLElement, offerData, this.controller);
-        }).filter(card => card !== null) as OffersListCard[];
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'offer-card-container';
+            container.appendChild(cardContainer);
 
-        for (const card of this.offerCards) {
-            if (card && card.render) {
-                await card.render();
-            }
+            const OffersListCard = await this.getOffersListCardClass();
+            const card = new OffersListCard(
+                cardContainer, 
+                offerData, 
+                { user: this.controller.model?.userModel?.user }, 
+                { router: this.controller.router }
+            );
+            
+            this.offerCards.push(card);
+            card.render();
+        }
+    }
+
+    async getOffersListCardClass(): Promise<any> {
+        try {
+            const module = await import("../components/OffersList/OffersListCard/OffersListCard.ts");
+            return module.OffersListCard;
+        } catch (error) {
+            return class SimpleCard {
+                constructor(parent: HTMLElement, data: any, state: any, app: any) {
+                    this.parent = parent;
+                    this.data = data;
+                }
+                
+                render() {
+                    this.parent.innerHTML = `
+                        <div class="offer-card" data-offer-id="${this.data.id}">
+                            <div class="offer-card__gallery">
+                                <img src="${this.data.images[0] || '../images/default_offer.jpg'}" alt="Фото объявления">
+                            </div>
+                            <span class="offer-card__price">${this.data.formattedPrice} ₽</span>
+                            <span class="offer-card__description">${this.data.rooms}-комн. · ${this.data.area}м²</span>
+                            <span class="offer-card__address">${this.data.address}</span>
+                        </div>
+                    `;
+                }
+                
+                cleanup() {
+                    this.parent.innerHTML = '';
+                }
+            };
         }
     }
 
@@ -193,13 +231,6 @@ export class OffersListWidget {
         paginationContainer.appendChild(pagesContainer);
         paginationContainer.appendChild(nextButton);
         this.parent.appendChild(paginationContainer);
-    }
-
-    async loadTemplate(): Promise<any> {
-        if ((window as any).Handlebars?.templates?.["OffersList.hbs"]) {
-            return (window as any).Handlebars.templates["OffersList.hbs"];
-        }
-        throw new Error('Template not found');
     }
 
     renderLoading(): void {
