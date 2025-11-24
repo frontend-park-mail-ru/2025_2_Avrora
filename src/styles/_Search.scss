@@ -100,6 +100,9 @@
 			border-right: none;
 			border-bottom: 1px solid #e0e0e0;
 			height: 56px;
+			display: flex;
+			align-items: center; 
+			justify-content: flex-start; 
 		}
 
 		@media (max-width: 480px) {
@@ -215,12 +218,18 @@
 		color: #333;
 		transition: all 0.2s ease;
 		display: flex;
-		align-items: center;
+		align-items: center; 
+		justify-content: flex-start; 
 
 		@media (max-width: 768px) {
 			font-size: 15px;
 			padding: 0 14px;
 			padding-right: 26px;
+			height: 100%; 
+			display: flex;
+			align-items: center; 
+			justify-content: flex-start; 
+			line-height: 1.4; 
 		}
 
 		@media (max-width: 480px) {
@@ -238,6 +247,12 @@
 			font-size: 10px;
 			color: #A0A8BE;
 			transition: transform 0.3s ease;
+
+			@media (max-width: 768px) {
+				right: 14px;
+				top: 50%; 
+				transform: translateY(-50%);
+			}
 
 			@media (max-width: 480px) {
 				font-size: 9px;
@@ -304,8 +319,9 @@
 		text-align: left;
 		transition: all 0.2s ease;
 		display: flex;
-		align-items: center;
+		align-items: center; 
 		min-height: 44px;
+		line-height: 1.4; 
 
 		@media (max-width: 768px) {
 			font-size: 14px;
@@ -313,6 +329,9 @@
 			min-height: 48px;
 			padding-left: 35px; 
 			padding-right: 20px; 
+			display: flex;
+			align-items: center; 
+			line-height: 1.4;
 		}
 
 		@media (max-width: 480px) {
@@ -528,12 +547,18 @@
 		background: transparent;
 		color: #333;
 		width: 100%;
+		display: flex;
+		align-items: center;
 
 		@media (max-width: 768px) {
 			font-size: 15px;
 			padding: 10px 36px 10px 14px;
 			padding-left: 18px;
 			padding-right: 40px;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			line-height: normal;
 		}
 
 		@media (max-width: 480px) {
@@ -570,12 +595,20 @@
 		font-size: 14px;
 		font-weight: bold;
 		transition: all 0.2s ease;
+		z-index: 10;
 
-		@media (max-width: 480px) {
+		@media (max-width: 768px) {
 			width: 18px;
 			height: 18px;
 			font-size: 12px;
 			right: 10px;
+		}
+
+		@media (max-width: 480px) {
+			width: 16px;
+			height: 16px;
+			font-size: 10px;
+			right: 8px;
 		}
 
 		&:hover {
@@ -1144,3 +1177,5 @@
 .search-map {
     position: relative;
 }
+
+
