@@ -39,7 +39,10 @@
                 {{/if}}
 
                 <button class="offer-card__like" data-offer-id="{{id}}">
-                    <img src="{{likeIcon}}" alt="Избранное">
+                    <img src="{{likeIcon}}" alt="{{#if isLiked}}Убрать из избранного{{else}}Добавить в избранное{{/if}}">
+                    <span class="offer-card__likes-counter {{#if isLiked}}offer-card__likes-counter--active{{/if}}">
+                        {{formattedLikesCount}}
+                    </span>
                 </button>
             </div>
 

@@ -32,7 +32,6 @@ export class OfferWidget {
             const offerData = await this.loadOffer();
             await this.renderContent(offerData);
         } catch (error) {
-            console.error('Error rendering offer:', error);
             this.renderError("Не удалось загрузить объявление");
         } finally {
             this.isLoading = false;
@@ -243,27 +242,22 @@ export class OfferWidget {
         try {
             await YandexMapService.initMap('yandex-map', address);
         } catch (error) {
-            console.error('Error initializing map:', error);
+
         }
     }
 
     private async initPriceHistoryChart(offerId: number): Promise<void> {
         try {
-            console.log('Loading price history for offer:', offerId);
             const priceHistory = await this.loadPriceHistory(offerId);
-            console.log('Price history loaded:', priceHistory);
             
-            // Даем время на рендеринг DOM
             await new Promise(resolve => setTimeout(resolve, 500));
             
             const chartContainer = this.rootEl?.querySelector('#price-history-chart') as HTMLElement | null;
             if (!chartContainer) {
-                console.error('Chart container not found');
                 this.showNoDataMessage();
                 return;
             }
 
-            // Очищаем контейнер
             chartContainer.innerHTML = '';
             
             if (!priceHistory || priceHistory.length === 0) {
@@ -271,7 +265,6 @@ export class OfferWidget {
                 return;
             }
 
-            // Создаем canvas элемент
             const canvas = document.createElement('canvas');
             canvas.id = 'price-history-chart-canvas';
             canvas.style.width = '100%';
@@ -280,14 +273,11 @@ export class OfferWidget {
             canvas.style.maxHeight = '300px';
             chartContainer.appendChild(canvas);
 
-            // Ждем пока canvas будет в DOM
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Инициализируем график
             await PriceHistoryChartService.initChart('price-history-chart-canvas', priceHistory);
 
         } catch (error) {
-            console.error('Error initializing price history chart:', error);
             this.showChartError('Не удалось загрузить историю цен');
         }
     }
@@ -295,35 +285,27 @@ export class OfferWidget {
     private async loadPriceHistory(offerId: number): Promise<Array<{ date: string; price: number }>> {
         try {
             const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.PRICE_HISTORY}/${offerId}`;
-            console.log('Fetching price history from:', endpoint);
             
             const result = await API.get(endpoint);
             
             if (result.ok && result.data) {
-                console.log('Price history API response:', result.data);
                 const priceHistory = this.processPriceHistoryData(result.data);
-                console.log('Processed price history:', priceHistory);
                 return priceHistory;
             } else {
-                console.error('API error:', result.error);
                 return [];
             }
         } catch (error) {
-            console.error('Error loading price history:', error);
             return [];
         }
     }
 
     private processPriceHistoryData(apiData: any): Array<{ date: string; price: number }> {
         if (!Array.isArray(apiData)) {
-            console.warn('Expected array but got:', typeof apiData);
             return [];
         }
 
-        console.log('Raw data from API:', apiData);
 
-        // Шаг 1: Преобразуем данные в стандартный формат
-        const rawData = apiData.map((item: any) => {
+        const rawData = apiData.map((item: any, index: number) => {
             let date: string;
             let price: number;
 
@@ -341,22 +323,20 @@ export class OfferWidget {
             }
 
             return {
-                date: new Date(date).toISOString(), // Нормализуем дату
+                date: new Date(date).toISOString(),
                 price: price,
-                timestamp: new Date(date).getTime()
+                timestamp: new Date(date).getTime(),
+                originalIndex: index
             };
         }).filter(Boolean);
 
-        console.log('Normalized data:', rawData);
 
         if (rawData.length === 0) {
             return [];
         }
 
-        // Шаг 2: Сортируем по времени
-        rawData.sort((a: any, b: any) => a.timestamp - b.timestamp);
+        rawData.sort((a: any, b: any) => a.timestamp - b.timestamp || a.originalIndex - b.originalIndex);
 
-        // Шаг 3: Убираем точные дубликаты (одинаковый timestamp и цена)
         const exactDuplicatesRemoved = [];
         const exactSeen = new Set();
 
@@ -368,33 +348,22 @@ export class OfferWidget {
             }
         });
 
-        console.log('After removing exact duplicates:', exactDuplicatesRemoved);
 
-        // Шаг 4: Убираем дубликаты по времени (оставляем последнюю запись для каждого timestamp)
-        const timeGrouped = new Map();
-
+        const timeDeduplicatedMap = new Map();
         exactDuplicatesRemoved.forEach((item: any) => {
-            // Группируем по timestamp с точностью до секунды
-            const timeKey = Math.floor(item.timestamp / 1000); // Округляем до секунд
-
-            // Если для этого времени уже есть запись, берем более позднюю (по исходному timestamp)
-            const existing = timeGrouped.get(timeKey);
-            if (!existing || existing.timestamp < item.timestamp) {
-                timeGrouped.set(timeKey, item);
-            }
+            timeDeduplicatedMap.set(item.timestamp, item);
         });
 
-        const timeDeduplicated = Array.from(timeGrouped.values());
-        console.log('After time deduplication:', timeDeduplicated);
+        const timeDeduplicated = Array.from(timeDeduplicatedMap.values());
+        timeDeduplicated.sort((a: any, b: any) => a.timestamp - b.timestamp);
 
-        // Шаг 5: Убираем последовательные дубликаты цен (если цена не менялась между соседними точками)
+
         const uniquePriceData = [];
 
         for (let i = 0; i < timeDeduplicated.length; i++) {
             const current = timeDeduplicated[i];
             const previous = uniquePriceData[uniquePriceData.length - 1];
 
-            // Добавляем первую точку всегда
             if (!previous) {
                 uniquePriceData.push({
                     date: current.date,
@@ -403,15 +372,13 @@ export class OfferWidget {
                 continue;
             }
 
-            // Добавляем точку если цена изменилась
             if (current.price !== previous.price) {
                 uniquePriceData.push({
                     date: current.date,
                     price: current.price
                 });
             }
-            // Если цена не изменилась, но прошло значительное время (> 1 минуты), все равно добавляем
-            else if (current.timestamp - new Date(previous.date).getTime() > 60000) {
+            else if (current.timestamp - new Date(previous.date).getTime() > 24 * 60 * 60 * 1000) {
                 uniquePriceData.push({
                     date: current.date,
                     price: current.price
@@ -419,18 +386,14 @@ export class OfferWidget {
             }
         }
 
-        console.log('After removing sequential duplicates:', uniquePriceData);
 
-        // Если после обработки осталась только одна точка, добавляем текущую дату
         if (uniquePriceData.length === 1) {
-            const currentDate = new Date().toISOString();
             uniquePriceData.push({
-                date: currentDate,
+                date: new Date().toISOString(),
                 price: uniquePriceData[0].price
             });
         }
 
-        console.log('Final processed data:', uniquePriceData);
         return uniquePriceData;
     }
 

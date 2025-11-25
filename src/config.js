@@ -13,7 +13,9 @@ export const API_CONFIG = {
         UPDATE: '/offers/update/',
         DELETE: '/offers/delete/',
         MY_OFFERS: '/profile/myoffers/',
-        PRICE_HISTORY: '/offers/pricehistory'
+        PRICE_HISTORY: '/offers/pricehistory',
+        LIKE: '/offers/like',
+        IS_LIKED: '/offers/is_liked'
     },
     COMPLEXES: {
         LIST: '/complexes/list',

@@ -31,6 +31,8 @@ interface OfferCardData {
     housingComplexId?: string | number | null;
     housingComplexName?: string | null;
     priceHistory?: Array<{ date: string; price: number }>;
+    likesCount: number;
+    isLiked: boolean;
 }
 
 interface OfferCardState {
@@ -89,7 +91,9 @@ export class OfferCard {
             views: data.views || 0,
             housingComplexId: data.housingComplexId || data.housing_complex_id || null,
             housingComplexName: data.housingComplexName || data.housing_complex_name || null,
-            priceHistory: data.priceHistory || []
+            priceHistory: data.priceHistory || [],
+            likesCount: data.likesCount || data.likes_count || 0,
+            isLiked: data.isLiked || data.is_liked || false
         };
 
         this.state = state;
@@ -104,11 +108,11 @@ export class OfferCard {
 
     async render(): Promise<HTMLElement> {
         try {
-            // Загружаем данные параллельно для оптимизации
             await Promise.all([
                 this.data.userId ? this.loadSellerData() : Promise.resolve(),
                 this.data.housingComplexId ? this.loadComplexData() : Promise.resolve(),
-                this.data.id ? this.loadPriceHistory() : Promise.resolve() // Добавляем загрузку истории цен
+                this.data.id ? this.loadPriceHistory() : Promise.resolve(),
+                this.data.id ? this.checkLikeStatus() : Promise.resolve()
             ]);
 
             const template = (Handlebars as any).templates['Offer.hbs'];
@@ -119,7 +123,6 @@ export class OfferCard {
 
             const characteristicsWithComplex = [...this.data.characteristics];
 
-            // Добавляем характеристику ЖК если есть housingComplexId
             if (this.data.housingComplexId) {
                 const existingComplexIndex = characteristicsWithComplex.findIndex(
                     char => char.title === 'В составе ЖК'
@@ -134,7 +137,6 @@ export class OfferCard {
                         complexId: this.data.housingComplexId
                     });
                 } else {
-                    // Обновляем существующую характеристику
                     characteristicsWithComplex[existingComplexIndex].value = this.data.housingComplexName || "...";
                 }
             }
@@ -161,7 +163,11 @@ export class OfferCard {
                 showOwnerActions: this.state.user && (this.state.user.id === this.data.userId || this.state.user.ID === this.data.userId),
                 formattedDeposit: this.formatCurrency(this.data.deposit),
                 formattedCommission: this.formatCurrency(this.data.commission),
-                views: this.data.views
+                views: this.data.views,
+                likesCount: this.data.likesCount,
+                isLiked: this.data.isLiked,
+                likeIcon: this.data.isLiked ? '../../images/active__like.png' : '../../images/like.png',
+                formattedLikesCount: this.formatLikesCount(this.data.likesCount)
             };
 
             const html = template(templateData);
@@ -179,7 +185,6 @@ export class OfferCard {
 
             return this.rootEl;
         } catch (error) {
-            console.error('Error rendering offer card:', error);
             const fallbackElement = document.createElement('div');
             fallbackElement.className = 'offer-card-error';
             fallbackElement.textContent = 'Ошибка загрузки объявления';
@@ -191,7 +196,6 @@ export class OfferCard {
         try {
             this.sellerData = await ProfileService.getProfile(this.data.userId);
         } catch (error) {
-            console.error('Error loading seller data:', error);
             this.sellerData = null;
         }
     }
@@ -205,11 +209,9 @@ export class OfferCard {
             if (response.ok && response.data) {
                 this.data.housingComplexName = response.data.name || response.data.Name || null;
             } else {
-                console.warn('Failed to load complex data:', response.error);
                 this.data.housingComplexName = null;
             }
         } catch (error) {
-            console.error('Error loading complex data:', error);
             this.data.housingComplexName = null;
         }
     }
@@ -225,7 +227,24 @@ export class OfferCard {
                 this.data.priceHistory = this.transformPriceHistoryData(response.data);
             }
         } catch (error) {
-            console.error('Error loading price history:', error);
+            // Ignore error for price history
+        }
+    }
+
+    async checkLikeStatus(): Promise<void> {
+        if (!this.data.id) return;
+
+        try {
+            const response = await API.get(API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED, { id: this.data.id.toString() });
+            
+            if (response.ok && response.data) {
+                this.data.isLiked = response.data.liked || false;
+                if (response.data.likes_count !== undefined) {
+                    this.data.likesCount = response.data.likes_count;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check like status:', error);
         }
     }
 
@@ -538,6 +557,90 @@ export class OfferCard {
         }
     }
 
+    async handleLike(): Promise<void> {
+        if (!this.data.id) return;
+
+        const currentUser = this.state?.user;
+        if (!currentUser) {
+            this.showAuthModal();
+            return;
+        }
+
+        try {
+            const previousLikedState = this.data.isLiked;
+            const previousLikesCount = this.data.likesCount;
+
+            // Оптимистичное обновление
+            this.data.isLiked = !previousLikedState;
+            this.data.likesCount = previousLikedState ? previousLikesCount - 1 : previousLikesCount + 1;
+
+            this.updateLikeUI();
+
+            const response = await API.post(API_CONFIG.ENDPOINTS.OFFERS.LIKE, {
+                id: this.data.id.toString()
+            });
+
+            if (!response.ok) {
+                // Откатываем изменения при ошибке
+                this.data.isLiked = previousLikedState;
+                this.data.likesCount = previousLikesCount;
+                this.updateLikeUI();
+                
+                this.showError('Не удалось обновить лайк. Попробуйте позже.');
+                return;
+            }
+
+            // Обновляем данные из ответа сервера
+            if (response.data) {
+                this.data.isLiked = response.data.liked;
+                // Сервер может вернуть обновленное количество лайков
+                if (response.data.likes_count !== undefined) {
+                    this.data.likesCount = response.data.likes_count;
+                }
+                this.updateLikeUI();
+            }
+
+        } catch (error) {
+            console.error('Like operation failed:', error);
+            this.showError('Произошла ошибка при обновлении лайка.');
+        }
+    }
+
+    private updateLikeUI(): void {
+        if (!this.rootEl) return;
+
+        const likeButton = this.rootEl.querySelector('.offer__like-btn') as HTMLElement;
+        const likeIcon = likeButton?.querySelector('img') as HTMLImageElement;
+        const likesCounter = this.rootEl.querySelector('.offer__likes-counter') as HTMLElement;
+
+        if (likeIcon) {
+            likeIcon.src = this.data.isLiked ? '../../images/active__like.png' : '../../images/like.png';
+            likeIcon.alt = this.data.isLiked ? 'Убрать из избранного' : 'Добавить в избранное';
+        }
+
+        if (likesCounter) {
+            likesCounter.textContent = this.formatLikesCount(this.data.likesCount);
+            likesCounter.classList.toggle('offer__likes-counter--active', this.data.isLiked);
+        }
+
+        // Анимация
+        if (likeButton) {
+            likeButton.classList.add('offer__like-btn--animating');
+            setTimeout(() => {
+                likeButton.classList.remove('offer__like-btn--animating');
+            }, 300);
+        }
+    }
+
+    private formatLikesCount(count: number): string {
+        if (count >= 1000000) {
+            return (count / 1000000).toFixed(1) + 'M';
+        } else if (count >= 1000) {
+            return (count / 1000).toFixed(1) + 'K';
+        }
+        return count.toString();
+    }
+
     showAuthModal(): void {
         const modalOverlay = document.createElement('div');
         modalOverlay.className = 'modal-overlay';
@@ -725,10 +828,6 @@ export class OfferCard {
 
         modalOverlay.appendChild(modal);
         document.body.appendChild(modalOverlay);
-    }
-
-    handleLike(): void {
-        // Заглушка для функционала лайков
     }
 
     formatCurrency(amount: number): string {

@@ -1,4 +1,6 @@
 import { MediaService } from "../../../utils/MediaService.ts";
+import { API } from "../../../utils/API.js";
+import { API_CONFIG } from "../../../config.js";
 
 interface OfferListData {
     id?: number;
@@ -7,6 +9,8 @@ interface OfferListData {
     image_url?: string;
     ImageURL?: string;
     isLiked?: boolean;
+    likesCount?: number;
+    likes_count?: number;
     price?: number;
     rooms?: number;
     area?: number;
@@ -59,9 +63,11 @@ export class OffersListCard {
         this.eventListeners = [];
     }
 
-    render(): HTMLElement {
+    async render(): Promise<HTMLElement> {
         try {
             const images = this.getImages();
+            const likesCount = this.offerData.likesCount || this.offerData.likes_count || 0;
+            const isLiked = this.offerData.isLiked || false;
             
             const formattedOffer = {
                 id: this.offerData.id || this.offerData.ID,
@@ -73,9 +79,12 @@ export class OffersListCard {
                 metro: this.offerData.metro || "Метро не указано",
                 images: images,
                 multipleImages: images.length > 1,
-                likeClass: this.offerData.isLiked ? 'liked' : '',
-                likeIcon: this.offerData.isLiked ? '../../images/active__like.png' : '../../images/like.png',
-                formattedPrice: this.formatPrice(this.offerData.price || 0)
+                likeClass: isLiked ? 'liked' : '',
+                likeIcon: isLiked ? '../../images/active__like.png' : '../../images/like.png',
+                formattedPrice: this.formatPrice(this.offerData.price || 0),
+                likesCount: likesCount,
+                isLiked: isLiked,
+                formattedLikesCount: this.formatLikesCount(likesCount)
             };
 
             this.parentElement.innerHTML = '';
@@ -85,6 +94,11 @@ export class OffersListCard {
 
             this.initializeSlider();
             this.attachEventListeners();
+
+            // Проверяем статус лайка если пользователь авторизован
+            if (this.state.user && this.offerData.id) {
+                await this.checkLikeStatus();
+            }
 
             return this.parentElement;
         } catch (error) {
@@ -144,7 +158,12 @@ export class OffersListCard {
         const likeBtn = document.createElement('button');
         likeBtn.className = 'offer-card__like';
         likeBtn.setAttribute('data-offer-id', offer.id);
-        likeBtn.innerHTML = `<img src="${offer.likeIcon}" alt="Избранное">`;
+        likeBtn.innerHTML = `
+            <img src="${offer.likeIcon}" alt="${offer.isLiked ? 'Убрать из избранного' : 'Добавить в избранное'}">
+            <span class="offer-card__likes-counter ${offer.isLiked ? 'offer-card__likes-counter--active' : ''}">
+                ${offer.formattedLikesCount}
+            </span>
+        `;
         galleryDiv.appendChild(likeBtn);
 
         cardDiv.appendChild(galleryDiv);
@@ -178,6 +197,8 @@ export class OffersListCard {
     createCompleteFallbackCard(): void {
         const images = this.getImages();
         const imageUrl = images.length > 0 ? images[0] : MediaService.getImageUrl('default_offer.jpg');
+        const likesCount = this.offerData.likesCount || this.offerData.likes_count || 0;
+        const isLiked = this.offerData.isLiked || false;
 
         this.parentElement.innerHTML = `
             <div class="offer-card" data-offer-id="${this.offerData.id || this.offerData.ID}">
@@ -187,8 +208,11 @@ export class OffersListCard {
                          alt="Фото объявления" 
                          loading="lazy">
                     <button class="offer-card__like" data-offer-id="${this.offerData.id || this.offerData.ID}">
-                        <img src="${this.offerData.isLiked ? '../../images/active__like.png' : '../../images/like.png'}" 
-                             alt="Избранное">
+                        <img src="${isLiked ? '../../images/active__like.png' : '../../images/like.png'}" 
+                             alt="${isLiked ? 'Убрать из избранного' : 'Добавить в избранное'}">
+                        <span class="offer-card__likes-counter ${isLiked ? 'offer-card__likes-counter--active' : ''}">
+                            ${this.formatLikesCount(likesCount)}
+                        </span>
                     </button>
                 </div>
                 <span class="offer-card__price">${this.formatPrice(this.offerData.price || 0)} ₽</span>
@@ -222,6 +246,149 @@ export class OffersListCard {
         }
 
         return images;
+    }
+
+    async checkLikeStatus(): Promise<void> {
+        if (!this.offerData.id && !this.offerData.ID) return;
+
+        try {
+            const offerId = (this.offerData.id || this.offerData.ID).toString();
+            const response = await API.get(API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED, { id: offerId });
+            
+            if (response.ok && response.data) {
+                this.offerData.isLiked = response.data.liked || false;
+                if (response.data.likes_count !== undefined) {
+                    this.offerData.likesCount = response.data.likes_count;
+                }
+                this.updateLikeUI();
+            }
+        } catch (error) {
+            console.error('Failed to check like status:', error);
+        }
+    }
+
+    async handleLike(): Promise<void> {
+        if (!this.offerData.id && !this.offerData.ID) return;
+
+        const offerId = (this.offerData.id || this.offerData.ID).toString();
+        const currentUser = this.state?.user;
+
+        if (!currentUser) {
+            this.showAuthModal();
+            return;
+        }
+
+        try {
+            const previousLikedState = this.offerData.isLiked;
+            const previousLikesCount = this.offerData.likesCount || this.offerData.likes_count || 0;
+
+            // Оптимистичное обновление
+            this.offerData.isLiked = !previousLikedState;
+            this.offerData.likesCount = previousLikedState ? previousLikesCount - 1 : previousLikesCount + 1;
+
+            this.updateLikeUI();
+
+            const response = await API.post(API_CONFIG.ENDPOINTS.OFFERS.LIKE, {
+                id: offerId
+            });
+
+            if (!response.ok) {
+                // Откатываем изменения при ошибке
+                this.offerData.isLiked = previousLikedState;
+                this.offerData.likesCount = previousLikesCount;
+                this.updateLikeUI();
+                return;
+            }
+
+            // Обновляем данные из ответа сервера
+            if (response.data) {
+                this.offerData.isLiked = response.data.liked;
+                if (response.data.likes_count !== undefined) {
+                    this.offerData.likesCount = response.data.likes_count;
+                }
+                this.updateLikeUI();
+            }
+
+        } catch (error) {
+            console.error('Like operation failed:', error);
+        }
+    }
+
+    private updateLikeUI(): void {
+        const likeButton = this.parentElement.querySelector('.offer-card__like') as HTMLElement;
+        const likeIcon = likeButton?.querySelector('img') as HTMLImageElement;
+        const likesCounter = this.parentElement.querySelector('.offer-card__likes-counter') as HTMLElement;
+
+        if (likeIcon) {
+            likeIcon.src = this.offerData.isLiked ? '../../images/active__like.png' : '../../images/like.png';
+            likeIcon.alt = this.offerData.isLiked ? 'Убрать из избранного' : 'Добавить в избранное';
+        }
+
+        if (likesCounter) {
+            likesCounter.textContent = this.formatLikesCount(this.offerData.likesCount || 0);
+            likesCounter.classList.toggle('offer-card__likes-counter--active', this.offerData.isLiked);
+        }
+
+        // Анимация
+        if (likeButton) {
+            likeButton.classList.add('offer-card__like--animating');
+            setTimeout(() => {
+                likeButton.classList.remove('offer-card__like--animating');
+            }, 300);
+        }
+    }
+
+    private formatLikesCount(count: number): string {
+        if (count >= 1000000) {
+            return (count / 1000000).toFixed(1) + 'M';
+        } else if (count >= 1000) {
+            return (count / 1000).toFixed(1) + 'K';
+        }
+        return count.toString();
+    }
+
+    private showAuthModal(): void {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3>Авторизуйтесь, чтобы добавлять в избранное</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>Войдите в свой аккаунт, чтобы сохранять понравившиеся объявления.</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--cancel">Отменить</button>
+                <button class="modal__btn modal__btn--login">Войти</button>
+            </div>
+        `;
+
+        const closeModal = () => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        };
+
+        modal.querySelector('.modal__close')!.addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--cancel')!.addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--login')!.addEventListener('click', () => {
+            closeModal();
+            if (this.app?.router?.navigate) {
+                this.app.router.navigate('/login');
+            }
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        modalOverlay.appendChild(modal);
+        document.body.appendChild(modalOverlay);
     }
 
     initializeSlider(): void {
@@ -342,10 +509,6 @@ export class OffersListCard {
                 this.handleLike();
             });
         }
-    }
-
-    handleLike(): void {
-
     }
 
     formatPrice(price: number): string {
