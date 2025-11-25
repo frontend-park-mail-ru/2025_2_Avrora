@@ -1,7 +1,9 @@
+// ComplexWidget.ts
 import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 import { MediaService } from "../utils/MediaService.ts";
 import { OffersListWidget } from "./OffersListWidget.ts";
+import { YandexMapService } from "../utils/YandexMapService.ts";
 
 interface ComplexData {
     id?: number;
@@ -104,6 +106,7 @@ export class ComplexWidget {
     currentSlide: number;
     offersWidget: OffersListWidget | null;
     offerLikeStates: Map<number, { isLiked: boolean; likesCount: number }>;
+    private mapInitialized: boolean;
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -116,6 +119,7 @@ export class ComplexWidget {
         this.currentSlide = 0;
         this.offersWidget = null;
         this.offerLikeStates = new Map();
+        this.mapInitialized = false;
     }
 
     async loadTemplate(): Promise<HandlebarsTemplateDelegate> {
@@ -232,6 +236,9 @@ export class ComplexWidget {
         this.initializeComplexSlider();
 
         await this.loadAndRenderComplexOffers();
+        
+        // Инициализируем карту после загрузки данных
+        await this.initMap();
     }
 
     async loadAndRenderComplexOffers(): Promise<void> {
@@ -801,6 +808,43 @@ export class ComplexWidget {
         this.currentSlide = index;
     }
 
+    async initMap(): Promise<void> {
+        if (!this.complexData?.address) {
+            this.showMapPlaceholder('Адрес ЖК не указан');
+            return;
+        }
+
+        try {
+            await YandexMapService.initMap('yandex-complex-map', this.complexData.address);
+            this.mapInitialized = true;
+        } catch (error) {
+            console.error('Error initializing map:', error);
+            this.showMapError('Не удалось загрузить карту');
+        }
+    }
+
+    private showMapPlaceholder(message: string): void {
+        const mapContainer = this.parent.querySelector('#yandex-complex-map') as HTMLElement;
+        if (!mapContainer) return;
+
+        mapContainer.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px; text-align: center; padding: 20px; background: #f5f5f5;">
+                ${message}
+            </div>
+        `;
+    }
+
+    private showMapError(message: string): void {
+        const mapContainer = this.parent.querySelector('#yandex-complex-map') as HTMLElement;
+        if (!mapContainer) return;
+
+        mapContainer.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #f44336; font-size: 14px; text-align: center; padding: 20px;">
+                ${message}
+            </div>
+        `;
+    }
+
     renderLoading(): void {
         this.cleanup();
 
@@ -852,6 +896,13 @@ export class ComplexWidget {
         }
         
         this.offerLikeStates.clear();
+        
+        // Уничтожаем карту при очистке
+        if (this.mapInitialized) {
+            YandexMapService.destroyMap();
+            this.mapInitialized = false;
+        }
+        
         this.parent.innerHTML = "";
         this.currentSlide = 0;
     }

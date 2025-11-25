@@ -303,7 +303,7 @@ export class YandexMapSearchService {
             const searchAddress = address.includes('Москва') ? address : `Москва, ${address}`;
 
             const response = await fetch(
-                `https://geocode-maps.yandex.ru/1.x/?format=json&apikey=API_KEY&geocode=${encodeURIComponent(searchAddress)}`
+                `https://geocode-maps.yandex.ru/1.x/?format=json&apikey=apikey&geocode=${encodeURIComponent(searchAddress)}`
             );
 
             if (!response.ok) {

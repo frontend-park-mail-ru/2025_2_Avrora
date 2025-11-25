@@ -976,8 +976,8 @@ export class OfferCreateSecondStage {
             // Используем YandexMapService для ymaps3
             const { YandexMapService } = await import('../../../utils/YandexMapService.js');
 
-            // Используем безопасный метод обновления карты
-            await YandexMapService.updateMap('yandex-create-map', this.currentAddress);
+            // Используем правильный метод initMap вместо updateMap
+            await YandexMapService.initMap('yandex-create-map', this.currentAddress);
             this.mapInitialized = true;
         } catch (error) {
             console.error('Error initializing map:', error);
