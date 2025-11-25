@@ -62,18 +62,17 @@
                 </svg>
             </button>
             {{/if}}
-
-            <button class="offer__like-btn">
-                <img src="{{likeIcon}}" alt="{{#if isLiked}}Убрать из избранного{{else}}Добавить в избранное{{/if}}">
-                <span class="offer__likes-counter {{#if isLiked}}offer__likes-counter--active{{/if}}">
-                    {{formattedLikesCount}}
-                </span>
-            </button>
         </div>
 
         <div class="offer__sidebar">
             <div class="offer__price-container">
                 <h3 class="offer__price">{{price}}</h3>
+                <button class="offer__like-btn">
+                    <img src="{{likeIcon}}" alt="{{#if isLiked}}Убрать из избранного{{else}}Добавить в избранное{{/if}}">
+                    <span class="offer__likes-counter {{#if isLiked}}offer__likes-counter--active{{/if}}">
+                        {{formattedLikesCount}}
+                    </span>
+                </button>
             </div>
 
             {{#if isRent}}

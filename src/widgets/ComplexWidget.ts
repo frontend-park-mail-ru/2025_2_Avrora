@@ -52,6 +52,8 @@ interface OfferData {
     HousingComplexName?: string;
     complex_name?: string;
     ComplexName?: string;
+    isLiked?: boolean;
+    likes_count?: number;
 }
 
 interface FormattedComplexData {
@@ -79,6 +81,10 @@ interface FormattedOfferData {
     images: string[];
     multipleImages: boolean;
     description: string;
+    isLiked: boolean;
+    likesCount: number;
+    likeIcon: string;
+    formattedLikesCount: string;
 }
 
 interface EventListener {
@@ -97,6 +103,7 @@ export class ComplexWidget {
     template: HandlebarsTemplateDelegate | null;
     currentSlide: number;
     offersWidget: OffersListWidget | null;
+    offerLikeStates: Map<number, { isLiked: boolean; likesCount: number }>;
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -108,6 +115,7 @@ export class ComplexWidget {
         this.template = null;
         this.currentSlide = 0;
         this.offersWidget = null;
+        this.offerLikeStates = new Map();
     }
 
     async loadTemplate(): Promise<HandlebarsTemplateDelegate> {
@@ -241,7 +249,7 @@ export class ComplexWidget {
         }
 
         try {
-            const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, { limit: 10 });
+            const result = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, { limit: 50 });
 
             if (!result.ok) {
                 throw new Error(result.error || "Ошибка загрузки объявлений");
@@ -257,7 +265,6 @@ export class ComplexWidget {
             } else if (Array.isArray(responseData.data)) {
                 offers = responseData.data;
             }
-
 
             const offersWithDetails: OfferData[] = [];
             
@@ -275,6 +282,26 @@ export class ComplexWidget {
                         
                         const images = this.controller.getOfferImages(offerDetailResult.data);
                         
+                        // Проверяем статус лайка для текущего пользователя
+                        let isLiked = false;
+                        let likesCount = offer.likes_count || 0;
+                        
+                        if (this.controller.model?.userModel?.user) {
+                            try {
+                                const likeStatusResult = await API.get(API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED, { 
+                                    id: offerId.toString() 
+                                });
+                                if (likeStatusResult.ok && likeStatusResult.data) {
+                                    isLiked = likeStatusResult.data.liked || false;
+                                    if (likeStatusResult.data.likes_count !== undefined) {
+                                        likesCount = likeStatusResult.data.likes_count;
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Failed to check like status:', error);
+                            }
+                        }
+                        
                         const detailedOffer: OfferData = {
                             id: fullOffer.id || fullOffer.ID,
                             price: fullOffer.price || fullOffer.Price,
@@ -285,13 +312,21 @@ export class ComplexWidget {
                             metro: fullOffer.metro || fullOffer.Metro,
                             images: images,
                             housing_complex_id: fullOffer.housing_complex_id || fullOffer.HousingComplexID,
-                            complex_id: fullOffer.complex_id || fullOffer.ComplexID
+                            complex_id: fullOffer.complex_id || fullOffer.ComplexID,
+                            isLiked: isLiked,
+                            likes_count: likesCount
                         };
                         
                         offersWithDetails.push(detailedOffer);
+                        
+                        // Сохраняем состояние лайка
+                        this.offerLikeStates.set(offerId, {
+                            isLiked: isLiked,
+                            likesCount: likesCount
+                        });
                     } 
                 } catch (error) {
-
+                    console.error('Error loading offer details:', error);
                 }
             }
 
@@ -305,9 +340,9 @@ export class ComplexWidget {
                 return false;
             });
 
-
             return filteredOffers.map(offer => this.formatOfferData(offer));
         } catch (error) {
+            console.error('Error loading complex offers:', error);
             throw error;
         }
     }
@@ -318,6 +353,8 @@ export class ComplexWidget {
         const rooms = apiData.rooms || apiData.Rooms || 0;
         const area = apiData.area || apiData.Area || 0;
         const address = apiData.address || apiData.Address || "Адрес не указан";
+        const isLiked = apiData.isLiked || false;
+        const likesCount = apiData.likes_count || 0;
 
         let images: string[] = [];
         if (Array.isArray(apiData.images)) {
@@ -343,8 +380,21 @@ export class ComplexWidget {
             metro: apiData.metro || apiData.Metro || "Метро не указано",
             images: images,
             multipleImages: images.length > 1,
-            description: `${rooms}-комн. · ${area}м²`
+            description: `${rooms}-комн. · ${area}м²`,
+            isLiked: isLiked,
+            likesCount: likesCount,
+            likeIcon: isLiked ? '../../images/active__like.png' : '../../images/like.png',
+            formattedLikesCount: this.formatLikesCount(likesCount)
         };
+    }
+
+    private formatLikesCount(count: number): string {
+        if (count >= 1000000) {
+            return (count / 1000000).toFixed(1) + 'M';
+        } else if (count >= 1000) {
+            return (count / 1000).toFixed(1) + 'K';
+        }
+        return count.toString();
     }
 
     renderApartments(offers: FormattedOfferData[]): void {
@@ -396,7 +446,10 @@ export class ComplexWidget {
                     ` : ''}
                     
                     <button class="offer-card__like" data-offer-id="${offer.id}">
-                        <img src="${this.controller.isOfferLiked ? this.controller.isOfferLiked(offer.id) ? '../../images/active__like.png' : '../../images/like.png' : '../../images/like.png'}" alt="Избранное">
+                        <img src="${offer.likeIcon}" alt="${offer.isLiked ? 'Убрать из избранного' : 'Добавить в избранное'}">
+                        <span class="offer-card__likes-counter ${offer.isLiked ? 'offer-card__likes-counter--active' : ''}">
+                            ${offer.formattedLikesCount}
+                        </span>
                     </button>
                 </div>
                 
@@ -427,6 +480,7 @@ export class ComplexWidget {
             if (likeButton) {
                 this.addEventListener(likeButton, 'click', (e: Event) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     this.handleLike(offer.id, likeButton as HTMLElement);
                 });
             }
@@ -458,6 +512,7 @@ export class ComplexWidget {
         if (prevBtn) {
             this.addEventListener(prevBtn, 'click', (e: Event) => {
                 e.stopPropagation();
+                e.preventDefault();
                 const newIndex = (currentSlide - 1 + images.length) % images.length;
                 showSlide(newIndex);
             });
@@ -466,6 +521,7 @@ export class ComplexWidget {
         if (nextBtn) {
             this.addEventListener(nextBtn, 'click', (e: Event) => {
                 e.stopPropagation();
+                e.preventDefault();
                 const newIndex = (currentSlide + 1) % images.length;
                 showSlide(newIndex);
             });
@@ -474,6 +530,7 @@ export class ComplexWidget {
         dots.forEach((dot, index) => {
             this.addEventListener(dot, 'click', (e: Event) => {
                 e.stopPropagation();
+                e.preventDefault();
                 showSlide(index);
             });
         });
@@ -489,15 +546,170 @@ export class ComplexWidget {
         }
     }
 
-    handleLike(offerId: number, likeButton: HTMLElement): void {
-        if (this.controller.toggleOfferLike) {
-            this.controller.toggleOfferLike(offerId);
-            const img = likeButton.querySelector('img');
-            if (img) {
-                const isLiked = this.controller.isOfferLiked ? this.controller.isOfferLiked(offerId) : false;
-                img.src = isLiked ? '../../images/active__like.png' : '../../images/like.png';
-            }
+    async handleLike(offerId: number, likeButton: HTMLElement): Promise<void> {
+        const currentUser = this.controller.model?.userModel?.user;
+        
+        if (!currentUser) {
+            this.showAuthModal();
+            return;
         }
+
+        const currentState = this.offerLikeStates.get(offerId) || { isLiked: false, likesCount: 0 };
+        const previousLikedState = currentState.isLiked;
+        const previousLikesCount = currentState.likesCount;
+
+        // Оптимистичное обновление
+        const newLikedState = !previousLikedState;
+        const newLikesCount = previousLikedState ? previousLikesCount - 1 : previousLikesCount + 1;
+        
+        this.offerLikeStates.set(offerId, {
+            isLiked: newLikedState,
+            likesCount: newLikesCount
+        });
+
+        this.updateLikeUI(offerId, likeButton, newLikedState, newLikesCount);
+
+        try {
+            const response = await API.post(API_CONFIG.ENDPOINTS.OFFERS.LIKE, {
+                id: offerId.toString()
+            });
+
+            if (!response.ok) {
+                // Откатываем изменения при ошибке
+                this.offerLikeStates.set(offerId, {
+                    isLiked: previousLikedState,
+                    likesCount: previousLikesCount
+                });
+                this.updateLikeUI(offerId, likeButton, previousLikedState, previousLikesCount);
+                
+                this.showError('Не удалось обновить лайк. Попробуйте позже.');
+                return;
+            }
+
+            // Обновляем данные из ответа сервера
+            if (response.data) {
+                const serverLikedState = response.data.liked;
+                const serverLikesCount = response.data.likes_count !== undefined ? response.data.likes_count : newLikesCount;
+                
+                this.offerLikeStates.set(offerId, {
+                    isLiked: serverLikedState,
+                    likesCount: serverLikesCount
+                });
+                this.updateLikeUI(offerId, likeButton, serverLikedState, serverLikesCount);
+            }
+
+        } catch (error) {
+            console.error('Like operation failed:', error);
+            // Откатываем изменения при ошибке
+            this.offerLikeStates.set(offerId, {
+                isLiked: previousLikedState,
+                likesCount: previousLikesCount
+            });
+            this.updateLikeUI(offerId, likeButton, previousLikedState, previousLikesCount);
+            this.showError('Произошла ошибка при обновлении лайка.');
+        }
+    }
+
+    private updateLikeUI(offerId: number, likeButton: HTMLElement, isLiked: boolean, likesCount: number): void {
+        const likeIcon = likeButton.querySelector('img') as HTMLImageElement;
+        const likesCounter = likeButton.querySelector('.offer-card__likes-counter') as HTMLElement;
+
+        if (likeIcon) {
+            likeIcon.src = isLiked ? '../../images/active__like.png' : '../../images/like.png';
+            likeIcon.alt = isLiked ? 'Убрать из избранного' : 'Добавить в избранное';
+        }
+
+        if (likesCounter) {
+            likesCounter.textContent = this.formatLikesCount(likesCount);
+            likesCounter.classList.toggle('offer-card__likes-counter--active', isLiked);
+        }
+
+        // Анимация
+        likeButton.classList.add('offer-card__like--animating');
+        setTimeout(() => {
+            likeButton.classList.remove('offer-card__like--animating');
+        }, 300);
+    }
+
+    private showAuthModal(): void {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3>Авторизуйтесь, чтобы добавлять в избранное</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>Войдите в свой аккаунт, чтобы сохранять понравившиеся объявления.</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--cancel">Отменить</button>
+                <button class="modal__btn modal__btn--login">Войти</button>
+            </div>
+        `;
+
+        const closeModal = () => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        };
+
+        modal.querySelector('.modal__close')!.addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--cancel')!.addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--login')!.addEventListener('click', () => {
+            closeModal();
+            if (this.controller.router?.navigate) {
+                this.controller.router.navigate('/login');
+            }
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        modalOverlay.appendChild(modal);
+        document.body.appendChild(modalOverlay);
+    }
+
+    private showError(message: string): void {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3 style="color: #f44336;">Ошибка</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>${message}</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--confirm">OK</button>
+            </div>
+        `;
+
+        const closeModal = () => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        };
+
+        modal.querySelector('.modal__close')!.addEventListener('click', closeModal);
+        modal.querySelector('.modal__btn--confirm')!.addEventListener('click', closeModal);
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        modalOverlay.appendChild(modal);
+        document.body.appendChild(modalOverlay);
     }
 
     renderEmptyApartments(): void {
@@ -639,6 +851,7 @@ export class ComplexWidget {
             this.offersWidget = null;
         }
         
+        this.offerLikeStates.clear();
         this.parent.innerHTML = "";
         this.currentSlide = 0;
     }
