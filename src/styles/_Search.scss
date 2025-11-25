@@ -291,7 +291,7 @@
 		padding: 8px 0;
 
 		@media (max-width: 768px) {
-			width: 100vw;
+			width: 83vw;
 			left: 0;
 			right: 0;
 			border-radius: 0;
@@ -379,33 +379,35 @@
 			padding: 0;
 			border-radius: 0 0 4px 4px;
 			z-index: 1000;
-
 			@media (max-width: 768px) {
-				width: 100vw;
+				width: 83vw;
+				max-width: 83vw; 
 				left: 0;
 				right: auto;
 				min-width: auto;
 			}
 		}
-	}
 
-	&__range {
-		display: flex;
-		align-items: center;
-		padding: 20px;
-		gap: 12px;
-		background: #fff;
-		white-space: nowrap;
-
-		@media (max-width: 768px) {
-			padding: 16px;
-			gap: 10px;
-		}
-
-		@media (max-width: 480px) {
-			padding: 12px;
-			gap: 8px;
-			flex-wrap: wrap;
+		.dropdown__range {
+			display: flex;
+			align-items: center;
+			padding: 20px;
+			gap: 12px;
+			background: #fff;
+			white-space: nowrap;
+			@media (max-width: 768px) {
+				width: 80vw;
+				left: 0;
+				right: 0;
+				border-radius: 0;
+				padding: 16px;
+				gap: 10px;
+			}
+			@media (max-width: 480px) {
+				padding: 12px;
+				gap: 8px;
+				flex-wrap: wrap;
+			}
 		}
 	}
 
@@ -579,42 +581,44 @@
 
 	&__clear {
 		position: absolute;
-		right: 12px;
+		right: 10px;
 		top: 50%;
 		transform: translateY(-50%);
-		width: 20px;
-		height: 20px;
+		width: 18px;
+		height: 18px;
 		border: none;
 		background: #A0A8BE;
 		color: white;
 		border-radius: 50%;
 		cursor: pointer;
-		display: flex; 
+		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 14px;
+		font-size: 12px;
 		font-weight: bold;
+		line-height: 1;
 		transition: all 0.2s ease;
 		z-index: 10;
 
-		@media (max-width: 768px) {
-			width: 18px;
-			height: 18px;
-			font-size: 12px;
-			right: 10px;
-		}
+		min-width: auto !important;
+		min-height: auto !important;
+		padding: 0 !important;
 
-		@media (max-width: 480px) {
+		@media (max-width: 768px) {
 			width: 16px;
 			height: 16px;
-			font-size: 10px;
+			font-size: 11px;
 			right: 8px;
 		}
-
+		@media (max-width: 480px) {
+			width: 14px;
+			height: 14px;
+			font-size: 10px;
+			right: 6px;
+		}
 		&:hover {
 			background: #666;
 		}
-
 		&.hidden {
 			display: none;
 		}

@@ -5,17 +5,14 @@ interface TemplateData {
     };
     isLoginPage: boolean;
     isRegisterPage: boolean;
-    showAddButton: boolean;
 }
 
 export class Header {
     private parent: HTMLElement;
-    private controller: any;
+    private controller: any; 
     private eventListeners: { element: Element; event: string; handler: EventListenerOrEventListenerObject }[];
     private template: ((data: TemplateData) => string) | null;
     private container: HTMLElement | null;
-    private logoContainer: HTMLElement | null = null;
-    private buttonsContainer: HTMLElement | null = null;
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -42,15 +39,13 @@ export class Header {
                         "../../images/user.png";
         }
 
-        const isAuthenticated = this.controller.isAuthenticated;
-        const showAddButton = isAuthenticated && !isLoginPage && !isRegisterPage;
-
         const templateData: TemplateData = {
-            isAuthenticated,
-            user: { avatar: userAvatar },
+            isAuthenticated: this.controller.isAuthenticated,
+            user: {
+                avatar: userAvatar
+            },
             isLoginPage,
-            isRegisterPage,
-            showAddButton
+            isRegisterPage
         };
 
         if (typeof template !== 'function') {
@@ -62,47 +57,8 @@ export class Header {
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = html;
         this.container = tempContainer.firstElementChild as HTMLElement;
-        if (!this.container) {
-            throw new Error('Header container element not created');
-        }
-
         this.parent.appendChild(this.container);
-
-        this.restructureMobileLayout();
-
         this.attachEventListeners();
-    }
-
-    private restructureMobileLayout(): void {
-        if (!this.container) return;
-
-        this.logoContainer = document.createElement('div');
-        this.logoContainer.className = 'header__logo-container';
-
-        this.buttonsContainer = document.createElement('div');
-        this.buttonsContainer.className = 'header__buttons-container';
-
-        const logoLink = this.container.querySelector('.header__logo-link');
-        if (logoLink) {
-            this.logoContainer.appendChild(logoLink);
-        }
-
-        const addButton = this.container.querySelector('.header__menu-btn--add-object');
-        const userButton = this.container.querySelector('.header__menu-btn--user');
-        const loginButton = this.container.querySelector('.header__menu-btn--login');
-        const registerButton = this.container.querySelector('.header__menu-btn--register');
-
-        [addButton, userButton, loginButton, registerButton]
-            .filter(el => el !== null)
-            .forEach(el => this.buttonsContainer!.appendChild(el));
-
-        const oldMenu = this.container.querySelector('.header__menu');
-        if (oldMenu) {
-            oldMenu.replaceWith(this.logoContainer, this.buttonsContainer);
-        } else {
-            this.container.appendChild(this.logoContainer);
-            this.container.appendChild(this.buttonsContainer);
-        }
     }
 
     private async loadTemplate(): Promise<(data: TemplateData) => string> {
@@ -138,7 +94,7 @@ export class Header {
         if (registerButton) {
             this.addEventListener(registerButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.controller.navigate("/register");
+                this.controller.navigate("/register"); 
             });
         }
 
@@ -154,7 +110,7 @@ export class Header {
         if (profileButton) {
             this.addEventListener(profileButton, 'click', (e: Event) => {
                 e.preventDefault();
-                this.controller.navigate("/profile");
+                this.controller.navigate("/profile"); 
             });
         }
 
@@ -178,7 +134,7 @@ export class Header {
         if (logoLink) {
             this.addEventListener(logoLink, 'click', (e: Event) => {
                 e.preventDefault();
-                this.controller.navigate("/");
+                this.controller.navigate("/"); 
             });
         }
     }
@@ -196,8 +152,10 @@ export class Header {
         event: string,
         handler: EventListenerOrEventListenerObject
     ): void {
-        element.addEventListener(event, handler);
-        this.eventListeners.push({ element, event, handler });
+        if (element) {
+            element.addEventListener(event, handler);
+            this.eventListeners.push({ element, event, handler });
+        }
     }
 
     private cleanup(): void {
@@ -205,13 +163,9 @@ export class Header {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
-
         if (this.container) {
             this.container.remove();
             this.container = null;
         }
-
-        this.logoContainer = null;
-        this.buttonsContainer = null;
     }
 }

@@ -264,11 +264,17 @@
             @media (max-width: 768px) {
                 width: 40px;
                 height: 40px;
+                min-width: auto !important;
+                min-height: auto !important;
+                padding: 0 !important;
             }
 
             @media (max-width: 480px) {
                 width: 16px; 
                 height: 16px; 
+                min-width: auto !important;
+                min-height: auto !important;
+                padding: 0 !important;
             }
 
             &:hover {
