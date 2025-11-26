@@ -1,3 +1,4 @@
+// OfferWidget.ts - обновленный файл
 import { OfferCard } from "../components/Offer/OfferCard/OfferCard.ts";
 import { YandexMapService } from "../utils/YandexMapService.ts";
 import { PriceHistoryChartService } from "../utils/PriceHistoryChartService.ts";
@@ -110,7 +111,9 @@ export class OfferWidget {
             housingComplexName: housingComplexName,
             showOwnerActions: this.controller.isOfferOwner(apiData),
             showContactBtn: !this.controller.isOfferOwner(apiData),
-            showPhone: this.controller.isOfferOwner(apiData)
+            showPhone: this.controller.isOfferOwner(apiData),
+            likesCount: apiData.likes_count || apiData.likesCount || 0, // Добавляем получение счетчика
+            isLiked: apiData.is_liked || apiData.isLiked || false,
         };
     }
 
@@ -249,9 +252,9 @@ export class OfferWidget {
     private async initPriceHistoryChart(offerId: number): Promise<void> {
         try {
             const priceHistory = await this.loadPriceHistory(offerId);
-            
+
             await new Promise(resolve => setTimeout(resolve, 500));
-            
+
             const chartContainer = this.rootEl?.querySelector('#price-history-chart') as HTMLElement | null;
             if (!chartContainer) {
                 this.showNoDataMessage();
@@ -259,7 +262,7 @@ export class OfferWidget {
             }
 
             chartContainer.innerHTML = '';
-            
+
             if (!priceHistory || priceHistory.length === 0) {
                 this.showNoDataMessage();
                 return;
@@ -285,9 +288,9 @@ export class OfferWidget {
     private async loadPriceHistory(offerId: number): Promise<Array<{ date: string; price: number }>> {
         try {
             const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.PRICE_HISTORY}/${offerId}`;
-            
+
             const result = await API.get(endpoint);
-            
+
             if (result.ok && result.data) {
                 const priceHistory = this.processPriceHistoryData(result.data);
                 return priceHistory;
@@ -303,7 +306,6 @@ export class OfferWidget {
         if (!Array.isArray(apiData)) {
             return [];
         }
-
 
         const rawData = apiData.map((item: any, index: number) => {
             let date: string;
@@ -330,7 +332,6 @@ export class OfferWidget {
             };
         }).filter(Boolean);
 
-
         if (rawData.length === 0) {
             return [];
         }
@@ -348,7 +349,6 @@ export class OfferWidget {
             }
         });
 
-
         const timeDeduplicatedMap = new Map();
         exactDuplicatesRemoved.forEach((item: any) => {
             timeDeduplicatedMap.set(item.timestamp, item);
@@ -356,7 +356,6 @@ export class OfferWidget {
 
         const timeDeduplicated = Array.from(timeDeduplicatedMap.values());
         timeDeduplicated.sort((a: any, b: any) => a.timestamp - b.timestamp);
-
 
         const uniquePriceData = [];
 
@@ -385,7 +384,6 @@ export class OfferWidget {
                 });
             }
         }
-
 
         if (uniquePriceData.length === 1) {
             uniquePriceData.push({

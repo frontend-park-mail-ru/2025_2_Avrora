@@ -68,6 +68,7 @@ export class OfferCard {
     rootEl: HTMLElement | null;
     isPhoneVisible: boolean;
     sellerData: any;
+    private isLikeRequestInProgress: boolean;
 
     constructor(data: any = {}, state: OfferCardState = {}, app: App | null = null) {
         this.data = {
@@ -104,6 +105,7 @@ export class OfferCard {
         this.rootEl = null;
         this.isPhoneVisible = false;
         this.sellerData = null;
+        this.isLikeRequestInProgress = false;
     }
 
     async render(): Promise<HTMLElement> {
@@ -112,7 +114,8 @@ export class OfferCard {
                 this.data.userId ? this.loadSellerData() : Promise.resolve(),
                 this.data.housingComplexId ? this.loadComplexData() : Promise.resolve(),
                 this.data.id ? this.loadPriceHistory() : Promise.resolve(),
-                this.data.id ? this.checkLikeStatus() : Promise.resolve()
+                this.data.id ? this.loadLikeData() : Promise.resolve(), // Добавлен запрос лайков
+                this.data.id ? this.incrementViewCount() : Promise.resolve()
             ]);
 
             const template = (Handlebars as any).templates['Offer.hbs'];
@@ -185,6 +188,7 @@ export class OfferCard {
 
             return this.rootEl;
         } catch (error) {
+            console.error('Error rendering offer card:', error);
             const fallbackElement = document.createElement('div');
             fallbackElement.className = 'offer-card-error';
             fallbackElement.textContent = 'Ошибка загрузки объявления';
@@ -192,10 +196,55 @@ export class OfferCard {
         }
     }
 
+    // Новый метод для загрузки данных о лайках
+    async loadLikeData(): Promise<void> {
+        if (!this.data.id) return;
+
+        try {
+            // Загружаем количество лайков
+            const likesCountResponse = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIKECOUNT}${this.data.id}`);
+            if (likesCountResponse.ok && likesCountResponse.data) {
+                this.data.likesCount = likesCountResponse.data.count || 0;
+            }
+
+            // Загружаем статус лайка для текущего пользователя
+            if (this.state.user) {
+                const isLikedResponse = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED}${this.data.id}`);
+                if (isLikedResponse.ok && isLikedResponse.data) {
+                    this.data.isLiked = isLikedResponse.data.is_liked || false;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load like data:', error);
+        }
+    }
+
+    async incrementViewCount(): Promise<void> {
+        if (!this.data.id) return;
+
+        try {
+            const response = await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.VIEW}${this.data.id}`, {});
+
+            if (response.ok) {
+                // Обновляем счетчик просмотров оптимистично
+                this.data.views += 1;
+
+                // Обновляем UI если нужно
+                const viewsElement = this.rootEl?.querySelector('.offer__views span');
+                if (viewsElement) {
+                    viewsElement.textContent = this.data.views.toString();
+                }
+            }
+        } catch (error) {
+            console.error('Failed to increment view count:', error);
+        }
+    }
+
     async loadSellerData(): Promise<void> {
         try {
             this.sellerData = await ProfileService.getProfile(this.data.userId);
         } catch (error) {
+            console.error('Failed to load seller data:', error);
             this.sellerData = null;
         }
     }
@@ -205,13 +254,14 @@ export class OfferCard {
 
         try {
             const response = await API.get(`${API_CONFIG.ENDPOINTS.COMPLEXES.BY_ID}${this.data.housingComplexId}`);
-            
+
             if (response.ok && response.data) {
                 this.data.housingComplexName = response.data.name || response.data.Name || null;
             } else {
                 this.data.housingComplexName = null;
             }
         } catch (error) {
+            console.error('Failed to load complex data:', error);
             this.data.housingComplexName = null;
         }
     }
@@ -222,51 +272,124 @@ export class OfferCard {
         try {
             const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.PRICE_HISTORY}/${this.data.id}`;
             const response = await API.get(endpoint);
-            
+
             if (response.ok && response.data) {
                 this.data.priceHistory = this.transformPriceHistoryData(response.data);
             }
         } catch (error) {
-            // Ignore error for price history
+            console.error('Failed to load price history:', error);
         }
     }
 
-    async checkLikeStatus(): Promise<void> {
+    async handleLike(): Promise<void> {
+        if (!this.data.id) return;
+
+        // Защита от множественных кликов
+        if (this.isLikeRequestInProgress) return;
+
+        const currentUser = this.state?.user;
+        if (!currentUser) {
+            this.showAuthModal();
+            return;
+        }
+
+        this.isLikeRequestInProgress = true;
+
+        try {
+            const previousLikedState = this.data.isLiked;
+            const previousLikesCount = this.data.likesCount;
+
+            // Оптимистичное обновление
+            const newLikedState = !previousLikedState;
+            const newLikesCount = previousLikedState ? previousLikesCount - 1 : previousLikesCount + 1;
+
+            this.data.isLiked = newLikedState;
+            this.data.likesCount = newLikesCount;
+
+            this.updateLikeUI();
+
+            const response = await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.LIKE}${this.data.id}`, {});
+
+            if (!response.ok) {
+                // Откатываем изменения при ошибке
+                this.data.isLiked = previousLikedState;
+                this.data.likesCount = previousLikesCount;
+                this.updateLikeUI();
+                console.error('Like request failed:', response.error);
+                return;
+            }
+
+            // После успешного запроса сразу обновляем счетчик лайков
+            await this.updateLikeCount();
+
+        } catch (error) {
+            console.error('Like operation failed:', error);
+            // В случае ошибки оставляем оптимистичное обновление
+        } finally {
+            this.isLikeRequestInProgress = false;
+        }
+    }
+
+    // Метод для обновления счетчика лайков
+    async updateLikeCount(): Promise<void> {
         if (!this.data.id) return;
 
         try {
-            const response = await API.get(API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED, { id: this.data.id.toString() });
-            
+            const response = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIKECOUNT}${this.data.id}`);
+
             if (response.ok && response.data) {
-                this.data.isLiked = response.data.liked || false;
-                if (response.data.likes_count !== undefined) {
-                    this.data.likesCount = response.data.likes_count;
+                const newLikesCount = response.data.count || 0;
+
+                // Обновляем данные только если счетчик изменился
+                if (this.data.likesCount !== newLikesCount) {
+                    this.data.likesCount = newLikesCount;
+                    this.updateLikeUI();
                 }
             }
         } catch (error) {
-            console.error('Failed to check like status:', error);
+            console.error('Failed to update like count:', error);
         }
     }
 
-    private transformPriceHistoryData(apiData: any): Array<{ date: string; price: number }> {
-        if (Array.isArray(apiData)) {
-            return apiData.map((item: any) => ({
-                date: item.date || item.Date || item.created_at || new Date().toISOString(),
-                price: item.price || item.Price || item.price_value || 0
-            }));
-        }
-        
-        if (apiData.points && Array.isArray(apiData.points)) {
-            return this.transformPriceHistoryData(apiData.points);
-        }
-        
-        if (apiData.data && Array.isArray(apiData.data)) {
-            return this.transformPriceHistoryData(apiData.data);
+    private updateLikeUI(): void {
+        if (!this.rootEl) return;
+
+        const likeButton = this.rootEl.querySelector('.offer__like-btn') as HTMLElement;
+        const likeIcon = likeButton?.querySelector('img') as HTMLImageElement;
+        const likesCounter = this.rootEl.querySelector('.offer__likes-counter') as HTMLElement;
+
+        if (likeIcon) {
+            likeIcon.src = this.data.isLiked ? '../../images/active__like.png' : '../../images/like.png';
+            likeIcon.alt = this.data.isLiked ? 'Убрать из избранного' : 'Добавить в избранное';
         }
 
-        return [];
+        if (likesCounter) {
+            const currentLikesCount = this.data.likesCount || 0;
+            likesCounter.textContent = this.formatLikesCount(currentLikesCount);
+            likesCounter.classList.toggle('offer__likes-counter--active', this.data.isLiked);
+
+            console.log(`Updating likes counter: ${currentLikesCount} -> ${this.formatLikesCount(currentLikesCount)}`);
+        }
+
+        // Анимация
+        if (likeButton) {
+            likeButton.classList.add('offer__like-btn--animating');
+            setTimeout(() => {
+                likeButton.classList.remove('offer__like-btn--animating');
+            }, 300);
+        }
     }
 
+    private formatLikesCount(count: number): string {
+        if (count >= 1000000) {
+            return (count / 1000000).toFixed(1) + 'M';
+        } else if (count >= 1000) {
+            return (count / 1000).toFixed(1) + 'K';
+        }
+        return count.toString();
+    }
+
+    // ... остальные методы без изменений ...
     initializeSlider(): void {
         const gallery = this.rootEl!.querySelector('.offer__gallery');
         if (!gallery) return;
@@ -557,90 +680,6 @@ export class OfferCard {
         }
     }
 
-    async handleLike(): Promise<void> {
-        if (!this.data.id) return;
-
-        const currentUser = this.state?.user;
-        if (!currentUser) {
-            this.showAuthModal();
-            return;
-        }
-
-        try {
-            const previousLikedState = this.data.isLiked;
-            const previousLikesCount = this.data.likesCount;
-
-            // Оптимистичное обновление
-            this.data.isLiked = !previousLikedState;
-            this.data.likesCount = previousLikedState ? previousLikesCount - 1 : previousLikesCount + 1;
-
-            this.updateLikeUI();
-
-            const response = await API.post(API_CONFIG.ENDPOINTS.OFFERS.LIKE, {
-                id: this.data.id.toString()
-            });
-
-            if (!response.ok) {
-                // Откатываем изменения при ошибке
-                this.data.isLiked = previousLikedState;
-                this.data.likesCount = previousLikesCount;
-                this.updateLikeUI();
-                
-                this.showError('Не удалось обновить лайк. Попробуйте позже.');
-                return;
-            }
-
-            // Обновляем данные из ответа сервера
-            if (response.data) {
-                this.data.isLiked = response.data.liked;
-                // Сервер может вернуть обновленное количество лайков
-                if (response.data.likes_count !== undefined) {
-                    this.data.likesCount = response.data.likes_count;
-                }
-                this.updateLikeUI();
-            }
-
-        } catch (error) {
-            console.error('Like operation failed:', error);
-            this.showError('Произошла ошибка при обновлении лайка.');
-        }
-    }
-
-    private updateLikeUI(): void {
-        if (!this.rootEl) return;
-
-        const likeButton = this.rootEl.querySelector('.offer__like-btn') as HTMLElement;
-        const likeIcon = likeButton?.querySelector('img') as HTMLImageElement;
-        const likesCounter = this.rootEl.querySelector('.offer__likes-counter') as HTMLElement;
-
-        if (likeIcon) {
-            likeIcon.src = this.data.isLiked ? '../../images/active__like.png' : '../../images/like.png';
-            likeIcon.alt = this.data.isLiked ? 'Убрать из избранного' : 'Добавить в избранное';
-        }
-
-        if (likesCounter) {
-            likesCounter.textContent = this.formatLikesCount(this.data.likesCount);
-            likesCounter.classList.toggle('offer__likes-counter--active', this.data.isLiked);
-        }
-
-        // Анимация
-        if (likeButton) {
-            likeButton.classList.add('offer__like-btn--animating');
-            setTimeout(() => {
-                likeButton.classList.remove('offer__like-btn--animating');
-            }, 300);
-        }
-    }
-
-    private formatLikesCount(count: number): string {
-        if (count >= 1000000) {
-            return (count / 1000000).toFixed(1) + 'M';
-        } else if (count >= 1000) {
-            return (count / 1000).toFixed(1) + 'K';
-        }
-        return count.toString();
-    }
-
     showAuthModal(): void {
         const modalOverlay = document.createElement('div');
         modalOverlay.className = 'modal-overlay';
@@ -650,11 +689,11 @@ export class OfferCard {
 
         modal.innerHTML = `
             <div class="modal__header">
-                <h3>Авторизуйтесь, чтобы увидеть номер</h3>
+                <h3>Авторизуйтесь, чтобы добавлять в избранное</h3>
                 <button class="modal__close">&times;</button>
             </div>
             <div class="modal__body">
-                <p>Войдите в свой аккаунт, чтобы получить контактные данные продавца.</p>
+                <p>Войдите в свой аккаунт, чтобы сохранять понравившиеся объявления.</p>
             </div>
             <div class="modal__footer">
                 <button class="modal__btn modal__btn--cancel">Отменить</button>
@@ -668,9 +707,13 @@ export class OfferCard {
             }
         };
 
-        modal.querySelector('.modal__close')!.addEventListener('click', closeModal);
-        modal.querySelector('.modal__btn--cancel')!.addEventListener('click', closeModal);
-        modal.querySelector('.modal__btn--login')!.addEventListener('click', () => {
+        const closeBtn = modal.querySelector('.modal__close') as HTMLElement;
+        const cancelBtn = modal.querySelector('.modal__btn--cancel') as HTMLElement;
+        const loginBtn = modal.querySelector('.modal__btn--login') as HTMLElement;
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        if (loginBtn) loginBtn.addEventListener('click', () => {
             closeModal();
             if (this.app?.router?.navigate) {
                 this.app.router.navigate('/login');
@@ -712,9 +755,13 @@ export class OfferCard {
             }
         };
 
-        modal.querySelector('.modal__close')!.addEventListener('click', closeModal);
-        modal.querySelector('.modal__btn--cancel')!.addEventListener('click', closeModal);
-        modal.querySelector('.modal__btn--confirm')!.addEventListener('click', () => {
+        const closeBtn = modal.querySelector('.modal__close') as HTMLElement;
+        const cancelBtn = modal.querySelector('.modal__btn--cancel') as HTMLElement;
+        const confirmBtn = modal.querySelector('.modal__btn--confirm') as HTMLElement;
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        if (confirmBtn) confirmBtn.addEventListener('click', () => {
             this.handleDelete();
             closeModal();
         });
@@ -782,8 +829,11 @@ export class OfferCard {
             }
         };
 
-        modal.querySelector('.modal__close')!.addEventListener('click', closeModal);
-        modal.querySelector('.modal__btn--confirm')!.addEventListener('click', closeModal);
+        const closeBtn = modal.querySelector('.modal__close') as HTMLElement;
+        const confirmBtn = modal.querySelector('.modal__btn--confirm') as HTMLElement;
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (confirmBtn) confirmBtn.addEventListener('click', closeModal);
 
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) closeModal();
@@ -819,8 +869,11 @@ export class OfferCard {
             }
         };
 
-        modal.querySelector('.modal__close')!.addEventListener('click', closeModal);
-        modal.querySelector('.modal__btn--confirm')!.addEventListener('click', closeModal);
+        const closeBtn = modal.querySelector('.modal__close') as HTMLElement;
+        const confirmBtn = modal.querySelector('.modal__btn--confirm') as HTMLElement;
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (confirmBtn) confirmBtn.addEventListener('click', closeModal);
 
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) closeModal();
@@ -837,5 +890,24 @@ export class OfferCard {
             currency: 'RUB',
             maximumFractionDigits: 0
         }).format(amount);
+    }
+
+    private transformPriceHistoryData(apiData: any): Array<{ date: string; price: number }> {
+        if (Array.isArray(apiData)) {
+            return apiData.map((item: any) => ({
+                date: item.date || item.Date || item.created_at || new Date().toISOString(),
+                price: item.price || item.Price || item.price_value || 0
+            }));
+        }
+
+        if (apiData.points && Array.isArray(apiData.points)) {
+            return this.transformPriceHistoryData(apiData.points);
+        }
+
+        if (apiData.data && Array.isArray(apiData.data)) {
+            return this.transformPriceHistoryData(apiData.data);
+        }
+
+        return [];
     }
 }

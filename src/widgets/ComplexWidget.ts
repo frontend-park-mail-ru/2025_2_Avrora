@@ -274,7 +274,7 @@ export class ComplexWidget {
             }
 
             const offersWithDetails: OfferData[] = [];
-            
+
             for (const offer of offers) {
                 try {
                     const offerId = offer.id || offer.ID;
@@ -282,24 +282,22 @@ export class ComplexWidget {
                         continue;
                     }
 
-                    const offerDetailResult = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.BY_ID}/${offerId}`);
-                    
+                    const offerDetailResult = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.BY_ID}${offerId}`);
+
                     if (offerDetailResult.ok && offerDetailResult.data) {
                         const fullOffer = offerDetailResult.data;
-                        
+
                         const images = this.controller.getOfferImages(offerDetailResult.data);
-                        
+
                         // Проверяем статус лайка для текущего пользователя
                         let isLiked = false;
                         let likesCount = offer.likes_count || 0;
-                        
+
                         if (this.controller.model?.userModel?.user) {
                             try {
-                                const likeStatusResult = await API.get(API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED, { 
-                                    id: offerId.toString() 
-                                });
+                                const likeStatusResult = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED}${offerId}`);
                                 if (likeStatusResult.ok && likeStatusResult.data) {
-                                    isLiked = likeStatusResult.data.liked || false;
+                                    isLiked = likeStatusResult.data.is_liked || false;
                                     if (likeStatusResult.data.likes_count !== undefined) {
                                         likesCount = likeStatusResult.data.likes_count;
                                     }
@@ -577,9 +575,7 @@ export class ComplexWidget {
         this.updateLikeUI(offerId, likeButton, newLikedState, newLikesCount);
 
         try {
-            const response = await API.post(API_CONFIG.ENDPOINTS.OFFERS.LIKE, {
-                id: offerId.toString()
-            });
+            const response = await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.LIKE}${offerId}`, {});
 
             if (!response.ok) {
                 // Откатываем изменения при ошибке
@@ -588,14 +584,14 @@ export class ComplexWidget {
                     likesCount: previousLikesCount
                 });
                 this.updateLikeUI(offerId, likeButton, previousLikedState, previousLikesCount);
-                
+
                 this.showError('Не удалось обновить лайк. Попробуйте позже.');
                 return;
             }
 
             // Обновляем данные из ответа сервера
             if (response.data) {
-                const serverLikedState = response.data.liked;
+                const serverLikedState = response.data.is_liked !== undefined ? response.data.is_liked : newLikedState;
                 const serverLikesCount = response.data.likes_count !== undefined ? response.data.likes_count : newLikesCount;
                 
                 this.offerLikeStates.set(offerId, {

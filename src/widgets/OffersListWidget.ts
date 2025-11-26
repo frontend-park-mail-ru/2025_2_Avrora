@@ -113,7 +113,9 @@ export class OffersListWidget {
             multipleImages: images.length > 1,
             likeClass: isLiked ? "liked" : "",
             likeIcon: isLiked ? "../../images/active__like.png" : "../../images/like.png",
-            formattedPrice: this.formatPrice(price)
+            formattedPrice: this.formatPrice(price),
+            likesCount: apiData.likes_count || apiData.likesCount || 0, // Добавляем получение счетчика
+            isLiked: isLiked
         };
     }
 

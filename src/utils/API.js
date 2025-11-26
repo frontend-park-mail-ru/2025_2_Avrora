@@ -1,7 +1,8 @@
+// API.js - исправленный файл
 import { API_CONFIG } from "../config.js";
 
 export const API = {
-get: async (endpoint, params = {}) => {
+  get: async (endpoint, params = {}) => {
     try {
       const url = new URL(API_CONFIG.API_BASE_URL + endpoint);
 
@@ -25,11 +26,25 @@ get: async (endpoint, params = {}) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: response.statusText };
+        }
         return {
           ok: false,
           status: response.status,
           error: errorData.error || `HTTP error ${response.status}`
+        };
+      }
+
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return {
+          ok: true,
+          status: response.status,
+          data: null
         };
       }
 
@@ -93,7 +108,12 @@ get: async (endpoint, params = {}) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: response.statusText };
+        }
         return {
           ok: false,
           status: response.status,
@@ -101,12 +121,39 @@ get: async (endpoint, params = {}) => {
         };
       }
 
-      const data = await response.json();
-      return {
-        ok: true,
-        status: response.status,
-        data
-      };
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return {
+          ok: true,
+          status: response.status,
+          data: null
+        };
+      }
+
+      // Try to parse JSON, but handle empty responses gracefully
+      try {
+        const text = await response.text();
+        if (!text) {
+          return {
+            ok: true,
+            status: response.status,
+            data: null
+          };
+        }
+        const data = JSON.parse(text);
+        return {
+          ok: true,
+          status: response.status,
+          data
+        };
+      } catch (parseError) {
+        // If we can't parse as JSON but the request was successful, return null data
+        return {
+          ok: true,
+          status: response.status,
+          data: null
+        };
+      }
 
     } catch (error) {
       console.error('POST request failed:', error);
@@ -148,7 +195,12 @@ get: async (endpoint, params = {}) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: response.statusText };
+        }
         return {
           ok: false,
           status: response.status,
@@ -156,12 +208,38 @@ get: async (endpoint, params = {}) => {
         };
       }
 
-      const data = await response.json();
-      return {
-        ok: true,
-        status: response.status,
-        data
-      };
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return {
+          ok: true,
+          status: response.status,
+          data: null
+        };
+      }
+
+      // Try to parse JSON, but handle empty responses gracefully
+      try {
+        const text = await response.text();
+        if (!text) {
+          return {
+            ok: true,
+            status: response.status,
+            data: null
+          };
+        }
+        const data = JSON.parse(text);
+        return {
+          ok: true,
+          status: response.status,
+          data
+        };
+      } catch (parseError) {
+        return {
+          ok: true,
+          status: response.status,
+          data: null
+        };
+      }
 
     } catch (error) {
       console.error('PUT request failed:', error);
@@ -198,7 +276,12 @@ get: async (endpoint, params = {}) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: response.statusText };
+        }
         return {
           ok: false,
           status: response.status,
@@ -206,12 +289,38 @@ get: async (endpoint, params = {}) => {
         };
       }
 
-      const data = await response.json().catch(() => ({}));
-      return {
-        ok: true,
-        status: response.status,
-        data
-      };
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return {
+          ok: true,
+          status: response.status,
+          data: null
+        };
+      }
+
+      // Try to parse JSON, but handle empty responses gracefully
+      try {
+        const text = await response.text();
+        if (!text) {
+          return {
+            ok: true,
+            status: response.status,
+            data: null
+          };
+        }
+        const data = JSON.parse(text);
+        return {
+          ok: true,
+          status: response.status,
+          data
+        };
+      } catch (parseError) {
+        return {
+          ok: true,
+          status: response.status,
+          data: null
+        };
+      }
 
     } catch (error) {
       console.error('DELETE request failed:', error);

@@ -483,7 +483,7 @@ const templates = {
     + "\">\r\n                    <span class=\"offer__likes-counter "
     + ((stack1 = lookupProperty(helpers,"if").call(alias1,(depth0 != null ? lookupProperty(depth0,"isLiked") : depth0),{"name":"if","hash":{},"fn":container.program(18, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":72,"column":54},"end":{"line":72,"column":104}}})) != null ? stack1 : "")
     + "\">\r\n                        "
-    + alias4(((helper = (helper = lookupProperty(helpers,"formattedLikesCount") || (depth0 != null ? lookupProperty(depth0,"formattedLikesCount") : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"formattedLikesCount","hash":{},"data":data,"loc":{"start":{"line":73,"column":24},"end":{"line":73,"column":47}}}) : helper)))
+    + alias4(((helper = (helper = lookupProperty(helpers,"likesCount") || (depth0 != null ? lookupProperty(depth0,"likesCount") : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"likesCount","hash":{},"data":data,"loc":{"start":{"line":73,"column":24},"end":{"line":73,"column":38}}}) : helper)))
     + "\r\n                    </span>\r\n                </button>\r\n            </div>\r\n\r\n"
     + ((stack1 = lookupProperty(helpers,"if").call(alias1,(depth0 != null ? lookupProperty(depth0,"isRent") : depth0),{"name":"if","hash":{},"fn":container.program(20, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":78,"column":12},"end":{"line":112,"column":19}}})) != null ? stack1 : "")
     + "\r\n"
@@ -525,7 +525,7 @@ const templates = {
     + "\">\r\n                    <span class=\"offer-card__likes-counter "
     + ((stack1 = lookupProperty(helpers,"if").call(alias1,(depth0 != null ? lookupProperty(depth0,"isLiked") : depth0),{"name":"if","hash":{},"fn":container.program(17, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":43,"column":59},"end":{"line":43,"column":114}}})) != null ? stack1 : "")
     + "\">\r\n                        "
-    + alias4(((helper = (helper = lookupProperty(helpers,"formattedLikesCount") || (depth0 != null ? lookupProperty(depth0,"formattedLikesCount") : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"formattedLikesCount","hash":{},"data":data,"loc":{"start":{"line":44,"column":24},"end":{"line":44,"column":47}}}) : helper)))
+    + alias4(((helper = (helper = lookupProperty(helpers,"likesCount") || (depth0 != null ? lookupProperty(depth0,"likesCount") : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"likesCount","hash":{},"data":data,"loc":{"start":{"line":44,"column":24},"end":{"line":44,"column":38}}}) : helper)))
     + "\r\n                    </span>\r\n                </button>\r\n            </div>\r\n\r\n            <span class=\"offer-card__price\">"
     + alias4(((helper = (helper = lookupProperty(helpers,"formattedPrice") || (depth0 != null ? lookupProperty(depth0,"formattedPrice") : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"formattedPrice","hash":{},"data":data,"loc":{"start":{"line":49,"column":44},"end":{"line":49,"column":62}}}) : helper)))
     + " ₽</span>\r\n            <span class=\"offer-card__description\">\r\n"

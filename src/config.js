@@ -1,3 +1,4 @@
+// config.js
 export const API_CONFIG = {
   API_BASE_URL: 'http://localhost:8080/api/v1',
   ENDPOINTS: {
@@ -13,9 +14,12 @@ export const API_CONFIG = {
         UPDATE: '/offers/update/',
         DELETE: '/offers/delete/',
         MY_OFFERS: '/profile/myoffers/',
-        PRICE_HISTORY: '/offers/pricehistory',
-        LIKE: '/offers/like',
-        IS_LIKED: '/offers/is_liked'
+        PRICE_HISTORY: '/offers/pricehistory/',
+        LIKE: '/offers/like/',
+        IS_LIKED: '/offers/isliked/',
+        VIEW: '/offers/view/',
+        VIEWCOUNT: '/offers/viewcount/',
+        LIKECOUNT: '/offers/likecount/'
     },
     COMPLEXES: {
         LIST: '/complexes/list',
