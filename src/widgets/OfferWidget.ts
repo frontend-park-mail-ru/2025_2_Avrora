@@ -73,6 +73,7 @@ export class OfferWidget {
         const kitchenArea = apiData.kitchen_area || apiData.KitchenArea;
         const description = apiData.description || apiData.Description;
         const title = apiData.title || apiData.Title;
+        const views = apiData.views || apiData.view_count || apiData.views_count || 0; // Добавлено получение просмотров
 
         const housingComplexId = apiData.housing_complex_id || apiData.HousingComplexID || apiData.housing_complex || null;
         const housingComplexName = apiData.housing_complex_name || apiData.HousingComplexName || apiData.complex_name || null;
@@ -109,10 +110,11 @@ export class OfferWidget {
             userId: userId,
             housingComplexId: housingComplexId,
             housingComplexName: housingComplexName,
+            views: views, // Добавлено
             showOwnerActions: this.controller.isOfferOwner(apiData),
             showContactBtn: !this.controller.isOfferOwner(apiData),
             showPhone: this.controller.isOfferOwner(apiData),
-            likesCount: apiData.likes_count || apiData.likesCount || 0, // Добавляем получение счетчика
+            likesCount: apiData.likes_count || apiData.likesCount || 0,
             isLiked: apiData.is_liked || apiData.isLiked || false,
         };
     }

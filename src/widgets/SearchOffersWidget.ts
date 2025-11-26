@@ -30,11 +30,15 @@ export class SearchOffersWidget {
             const searchParams = params.searchParams || this.getSearchParamsFromURL();
             this.currentParams = searchParams;
 
+            console.log('Loading offers with params:', this.currentParams);
+
             const { offers, meta } = await this.controller.loadFilteredOffers(this.currentParams);
-            this.allOffers = offers;
+            this.allOffers = offers || [];
             this.meta = meta;
 
-            await this.renderContent(offers);
+            console.log('Loaded offers:', this.allOffers.length);
+
+            await this.renderContent(this.allOffers);
         } catch (error) {
             console.error("Error rendering offers:", error);
             this.renderError("Не удалось загрузить объявления");
@@ -61,33 +65,40 @@ export class SearchOffersWidget {
     private async renderContent(offers: any[]): Promise<void> {
         this.cleanup();
 
+        // Рендерим виджет поиска
         const searchContainer = document.createElement('div');
         searchContainer.className = 'search-widget-container';
         this.parent.appendChild(searchContainer);
 
-        const searchWidget = new SearchWidget(searchContainer, {
-            onSearch: (params: Record<string, string>) => this.handleSearch(params),
-            onShowMap: (params: Record<string, string>) => this.handleShowMap(params),
-            navigate: (path: string) => this.controller.navigate(path)
-        });
-        await searchWidget.render();
+        try {
+            const searchWidget = new SearchWidget(searchContainer, {
+                onSearch: (params: Record<string, string>) => this.handleSearch(params),
+                onShowMap: (params: Record<string, string>) => this.handleShowMap(params),
+                navigate: (path: string) => this.controller.navigate(path)
+            });
+            await searchWidget.render();
+        } catch (error) {
+            console.error('Error rendering search widget:', error);
+        }
 
+        // Рендерим результаты
         const resultsContainer = document.createElement('div');
         resultsContainer.className = 'search-results';
 
         if (!offers || offers.length === 0) {
             this.renderEmptyState(resultsContainer);
         } else {
-            this.renderOffersList(offers, resultsContainer);
+            await this.renderOffersList(offers, resultsContainer);
         }
 
         this.parent.appendChild(resultsContainer);
     }
 
-    private renderOffersList(offers: any[], container: HTMLElement): void {
+    private async renderOffersList(offers: any[], container: HTMLElement): Promise<void> {
         const offersContainer = document.createElement('div');
         offersContainer.className = 'offers';
 
+        // Заголовок
         const title = document.createElement('h1');
         title.className = 'offers__title';
 
@@ -102,33 +113,198 @@ export class SearchOffersWidget {
 
         offersContainer.appendChild(title);
 
+        // Активные фильтры
         if (hasFilters) {
             this.renderActiveFilters(offersContainer);
         }
 
+        // Контейнер для карточек
         const offersGrid = document.createElement('div');
         offersGrid.className = 'offers__container';
+        offersContainer.appendChild(offersGrid);
 
-        this.offerCards = offers.map(offer => {
-            const formattedOffer = this.formatOffer(offer);
-            const cardContainer = document.createElement('div');
-            cardContainer.className = 'offer-card-container';
-            return new OffersListCard(cardContainer, formattedOffer, this.controller);
-        });
+        // Асинхронно рендерим карточки
+        this.offerCards = [];
 
-        this.offerCards.forEach(card => {
+        for (const offer of offers) {
+            if (!offer) continue;
+
             try {
-                const cardElement = card.render();
-                if (cardElement && cardElement.nodeType === Node.ELEMENT_NODE) {
-                    offersGrid.appendChild(cardElement);
-                }
+                const formattedOffer = this.formatOffer(offer);
+                const cardContainer = document.createElement('div');
+                cardContainer.className = 'offer-card-container';
+                offersGrid.appendChild(cardContainer);
+
+                console.log('Creating card for offer:', formattedOffer.id);
+
+                const card = new OffersListCard(
+                    cardContainer,
+                    formattedOffer,
+                    { user: this.controller.model?.userModel?.user },
+                    { router: this.controller.router }
+                );
+
+                this.offerCards.push(card);
+                await card.render();
+
             } catch (error) {
-                console.error('Error rendering offer card:', error);
+                console.error('Error rendering offer card:', error, offer);
+                // Создаем fallback карточку при ошибке
+                this.createFallbackCard(offersGrid, offer);
+            }
+        }
+
+        container.appendChild(offersContainer);
+    }
+
+    private createFallbackCard(container: HTMLElement, offer: any): void {
+        const formattedOffer = this.formatOffer(offer);
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'offer-card-container';
+
+        cardContainer.innerHTML = `
+            <div class="offer-card" data-offer-id="${formattedOffer.id}">
+                <div class="offer-card__gallery">
+                    <img src="${formattedOffer.images[0] || '../images/default_offer.jpg'}"
+                         alt="Фото объявления"
+                         loading="lazy"
+                         class="slider__image slider__image_active">
+                    <button class="offer-card__like" data-offer-id="${formattedOffer.id}">
+                        <img src="${formattedOffer.likeIcon}"
+                             alt="${formattedOffer.isLiked ? 'Убрать из избранного' : 'Добавить в избранное'}">
+                        <span class="offer-card__likes-counter ${formattedOffer.isLiked ? 'offer-card__likes-counter--active' : ''}">
+                            ${this.formatLikesCount(formattedOffer.likesCount)}
+                        </span>
+                    </button>
+                </div>
+                <span class="offer-card__price">${formattedOffer.formattedPrice} ₽</span>
+                <span class="offer-card__description">
+                    ${formattedOffer.rooms ? `${formattedOffer.rooms}-комн.` : 'Студия'} · ${formattedOffer.area}м²
+                </span>
+                <span class="offer-card__metro">
+                    <img src="../images/metro.png" alt="Метро">
+                    ${formattedOffer.metro}
+                </span>
+                <span class="offer-card__address">${formattedOffer.address}</span>
+            </div>
+        `;
+
+        // Добавляем обработчик для лайка в fallback карточке
+        const likeButton = cardContainer.querySelector('.offer-card__like');
+        if (likeButton) {
+            likeButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                this.handleFallbackLike(formattedOffer.id, likeButton);
+            });
+        }
+
+        // Добавляем обработчик для перехода к объявлению
+        const cardElement = cardContainer.querySelector('.offer-card');
+        if (cardElement) {
+            cardElement.addEventListener('click', (e) => {
+                if (!(e.target as Element).closest('.offer-card__like')) {
+                    const path = `/offers/${formattedOffer.id}`;
+                    if (this.controller.router?.navigate) {
+                        this.controller.router.navigate(path);
+                    } else {
+                        window.history.pushState({}, "", path);
+                        window.dispatchEvent(new PopStateEvent("popstate"));
+                    }
+                }
+            });
+        }
+
+        container.appendChild(cardContainer);
+    }
+
+    private async handleFallbackLike(offerId: string, likeButton: Element): Promise<void> {
+        if (!this.controller.model?.userModel?.user) {
+            this.showAuthModal();
+            return;
+        }
+
+        try {
+            const response = await this.controller.likeOffer(offerId);
+            if (response.ok) {
+                // Обновляем UI
+                const likeIcon = likeButton.querySelector('img');
+                const likesCounter = likeButton.querySelector('.offer-card__likes-counter');
+
+                if (likeIcon && likesCounter) {
+                    const isLiked = likeIcon.src.includes('active__like.png');
+                    const newLikedState = !isLiked;
+
+                    likeIcon.src = newLikedState ? '../../images/active__like.png' : '../../images/like.png';
+                    likeIcon.alt = newLikedState ? 'Убрать из избранного' : 'Добавить в избранное';
+
+                    let currentCount = parseInt(likesCounter.textContent || '0');
+                    currentCount = newLikedState ? currentCount + 1 : currentCount - 1;
+                    likesCounter.textContent = this.formatLikesCount(currentCount);
+
+                    likesCounter.classList.toggle('offer-card__likes-counter--active', newLikedState);
+                }
+            }
+        } catch (error) {
+            console.error('Error handling like:', error);
+        }
+    }
+
+    private showAuthModal(): void {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3>Авторизуйтесь, чтобы добавлять в избранное</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>Войдите в свой аккаунт, чтобы сохранять понравившиеся объявления.</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--cancel">Отменить</button>
+                <button class="modal__btn modal__btn--login">Войти</button>
+            </div>
+        `;
+
+        const closeModal = () => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        };
+
+        const closeBtn = modal.querySelector('.modal__close') as HTMLElement;
+        const cancelBtn = modal.querySelector('.modal__btn--cancel') as HTMLElement;
+        const loginBtn = modal.querySelector('.modal__btn--login') as HTMLElement;
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        if (loginBtn) loginBtn.addEventListener('click', () => {
+            closeModal();
+            if (this.controller.router?.navigate) {
+                this.controller.router.navigate('/login');
             }
         });
 
-        offersContainer.appendChild(offersGrid);
-        container.appendChild(offersContainer);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        modalOverlay.appendChild(modal);
+        document.body.appendChild(modalOverlay);
+    }
+
+    private formatLikesCount(count: number): string {
+        if (count >= 1000000) {
+            return (count / 1000000).toFixed(1) + 'M';
+        } else if (count >= 1000) {
+            return (count / 1000).toFixed(1) + 'K';
+        }
+        return count.toString();
     }
 
     private renderActiveFilters(container: HTMLElement): void {
@@ -211,25 +387,35 @@ export class SearchOffersWidget {
     }
 
     private formatOffer(apiData: any): any {
-        const isLiked = this.controller.isOfferLiked(apiData.ID || apiData.id);
-        const images = this.controller.getOfferImages(apiData);
+        console.log('Formatting offer data:', apiData);
+
+        const isLiked = this.controller.isOfferLiked?.(apiData.ID || apiData.id) || false;
+        const images = this.controller.getOfferImages?.(apiData) || [];
+
+        const offerId = apiData.ID || apiData.id;
+        const price = apiData.Price || apiData.price || 0;
+        const address = apiData.Address || apiData.address || "Адрес не указан";
+        const area = apiData.Area || apiData.area || 0;
+        const rooms = apiData.Rooms || apiData.rooms || 0;
+        const metro = apiData.Metro || apiData.metro || "Метро не указано";
+        const likesCount = apiData.likes_count || apiData.likesCount || 0;
 
         return {
-            id: apiData.ID || apiData.id,
-            title: apiData.Title || "Без названия",
-            description: apiData.Description || "",
-            price: apiData.Price || apiData.price || 0,
-            area: apiData.Area || apiData.area || 0,
-            rooms: apiData.Rooms || apiData.rooms || 0,
-            address: apiData.Address || apiData.address || "Адрес не указан",
-            offer_type: apiData.OfferType || apiData.offer_type,
-            property_type: apiData.PropertyType || apiData.property_type,
+            id: offerId,
+            title: apiData.Title || apiData.title || "Без названия",
+            price: price,
+            area: area,
+            rooms: rooms,
+            address: address,
+            metro: metro,
             images: images,
+            multipleImages: images.length > 1,
+            likeClass: isLiked ? "liked" : "",
+            likeIcon: isLiked ? "../../images/active__like.png" : "../../images/like.png",
+            formattedPrice: this.formatPrice(price.toString()),
+            likesCount: likesCount,
             isLiked: isLiked,
-            metro: apiData.Metro || apiData.metro || "Метро не указано",
-            floor: apiData.Floor || apiData.floor,
-            total_floors: apiData.TotalFloors || apiData.total_floors,
-            complex_name: apiData.ComplexName || apiData.complex_name || ""
+            formattedLikesCount: this.formatLikesCount(likesCount)
         };
     }
 
@@ -319,7 +505,9 @@ export class SearchOffersWidget {
 
     private formatPrice(price: string): string {
         if (!price) return '0';
-        return new Intl.NumberFormat('ru-RU').format(Number(price));
+        const numPrice = Number(price);
+        if (isNaN(numPrice)) return '0';
+        return new Intl.NumberFormat('ru-RU').format(numPrice);
     }
 
     cleanup(): void {
@@ -329,7 +517,9 @@ export class SearchOffersWidget {
         this.eventListeners = [];
 
         this.offerCards.forEach(card => {
-            if (card && card.cleanup) card.cleanup();
+            if (card && card.cleanup) {
+                card.cleanup();
+            }
         });
         this.offerCards = [];
 
