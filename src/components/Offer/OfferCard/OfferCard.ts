@@ -221,7 +221,6 @@ export class OfferCard {
                 if (viewsElement) {
                     viewsElement.textContent = this.data.views.toString();
                 }
-            } else {
             }
         } catch (error) {
             this.data.views += 1;
@@ -243,9 +242,7 @@ export class OfferCard {
                     this.data.isLiked = isLikedResponse.data.is_liked || false;
                 }
             }
-        } catch (error) {
-
-        }
+        } catch (error) {}
     }
 
     async loadSellerData(): Promise<void> {
@@ -282,9 +279,7 @@ export class OfferCard {
             if (response.ok && response.data) {
                 this.data.priceHistory = this.transformPriceHistoryData(response.data);
             }
-        } catch (error) {
-
-        }
+        } catch (error) {}
     }
 
     async handleLike(): Promise<void> {
@@ -324,7 +319,6 @@ export class OfferCard {
             await this.updateLikeCount();
 
         } catch (error) {
-
         } finally {
             this.isLikeRequestInProgress = false;
         }
@@ -344,9 +338,7 @@ export class OfferCard {
                     this.updateLikeUI();
                 }
             }
-        } catch (error) {
-
-        }
+        } catch (error) {}
     }
 
     private updateLikeUI(): void {
@@ -417,10 +409,9 @@ export class OfferCard {
     }
 
     attachEventListeners(): void {
-        if (!this.rootEl) {;
+        if (!this.rootEl) {
             return;
         }
-
 
         this.rootEl.addEventListener('click', (e) => {
             const target = e.target as HTMLElement;
@@ -553,6 +544,11 @@ export class OfferCard {
     }
 
     createFullscreenViewer(): void {
+        const existingOverlay = document.querySelector('.fullscreen-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+
         const overlay = document.createElement('div');
         overlay.className = 'fullscreen-overlay';
         overlay.style.cssText = `
@@ -561,91 +557,129 @@ export class OfferCard {
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 10000;
+            background: rgba(0, 0, 0, 0.98);
+            z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         `;
 
         const viewer = document.createElement('div');
         viewer.className = 'fullscreen-viewer';
         viewer.style.cssText = `
             position: relative;
-            width: 90vw;
-            height: 90vh;
-            max-width: 1200px;
-            max-height: 800px;
+            width: 100vw;
+            height: 100vh;
             background: #000;
-            border-radius: 8px;
-            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         `;
+
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+        }, 10);
 
         const closeBtn = document.createElement('button');
         closeBtn.className = 'fullscreen-close';
         closeBtn.innerHTML = '&times;';
         closeBtn.style.cssText = `
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: rgba(0, 0, 0, 0.7);
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(0, 0, 0, 0.8);
             border: none;
             color: white;
-            width: 40px;
-            height: 40px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
-            font-size: 24px;
+            font-size: 32px;
             cursor: pointer;
             z-index: 10001;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s ease;
         `;
+        closeBtn.addEventListener('mouseenter', () => {
+            closeBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+            closeBtn.style.transform = 'scale(1.1)';
+        });
+        closeBtn.addEventListener('mouseleave', () => {
+            closeBtn.style.background = 'rgba(0, 0, 0, 0.8)';
+            closeBtn.style.transform = 'scale(1)';
+        });
         closeBtn.addEventListener('click', () => this.closeFullscreen(overlay));
 
         const prevBtn = document.createElement('button');
         prevBtn.className = 'fullscreen-nav fullscreen-prev';
-        prevBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2"></path></svg>';
+        prevBtn.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>';
         prevBtn.style.cssText = `
-            position: absolute;
-            left: 16px;
+            position: fixed;
+            left: 30px;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             border: none;
             color: white;
-            width: 50px;
-            height: 50px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             cursor: pointer;
             z-index: 10001;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s ease;
         `;
-        prevBtn.addEventListener('click', () => this.navigateFullscreen(-1));
+        prevBtn.addEventListener('mouseenter', () => {
+            prevBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+            prevBtn.style.transform = 'translateY(-50%) scale(1.1)';
+        });
+        prevBtn.addEventListener('mouseleave', () => {
+            prevBtn.style.background = 'rgba(0, 0, 0, 0.8)';
+            prevBtn.style.transform = 'translateY(-50%) scale(1)';
+        });
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.navigateFullscreen(-1);
+        });
 
         const nextBtn = document.createElement('button');
         nextBtn.className = 'fullscreen-nav fullscreen-next';
-        nextBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2"></path></svg>';
+        nextBtn.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>';
         nextBtn.style.cssText = `
-            position: absolute;
-            right: 16px;
+            position: fixed;
+            right: 30px;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             border: none;
             color: white;
-            width: 50px;
-            height: 50px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             cursor: pointer;
             z-index: 10001;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s ease;
         `;
-        nextBtn.addEventListener('click', () => this.navigateFullscreen(1));
+        nextBtn.addEventListener('mouseenter', () => {
+            nextBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+            nextBtn.style.transform = 'translateY(-50%) scale(1.1)';
+        });
+        nextBtn.addEventListener('mouseleave', () => {
+            nextBtn.style.background = 'rgba(0, 0, 0, 0.8)';
+            nextBtn.style.transform = 'translateY(-50%) scale(1)';
+        });
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.navigateFullscreen(1);
+        });
 
         const imageContainer = document.createElement('div');
         imageContainer.className = 'fullscreen-image-container';
@@ -656,6 +690,24 @@ export class OfferCard {
             align-items: center;
             justify-content: center;
             position: relative;
+            cursor: grab;
+        `;
+
+        const counter = document.createElement('div');
+        counter.className = 'fullscreen-counter';
+        counter.textContent = `${this.fullscreenCurrentSlide + 1} / ${this.data.images.length}`;
+        counter.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 500;
+            z-index: 10001;
         `;
 
         this.data.images.forEach((imageSrc: string, index: number) => {
@@ -673,37 +725,42 @@ export class OfferCard {
                 transform: translate(-50%, -50%);
                 opacity: ${index === this.fullscreenCurrentSlide ? 1 : 0};
                 transition: opacity 0.3s ease;
+                pointer-events: none;
             `;
             imageContainer.appendChild(img);
         });
 
-        const counter = document.createElement('div');
-        counter.className = 'fullscreen-counter';
-        counter.textContent = `${this.fullscreenCurrentSlide + 1} / ${this.data.images.length}`;
-        counter.style.cssText = `
-            position: absolute;
-            bottom: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 10001;
-        `;
-
-        viewer.appendChild(closeBtn);
-        viewer.appendChild(prevBtn);
-        viewer.appendChild(nextBtn);
         viewer.appendChild(imageContainer);
-        viewer.appendChild(counter);
         overlay.appendChild(viewer);
+        overlay.appendChild(closeBtn);
+        overlay.appendChild(prevBtn);
+        overlay.appendChild(nextBtn);
+        overlay.appendChild(counter);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                this.closeFullscreen(overlay);
+            }
+        });
+
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        overlay.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        overlay.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            this.handleSwipe(touchStartX, touchEndX);
+        });
 
         this.attachFullscreenKeyboardEvents(overlay);
 
         document.body.appendChild(overlay);
         document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
     }
 
     closeFullscreen(overlay: HTMLElement): void {
@@ -712,14 +769,30 @@ export class OfferCard {
             document.removeEventListener('keydown', keyHandler);
         }
 
-        if (overlay && overlay.parentNode) {
-            overlay.parentNode.removeChild(overlay);
+        if (overlay) {
+            overlay.style.opacity = '0';
+
+            setTimeout(() => {
+                if (overlay && overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+                document.body.style.overflow = '';
+                document.body.style.position = '';
+                document.body.style.width = '';
+            }, 300);
+        } else {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
         }
-        document.body.style.overflow = '';
     }
 
     navigateFullscreen(direction: number): void {
-        this.fullscreenCurrentSlide = (this.fullscreenCurrentSlide + direction + this.data.images.length) % this.data.images.length;
+        const newIndex = (this.fullscreenCurrentSlide + direction + this.data.images.length) % this.data.images.length;
+
+        if (newIndex === this.fullscreenCurrentSlide) return;
+
+        this.fullscreenCurrentSlide = newIndex;
         this.updateFullscreenView();
     }
 
@@ -731,10 +804,11 @@ export class OfferCard {
             images.forEach((img, index) => {
                 (img as HTMLElement).style.opacity = index === this.fullscreenCurrentSlide ? '1' : '0';
             });
+
             counter.textContent = `${this.fullscreenCurrentSlide + 1} / ${this.data.images.length}`;
         }
     }
-
+    
     attachFullscreenKeyboardEvents(overlay: HTMLElement): void {
         const keyHandler = (e: KeyboardEvent) => {
             switch(e.key) {
@@ -771,7 +845,7 @@ export class OfferCard {
         const currentUser = this.state?.user;
 
         if (!currentUser) {
-            this.showAuthModal();
+            this.showAuthModalForCall();
             return;
         }
 
@@ -845,9 +919,7 @@ export class OfferCard {
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
         if (loginBtn) loginBtn.addEventListener('click', () => {
             closeModal();
-            if (this.app?.router?.navigate) {
-                this.app.router.navigate('/login');
-            }
+            this.redirectToLogin();
         });
 
         modalOverlay.addEventListener('click', (e) => {
@@ -856,6 +928,63 @@ export class OfferCard {
 
         modalOverlay.appendChild(modal);
         document.body.appendChild(modalOverlay);
+    }
+
+    showAuthModalForCall(): void {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+
+        modal.innerHTML = `
+            <div class="modal__header">
+                <h3>Авторизуйтесь, чтобы увидеть контакты</h3>
+                <button class="modal__close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p>Войдите в свой аккаунт, чтобы увидеть телефон продавца и связаться с ним.</p>
+            </div>
+            <div class="modal__footer">
+                <button class="modal__btn modal__btn--cancel">Отменить</button>
+                <button class="modal__btn modal__btn--login">Войти</button>
+            </div>
+        `;
+
+        const closeModal = () => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        };
+
+        const closeBtn = modal.querySelector('.modal__close') as HTMLElement;
+        const cancelBtn = modal.querySelector('.modal__btn--cancel') as HTMLElement;
+        const loginBtn = modal.querySelector('.modal__btn--login') as HTMLElement;
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        if (loginBtn) loginBtn.addEventListener('click', () => {
+            closeModal();
+            this.redirectToLogin();
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        modalOverlay.appendChild(modal);
+        document.body.appendChild(modalOverlay);
+    }
+
+    private redirectToLogin(): void {
+        if (this.app?.router?.navigate) {
+            this.app.router.navigate('/login');
+        } else if (window.history && window.history.pushState) {
+            window.history.pushState({}, "", '/login');
+            window.dispatchEvent(new PopStateEvent("popstate"));
+        } else {
+            window.location.href = '/login';
+        }
     }
 
     showDeleteModal(): void {
@@ -1039,5 +1168,18 @@ export class OfferCard {
         }
 
         return [];
+    }
+
+    private handleSwipe(touchStartX: number, touchEndX: number): void {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0) {
+                this.navigateFullscreen(1);
+            } else {
+                this.navigateFullscreen(-1);
+            }
+        }
     }
 }

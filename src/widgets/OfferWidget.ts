@@ -1,4 +1,3 @@
-// OfferWidget.ts - обновленный файл
 import { OfferCard } from "../components/Offer/OfferCard/OfferCard.ts";
 import { YandexMapService } from "../utils/YandexMapService.ts";
 import { PriceHistoryChartService } from "../utils/PriceHistoryChartService.ts";
@@ -73,7 +72,7 @@ export class OfferWidget {
         const kitchenArea = apiData.kitchen_area || apiData.KitchenArea;
         const description = apiData.description || apiData.Description;
         const title = apiData.title || apiData.Title;
-        const views = apiData.views || apiData.view_count || apiData.views_count || 0; // Добавлено получение просмотров
+        const views = apiData.views || apiData.view_count || apiData.views_count || 0;
 
         const housingComplexId = apiData.housing_complex_id || apiData.HousingComplexID || apiData.housing_complex || null;
         const housingComplexName = apiData.housing_complex_name || apiData.HousingComplexName || apiData.complex_name || null;
@@ -110,10 +109,10 @@ export class OfferWidget {
             userId: userId,
             housingComplexId: housingComplexId,
             housingComplexName: housingComplexName,
-            views: views, // Добавлено
+            views: views,
             showOwnerActions: this.controller.isOfferOwner(apiData),
             showContactBtn: !this.controller.isOfferOwner(apiData),
-            showPhone: this.controller.isOfferOwner(apiData),
+            showPhone: false,
             likesCount: apiData.likes_count || apiData.likesCount || 0,
             isLiked: apiData.is_liked || apiData.isLiked || false,
         };
@@ -246,9 +245,7 @@ export class OfferWidget {
 
         try {
             await YandexMapService.initMap('yandex-map', address);
-        } catch (error) {
-
-        }
+        } catch (error) {}
     }
 
     private async initPriceHistoryChart(offerId: number): Promise<void> {
