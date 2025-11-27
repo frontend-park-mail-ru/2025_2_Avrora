@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   root: 'src',
+  publicDir: '../public',
   server: {
     port: 3000,
     proxy: {
@@ -13,10 +15,13 @@ export default defineConfig({
         secure: false,
         configure: (proxy) => {
           proxy.on('error', (err) => {
+            console.log('Proxy error:', err);
           });
           proxy.on('proxyReq', (proxyReq, req) => {
+            console.log('Proxy Request:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req) => {
+            console.log('Proxy Response:', proxyRes.statusCode, req.url);
           });
         }
       },
@@ -52,15 +57,20 @@ export default defineConfig({
           return chunkInfo.name === 'sw' ? '[name].js' : 'assets/[name]-[hash].js';
         },
         assetFileNames: (assetInfo) => {
+          const ext = assetInfo.name.split('.').pop();
+          if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) {
+            return 'assets/images/[name]-[hash][extname]';
+          }
           if (assetInfo.name === 'sw.js') {
             return '[name].[ext]';
           }
-          return 'assets/[name]-[hash].[ext]';
+          return 'assets/[name]-[hash][extname]';
         }
       }
     },
     sourcemap: !isProduction,
-    target: 'es2015'
+    target: 'es2015',
+    assetsInlineLimit: 4096,
   },
   optimizeDeps: {
     include: ['handlebars'],
@@ -69,7 +79,7 @@ export default defineConfig({
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
   },
-  assetsInclude: ['**/*.hbs', '**/*.scss'],
+  assetsInclude: ['**/*.hbs', '**/*.scss', '**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg', '**/*.webp'],
   appType: 'spa',
   plugins: [
     {
@@ -84,6 +94,22 @@ export default defineConfig({
           next();
         });
       }
+    },
+    {
+      name: 'copy-hbs-assets',
+      buildStart() {
+
+      },
+      generateBundle() {
+
+      }
     }
-  ]
+  ],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+      '@public': resolve(__dirname, 'public'),
+      '@images': resolve(__dirname, 'public/images')
+    }
+  }
 });
