@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function compileTemplates() {
-    const templatesDir = path.join(__dirname, 'public/templates');
-    const outputFile = path.join(__dirname, 'public/templates/compiled/templates.js');
+    const templatesDir = path.join(__dirname, 'src/templates');
+    const outputFile = path.join(__dirname, 'src/templates/compiled/templates.js');
 
     if (!fs.existsSync(path.dirname(outputFile))) {
         fs.mkdirSync(path.dirname(outputFile), { recursive: true });
@@ -37,8 +37,7 @@ function compileTemplates() {
     compiledCode += `templates['Authorization.hbs'] = templates['Authorization'];\n`;
     compiledCode += `templates['Complex.hbs'] = templates['Complex'];\n`;
     compiledCode += `templates['ComplexesList.hbs'] = templates['ComplexesList'];\n`;
-    compiledCode += `templates['Offer.hbs'] = templates['Offer'];\n`;
-    compiledCode += `templates['OffersList.hbs'] = templates['OffersList'];\n\n`;
+    compiledCode += `templates['Offer.hbs'] = templates['Offer'];\n\n`;
 
     compiledCode += `export { templates };\n`;
     compiledCode += `export default templates;\n`;

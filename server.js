@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const API_CONFIG = JSON.parse(await readFile(new URL('./public/config.json', import.meta.url), 'utf-8'));
+const API_CONFIG = JSON.parse(await readFile(new URL('./src/config.json', import.meta.url), 'utf-8'));
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -45,10 +45,10 @@ if (isProduction) {
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             }
             else if (path.endsWith('.js') || path.endsWith('.css')) {
-                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+                res.setHeader('Cache-Control', 'src, max-age=31536000, immutable');
             }
             else {
-                res.setHeader('Cache-Control', 'public, max-age=86400');
+                res.setHeader('Cache-Control', 'src, max-age=86400');
             }
         }
     }));

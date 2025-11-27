@@ -1,0 +1,70 @@
+<div class="offers">
+    {{#if showTitle}}
+    <h1 class="offers__title">Популярные объявления</h1>
+    {{/if}}
+    <div class="offers__container">
+        {{#each offers}}
+        <div class="offer-card" data-offer-id="{{id}}">
+            <div class="offer-card__gallery">
+                {{#each images}}
+                <img class="slider__image {{#if @first}}slider__image_active{{/if}}"
+                     src="{{this}}" 
+                     alt="Фото объявления {{@index}}"
+                     loading="lazy">
+                {{else}}
+                <img class="slider__image slider__image_active"
+                     src="../images/default_offer.jpg"
+                     alt="Фото объявления"
+                     loading="lazy">
+                {{/each}}
+
+                {{#if multipleImages}}
+                <button class="slider__btn slider__btn_prev">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2"></path>
+                    </svg>
+                </button>
+                <button class="slider__btn slider__btn_next">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2"></path>
+                    </svg>
+                </button>
+
+                <div class="slider__dots">
+                    {{#each images}}
+                    <button class="slider__dot {{#if @first}}slider__dot_active{{/if}}"
+                            data-index="{{@index}}"></button>
+                    {{/each}}
+                </div>
+                {{/if}}
+
+                <button class="offer-card__like" data-offer-id="{{id}}">
+                    <img src="{{likeIcon}}" alt="{{#if isLiked}}Убрать из избранного{{else}}Добавить в избранное{{/if}}">
+                    <span class="offer-card__likes-counter {{#if isLiked}}offer-card__likes-counter--active{{/if}}">
+                        {{likesCount}}
+                    </span>
+                </button>
+            </div>
+
+            <span class="offer-card__price">{{formattedPrice}} ₽</span>
+            <span class="offer-card__description">
+                {{#if rooms}}
+                    {{rooms}}-комн.
+                {{else}}
+                    Студия
+                {{/if}}
+                · {{area}}м²
+            </span>
+            <span class="offer-card__metro">
+                <img src="../images/metro.png" alt="Метро">
+                {{#if metro}}
+                    {{metro}}
+                {{else}}
+                    Метро не указано
+                {{/if}}
+            </span>
+            <span class="offer-card__address">{{address}}</span>
+        </div>
+        {{/each}}
+    </div>
+</div>
