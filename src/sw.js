@@ -1,17 +1,14 @@
 const CACHE_NAME = 'homa-offline-v1';
 const OFFLINE_URL = '/index.html';
 
-
 self.addEventListener('install', (event) => {
-
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll([
         OFFLINE_URL,
-        '/styles/index.css',
-        '/images/logo.png'
+        '/',
+        './',
       ]).catch((err) => {
-
       });
     }).then(() => {
       return self.skipWaiting();
@@ -20,7 +17,6 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -40,7 +36,6 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-
   if (url.pathname.startsWith('/@vite') ||
       url.pathname.startsWith('/@fs') ||
       url.pathname.startsWith('/api') ||
@@ -51,13 +46,15 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => {
-        return caches.match(OFFLINE_URL);
+        return caches.match(OFFLINE_URL) ||
+               caches.match('/') ||
+               caches.match('./');
       })
     );
     return;
   }
 
-  if (/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|eot|ttf)$/i.test(url.pathname)) {
+  if (/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|eot|ttf|webp)$/i.test(url.pathname)) {
     event.respondWith(
       caches.match(request).then(cached => {
         if (cached) {

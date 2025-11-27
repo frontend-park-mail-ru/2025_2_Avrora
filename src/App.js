@@ -21,7 +21,6 @@ import { API_CONFIG } from "./config.js";
 import Handlebars from 'handlebars';
 import { templates } from './templates/compiled/templates.js';
 
-
 function initializeHandlebarsHelpers() {
     Handlebars.templates = templates;
     window.Handlebars = Handlebars;
@@ -55,9 +54,9 @@ class App {
     constructor() {
         this.userModel = new UserModel();
         this.appStateModel = new AppStateModel();
-        
+
         this.modalView = new ModalView();
-        
+
         this.controller = new AppController(
             {
                 userModel: this.userModel,
@@ -82,7 +81,6 @@ class App {
             try {
                 await this.controller.loadUserProfile(this.userModel.user.id);
             } catch (error) {
-
             }
         }
 
@@ -159,7 +157,6 @@ class App {
     async initializeServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
-
                 const registration = await navigator.serviceWorker.register('/sw.js', {
                     scope: '/',
                     updateViaCache: 'none'
@@ -167,12 +164,6 @@ class App {
 
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
-
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            
-                        }
-                    });
                 });
 
                 if (registration.active) {
@@ -180,20 +171,11 @@ class App {
                 }
 
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage('CLEAR_DYNAMIC_CACHE');
-                    }
+                    window.location.reload();
                 });
 
-                setInterval(() => {
-                    registration.update();
-                }, 60 * 60 * 1000);
-
             } catch (err) {
-
             }
-        } else {
-
         }
     }
 }
