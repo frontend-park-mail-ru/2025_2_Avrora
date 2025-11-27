@@ -50,13 +50,13 @@ export class SearchMapWidget {
         const urlParams = new URLSearchParams(window.location.search);
         const params: Record<string, string> = {};
 
-        if (urlParams.has('location')) params.location = urlParams.get('location')!;
+        if (urlParams.has('address')) params.address = urlParams.get('address')!;
         if (urlParams.has('offer_type')) params.offer_type = urlParams.get('offer_type')!;
         if (urlParams.has('property_type')) params.property_type = urlParams.get('property_type')!;
-        if (urlParams.has('min_price')) params.min_price = urlParams.get('min_price')!;
-        if (urlParams.has('max_price')) params.max_price = urlParams.get('max_price')!;
-        if (urlParams.has('min_area')) params.min_area = urlParams.get('min_area')!;
-        if (urlParams.has('max_area')) params.max_area = urlParams.get('max_area')!;
+        if (urlParams.has('price_min')) params.price_min = urlParams.get('price_min')!;
+        if (urlParams.has('price_max')) params.price_max = urlParams.get('price_max')!;
+        if (urlParams.has('area_min')) params.area_min = urlParams.get('area_min')!;
+        if (urlParams.has('area_max')) params.area_max = urlParams.get('area_max')!;
 
         return params;
     }
@@ -204,6 +204,8 @@ export class SearchMapWidget {
                 wordForm = 'объявление';
             } else if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) {
                 wordForm = 'объявления';
+            } else {
+                wordForm = 'объявлений';
             }
 
             title.textContent = `${count} ${wordForm}`;

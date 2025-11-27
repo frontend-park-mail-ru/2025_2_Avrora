@@ -30,17 +30,12 @@ export class SearchOffersWidget {
             const searchParams = params.searchParams || this.getSearchParamsFromURL();
             this.currentParams = searchParams;
 
-            console.log('Loading offers with params:', this.currentParams);
-
             const { offers, meta } = await this.controller.loadFilteredOffers(this.currentParams);
             this.allOffers = offers || [];
             this.meta = meta;
 
-            console.log('Loaded offers:', this.allOffers.length);
-
             await this.renderContent(this.allOffers);
         } catch (error) {
-            console.error("Error rendering offers:", error);
             this.renderError("Не удалось загрузить объявления");
         } finally {
             this.isLoading = false;
@@ -51,13 +46,13 @@ export class SearchOffersWidget {
         const urlParams = new URLSearchParams(window.location.search);
         const params: Record<string, string> = {};
 
-        if (urlParams.has('location')) params.location = urlParams.get('location')!;
+        if (urlParams.has('address')) params.address = urlParams.get('address')!;
         if (urlParams.has('offer_type')) params.offer_type = urlParams.get('offer_type')!;
         if (urlParams.has('property_type')) params.property_type = urlParams.get('property_type')!;
-        if (urlParams.has('min_price')) params.min_price = urlParams.get('min_price')!;
-        if (urlParams.has('max_price')) params.max_price = urlParams.get('max_price')!;
-        if (urlParams.has('min_area')) params.min_area = urlParams.get('min_area')!;
-        if (urlParams.has('max_area')) params.max_area = urlParams.get('max_area')!;
+        if (urlParams.has('price_min')) params.price_min = urlParams.get('price_min')!;
+        if (urlParams.has('price_max')) params.price_max = urlParams.get('price_max')!;
+        if (urlParams.has('area_min')) params.area_min = urlParams.get('area_min')!;
+        if (urlParams.has('area_max')) params.area_max = urlParams.get('area_max')!;
 
         return params;
     }
@@ -65,7 +60,6 @@ export class SearchOffersWidget {
     private async renderContent(offers: any[]): Promise<void> {
         this.cleanup();
 
-        // Рендерим виджет поиска
         const searchContainer = document.createElement('div');
         searchContainer.className = 'search-widget-container';
         this.parent.appendChild(searchContainer);
@@ -78,10 +72,9 @@ export class SearchOffersWidget {
             });
             await searchWidget.render();
         } catch (error) {
-            console.error('Error rendering search widget:', error);
+
         }
 
-        // Рендерим результаты
         const resultsContainer = document.createElement('div');
         resultsContainer.className = 'search-results';
 
@@ -98,7 +91,6 @@ export class SearchOffersWidget {
         const offersContainer = document.createElement('div');
         offersContainer.className = 'offers';
 
-        // Заголовок
         const title = document.createElement('h1');
         title.className = 'offers__title';
 
@@ -113,17 +105,14 @@ export class SearchOffersWidget {
 
         offersContainer.appendChild(title);
 
-        // Активные фильтры
         if (hasFilters) {
             this.renderActiveFilters(offersContainer);
         }
 
-        // Контейнер для карточек
         const offersGrid = document.createElement('div');
         offersGrid.className = 'offers__container';
         offersContainer.appendChild(offersGrid);
 
-        // Асинхронно рендерим карточки
         this.offerCards = [];
 
         for (const offer of offers) {
@@ -134,8 +123,6 @@ export class SearchOffersWidget {
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'offer-card-container';
                 offersGrid.appendChild(cardContainer);
-
-                console.log('Creating card for offer:', formattedOffer.id);
 
                 const card = new OffersListCard(
                     cardContainer,
@@ -148,8 +135,6 @@ export class SearchOffersWidget {
                 await card.render();
 
             } catch (error) {
-                console.error('Error rendering offer card:', error, offer);
-                // Создаем fallback карточку при ошибке
                 this.createFallbackCard(offersGrid, offer);
             }
         }
@@ -189,7 +174,6 @@ export class SearchOffersWidget {
             </div>
         `;
 
-        // Добавляем обработчик для лайка в fallback карточке
         const likeButton = cardContainer.querySelector('.offer-card__like');
         if (likeButton) {
             likeButton.addEventListener('click', (e) => {
@@ -199,7 +183,6 @@ export class SearchOffersWidget {
             });
         }
 
-        // Добавляем обработчик для перехода к объявлению
         const cardElement = cardContainer.querySelector('.offer-card');
         if (cardElement) {
             cardElement.addEventListener('click', (e) => {
@@ -227,7 +210,6 @@ export class SearchOffersWidget {
         try {
             const response = await this.controller.likeOffer(offerId);
             if (response.ok) {
-                // Обновляем UI
                 const likeIcon = likeButton.querySelector('img');
                 const likesCounter = likeButton.querySelector('.offer-card__likes-counter');
 
@@ -246,7 +228,7 @@ export class SearchOffersWidget {
                 }
             }
         } catch (error) {
-            console.error('Error handling like:', error);
+
         }
     }
 
@@ -356,13 +338,13 @@ export class SearchOffersWidget {
 
     private getFilterDisplayName(key: string, value: string): string {
         const displayNames: Record<string, string> = {
-            'location': `Местоположение: ${value}`,
+            'address': `Местоположение: ${value}`,
             'offer_type': `Тип сделки: ${value === 'sale' ? 'Продажа' : 'Аренда'}`,
             'property_type': `Тип недвижимости: ${this.getPropertyTypeDisplay(value)}`,
-            'min_price': `Цена от: ${this.formatPrice(value)} ₽`,
-            'max_price': `Цена до: ${this.formatPrice(value)} ₽`,
-            'min_area': `Площадь от: ${value} м²`,
-            'max_area': `Площадь до: ${value} м²`
+            'price_min': `Цена от: ${this.formatPrice(value)} ₽`,
+            'price_max': `Цена до: ${this.formatPrice(value)} ₽`,
+            'area_min': `Площадь от: ${value} м²`,
+            'area_max': `Площадь до: ${value} м²`
         };
 
         return displayNames[key] || `${key}: ${value}`;
@@ -387,8 +369,6 @@ export class SearchOffersWidget {
     }
 
     private formatOffer(apiData: any): any {
-        console.log('Formatting offer data:', apiData);
-
         const isLiked = this.controller.isOfferLiked?.(apiData.ID || apiData.id) || false;
         const images = this.controller.getOfferImages?.(apiData) || [];
 

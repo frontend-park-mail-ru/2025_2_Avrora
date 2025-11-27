@@ -11,7 +11,6 @@ export class UserModel {
                 return JSON.parse(storedUserData);
             }
         } catch (error) {
-            console.error("Failed to parse userData from localStorage:", error);
             localStorage.removeItem('userData');
         }
         return null;
@@ -101,7 +100,6 @@ export class UserModel {
 
             return JSON.parse(jsonPayload);
         } catch (error) {
-            console.error('Error decoding JWT:', error);
             return null;
         }
     }

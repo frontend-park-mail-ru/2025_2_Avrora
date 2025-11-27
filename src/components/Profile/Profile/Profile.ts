@@ -1,4 +1,3 @@
-// Profile.ts
 import { ProfileService } from '../../../utils/ProfileService.ts';
 import { MediaService } from '../../../utils/MediaService.ts';
 import { Modal } from '../../OfferCreate/Modal/Modal.ts';
@@ -76,7 +75,6 @@ export class Profile {
             block.appendChild(userSection);
             block.appendChild(dataSection);
         } catch (error) {
-            console.error('Error rendering profile:', error);
             block.appendChild(this.createErrorSection((error as Error).message));
         }
 
@@ -136,7 +134,6 @@ export class Profile {
             this.currentAvatarUrl = avatarUrl;
 
         } catch (error) {
-            console.error('Error creating user section:', error);
             const avatar = document.createElement("img");
             avatar.className = "profile__avatar";
             const user = this.controller.user;
@@ -227,7 +224,6 @@ export class Profile {
                         });
                     }
 
-                    // Обновляем сайдбар в реальном времени
                     if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
                         this.parentWidget.updateSidebar();
                     }
@@ -241,7 +237,6 @@ export class Profile {
 
                 } catch (error) {
                     this.showLoading(false);
-                    console.error('Error uploading avatar:', error);
                     Modal.show({
                         title: 'Ошибка',
                         message: (error as Error).message || 'Не удалось загрузить аватар',
@@ -437,10 +432,8 @@ export class Profile {
                 ...profileData
             } as ProfileData;
 
-            // Обновляем UI в реальном времени
             this.controller.updateUI();
 
-            // Обновляем сайдбар в реальном времени
             if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
                 this.parentWidget.updateSidebar();
             }
@@ -455,7 +448,6 @@ export class Profile {
 
         } catch (error) {
             this.showLoading(false);
-            console.error('Error saving profile:', error);
 
             let errorMessage = (error as Error).message || 'Не удалось сохранить профиль';
 

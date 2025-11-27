@@ -1,4 +1,3 @@
-// Safety.ts
 import { ProfileService } from '../../../utils/ProfileService.ts';
 import { Modal } from '../../OfferCreate/Modal/Modal.ts';
 import { showFieldErrors, clearFieldError, validPassword } from '../../../utils/Validator.ts';
@@ -206,7 +205,6 @@ export class Safety {
 
             this.showLoading(false);
 
-            // Очищаем поля после успешного обновления
             inputs.forEach(input => {
                 (input as HTMLInputElement).value = '';
                 clearFieldError(input as HTMLInputElement);
@@ -220,7 +218,6 @@ export class Safety {
 
         } catch (error) {
             this.showLoading(false);
-            console.error('Error changing password:', error);
             Modal.show({
                 title: 'Ошибка',
                 message: (error as Error).message || 'Не удалось изменить пароль',

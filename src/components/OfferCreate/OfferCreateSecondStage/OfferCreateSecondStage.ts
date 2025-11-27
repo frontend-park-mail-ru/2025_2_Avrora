@@ -1,4 +1,3 @@
-// OfferCreateSecondStage.ts
 interface StageOptions {
     state: any;
     app: any;
@@ -165,7 +164,6 @@ export class OfferCreateSecondStage {
         complexNameBlock.appendChild(complexNameContainer);
         this.root.appendChild(complexNameBlock);
 
-        // Карта
         this.mapContainer = document.createElement('div');
         this.mapContainer.className = 'create-ad__map';
         this.mapContainer.id = 'yandex-create-map';
@@ -178,7 +176,6 @@ export class OfferCreateSecondStage {
 
         this.root.appendChild(this.createNav({ prev: true, next: true }));
 
-        // Загружаем все ЖК при инициализации
         this.loadAllComplexes().then(() => {
             this.restoreFormData();
         });
@@ -249,11 +246,9 @@ export class OfferCreateSecondStage {
                     this.pendingComplexRestoration = null;
                 }
             } else {
-                console.error('Failed to load housing complexes');
                 this.allHousingComplexes = [];
             }
         } catch (error) {
-            console.error('Error loading housing complexes:', error);
             this.allHousingComplexes = [];
         }
     }
@@ -948,19 +943,17 @@ export class OfferCreateSecondStage {
     updateCurrentAddress(address: string): void {
         this.currentAddress = address;
 
-        // Добавляем задержку для избежания частых обновлений карты
         if (this.updateMapTimeout) {
             clearTimeout(this.updateMapTimeout);
         }
 
         this.updateMapTimeout = window.setTimeout(() => {
             this.initMap();
-        }, 500); // Задержка 500ms
+        }, 500);
     }
 
     async initMap(): Promise<void> {
         if (!this.currentAddress || this.currentAddress.trim().length < 5) {
-            // Показываем placeholder если адрес короткий
             const mapContainer = document.getElementById('yandex-create-map');
             if (mapContainer && mapContainer.innerHTML === '') {
                 mapContainer.innerHTML = `
@@ -973,16 +966,11 @@ export class OfferCreateSecondStage {
         }
 
         try {
-            // Используем YandexMapService для ymaps3
             const { YandexMapService } = await import('../../../utils/YandexMapService.js');
 
-            // Используем правильный метод initMap вместо updateMap
             await YandexMapService.initMap('yandex-create-map', this.currentAddress);
             this.mapInitialized = true;
         } catch (error) {
-            console.error('Error initializing map:', error);
-
-            // Показываем сообщение об ошибке в контейнере карты
             const mapContainer = document.getElementById('yandex-create-map');
             if (mapContainer) {
                 mapContainer.innerHTML = `
@@ -1009,13 +997,12 @@ export class OfferCreateSecondStage {
             clearTimeout(this.complexSearchTimeout);
         }
 
-        // Уничтожаем карту при очистке с задержкой для избежания конфликтов
         setTimeout(async () => {
             try {
                 const { YandexMapService } = await import('../../../utils/YandexMapService.js');
                 YandexMapService.destroyMap();
             } catch (error) {
-                console.error('Error destroying map:', error);
+
             }
         }, 100);
     }

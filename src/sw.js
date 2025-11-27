@@ -11,7 +11,7 @@ self.addEventListener('install', (event) => {
         '/styles/index.css',
         '/images/logo.png'
       ]).catch((err) => {
-        console.warn('[SW] Failed to cache resources:', err);
+
       });
     }).then(() => {
       return self.skipWaiting();
@@ -73,13 +73,11 @@ self.addEventListener('fetch', (event) => {
 
           caches.open(CACHE_NAME).then(cache => {
             cache.put(request, responseToCache).catch(err => {
-              console.warn('[SW] Failed to cache resource:', request.url, err);
             });
           });
 
           return response;
         }).catch(error => {
-          console.warn('[SW] Fetch failed:', request.url, error);
           return caches.match(request);
         });
       })
@@ -90,7 +88,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request).then(cached => {
       return cached || fetch(request).catch(error => {
-        console.warn('[SW] Fetch failed for:', request.url, error);
       });
     })
   );

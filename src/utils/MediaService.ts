@@ -1,4 +1,3 @@
-// MediaService.ts
 import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 
@@ -18,7 +17,6 @@ interface APIResponse {
 export class MediaService {
   static async uploadImage(file: File): Promise<UploadResult> {
     try {
-      // Предварительная валидация
       this.validateImage(file);
 
       const formData = new FormData();
@@ -46,7 +44,6 @@ export class MediaService {
 
       throw new Error(result.error || "Ошибка загрузки изображения");
     } catch (error) {
-      console.error('Error uploading image:', error);
       throw error;
     }
   }
@@ -69,20 +66,18 @@ export class MediaService {
       const results = await Promise.all(uploadPromises);
       return results.filter(result => result !== null);
     } catch (error) {
-      console.error('Error uploading multiple images:', error);
       throw error;
     }
   }
 
   static validateImage(file: File): boolean {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
 
     if (!validTypes.includes(file.type)) {
       throw new Error('Недопустимый формат изображения. Разрешены: JPEG, PNG, GIF, WebP');
     }
 
-    // Проверка расширения файла
     const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!fileExtension || !validExtensions.includes(fileExtension)) {
@@ -105,7 +100,6 @@ export class MediaService {
       const response = await fetch(url, { method: 'HEAD' });
       return response.ok;
     } catch (error) {
-      console.error('Error validating image URL:', error);
       return false;
     }
   }

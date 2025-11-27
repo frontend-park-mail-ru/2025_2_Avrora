@@ -1,4 +1,3 @@
-// MyAdvertisements.ts
 import { ProfileService } from '../../../utils/ProfileService.ts';
 import { MediaService } from '../../../utils/MediaService.ts';
 import { Modal } from '../../../components/OfferCreate/Modal/Modal.ts';
@@ -212,10 +211,8 @@ export class MyAdvertisements {
                 const result = await API.delete(`${API_CONFIG.ENDPOINTS.OFFERS.DELETE}${offerId}`);
 
                 if (result.ok) {
-                    // Обновляем список объявлений в реальном времени
                     this.offers = this.offers.filter(offer => offer.id !== offerId);
 
-                    // Обновляем сайдбар в реальном времени
                     if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
                         this.parentWidget.updateSidebar();
                     }
@@ -225,7 +222,6 @@ export class MyAdvertisements {
                         message: 'Объявление успешно удалено',
                         type: 'info',
                         onConfirm: () => {
-                            // Перерисовываем текущий компонент
                             this.render().then(newContent => {
                                 const currentContent = document.querySelector('.profile__content');
                                 if (currentContent && currentContent.parentNode) {

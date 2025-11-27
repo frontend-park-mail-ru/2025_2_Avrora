@@ -103,20 +103,24 @@ export class SearchWidget {
         const urlParams = new URLSearchParams(window.location.search);
         const params: Record<string, string> = {};
 
-        if (urlParams.has('location')) params.location = urlParams.get('location')!;
+        // Исправлено: location -> address
+        if (urlParams.has('address')) params.address = urlParams.get('address')!;
         if (urlParams.has('offer_type')) params.offer_type = urlParams.get('offer_type')!;
         if (urlParams.has('property_type')) params.property_type = urlParams.get('property_type')!;
-        if (urlParams.has('min_price')) params.min_price = urlParams.get('min_price')!;
-        if (urlParams.has('max_price')) params.max_price = urlParams.get('max_price')!;
-        if (urlParams.has('min_area')) params.min_area = urlParams.get('min_area')!;
-        if (urlParams.has('max_area')) params.max_area = urlParams.get('max_area')!;
+        // Исправлено: min_price -> price_min, max_price -> price_max
+        if (urlParams.has('price_min')) params.price_min = urlParams.get('price_min')!;
+        if (urlParams.has('price_max')) params.price_max = urlParams.get('price_max')!;
+        // Исправлено: min_area -> area_min, max_area -> area_max
+        if (urlParams.has('area_min')) params.area_min = urlParams.get('area_min')!;
+        if (urlParams.has('area_max')) params.area_max = urlParams.get('area_max')!;
 
         return params;
     }
 
     private applyCurrentParams(): void {
-        if (this.currentParams.location && this.searchField) {
-            this.searchField.setValue(this.currentParams.location);
+        // Исправлено: location -> address
+        if (this.currentParams.address && this.searchField) {
+            this.searchField.setValue(this.currentParams.address);
         }
 
         this.dropdowns.forEach((dropdown, index) => {
@@ -129,14 +133,16 @@ export class SearchWidget {
         this.rangeDropdowns.forEach((rangeDropdown, index) => {
             const config = this.rangeDropdownConfigs[index];
             if (config.key === 'price') {
-                const from = this.currentParams.min_price || '';
-                const to = this.currentParams.max_price || '';
+                // Исправлено: min_price -> price_min, max_price -> price_max
+                const from = this.currentParams.price_min || '';
+                const to = this.currentParams.price_max || '';
                 if (from || to) {
                     rangeDropdown.setValue(from, to);
                 }
             } else if (config.key === 'area') {
-                const from = this.currentParams.min_area || '';
-                const to = this.currentParams.max_area || '';
+                // Исправлено: min_area -> area_min, max_area -> area_max
+                const from = this.currentParams.area_min || '';
+                const to = this.currentParams.area_max || '';
                 if (from || to) {
                     rangeDropdown.setValue(from, to);
                 }
@@ -256,7 +262,8 @@ export class SearchWidget {
         if (this.searchField) {
             const queryValue = this.searchField.getValue();
             if (queryValue && queryValue.trim()) {
-                params.location = queryValue.trim();
+                // Исправлено: location -> address
+                params.address = queryValue.trim();
             }
         }
 
@@ -272,11 +279,13 @@ export class SearchWidget {
             if (rangeDropdown) {
                 const value = rangeDropdown.getValue();
                 if (config.key === 'price') {
-                    if (value.from) params.min_price = value.from;
-                    if (value.to) params.max_price = value.to;
+                    // Исправлено: min_price -> price_min, max_price -> price_max
+                    if (value.from) params.price_min = value.from;
+                    if (value.to) params.price_max = value.to;
                 } else if (config.key === 'area') {
-                    if (value.from) params.min_area = value.from;
-                    if (value.to) params.max_area = value.to;
+                    // Исправлено: min_area -> area_min, max_area -> area_max
+                    if (value.from) params.area_min = value.from;
+                    if (value.to) params.area_max = value.to;
                 }
             }
         });

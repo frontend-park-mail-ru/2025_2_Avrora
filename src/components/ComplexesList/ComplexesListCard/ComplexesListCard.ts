@@ -22,12 +22,12 @@ export default class ComplexesListCard {
     onImageError: () => void;
 
     constructor(rootEl: HTMLElement, data: ComplexCardData = {}, options: ComplexesListCardOptions = {}) {
-        if (!rootEl) throw new Error('ComplexesListCard: root element is required');
+        if (!rootEl) throw new Error("ComplexesListCard: root element is required");
         this.rootEl = rootEl;
         this.data = data;
         this.imageEl = null;
 
-        this.navigate = typeof options.navigate === 'function' ? options.navigate : null;
+        this.navigate = typeof options.navigate === "function" ? options.navigate : null;
         this.onCardClick = this.onCardClick.bind(this);
         this.onImageError = this.onImageError.bind(this);
 
@@ -36,49 +36,47 @@ export default class ComplexesListCard {
 
     mount(): void {
         this.render();
-        this.rootEl.addEventListener('click', this.onCardClick);
+        this.rootEl.addEventListener("click", this.onCardClick);
     }
 
     render(): void {
-        // Создаем HTML напрямую без использования шаблона списка
         const complexId = this.data.id || this.data.ID;
-        
-        let imageHtml = '';
+
+        let imageHtml = "";
         if (this.data.imageUrl) {
             imageHtml = `<img class="complexes-list__image" src="${this.data.imageUrl}" alt="Фото ЖК ${this.data.title}" loading="lazy">`;
         }
 
         const html = `
             ${imageHtml}
-            <span class="complexes-list__item-title">${this.data.title || ''}</span>
-            <span class="complexes-list__status">${this.data.status || ''}</span>
+            <span class="complexes-list__item-title">${this.data.title || ""}</span>
+            <span class="complexes-list__status">${this.data.status || ""}</span>
             <span class="complexes-list__metro">
-                <img src="../../images/metro.png" alt="Метро"> ${this.data.metro || ''}
+                <img src="../../images/metro.png" alt="Метро"> ${this.data.metro || ""}
             </span>
-            <span class="complexes-list__address">${this.data.address || ''}</span>
+            <span class="complexes-list__address">${this.data.address || ""}</span>
         `;
 
         this.rootEl.innerHTML = html;
-        this.rootEl.setAttribute('data-complex-id', complexId?.toString() || '');
+        this.rootEl.setAttribute("data-complex-id", complexId?.toString() || "");
 
-        this.imageEl = this.rootEl.querySelector('.complexes-list__image');
+        this.imageEl = this.rootEl.querySelector(".complexes-list__image");
 
         if (this.imageEl) {
-            this.imageEl.addEventListener('error', this.onImageError);
+            this.imageEl.addEventListener("error", this.onImageError);
         }
     }
 
     onImageError(): void {
         if (this.imageEl) {
-            this.imageEl.src = '../images/default_complex.jpg';
-            this.imageEl.alt = 'Изображение недоступно';
+            this.imageEl.src = "../images/default_complex.jpg";
+            this.imageEl.alt = "Изображение недоступно";
         }
     }
 
     onCardClick(e: Event): void {
         const complexId = this.data.id || this.data.ID;
         if (!complexId) {
-            console.error('Complex ID is missing');
             return;
         }
 
@@ -87,8 +85,8 @@ export default class ComplexesListCard {
             this.navigate(path);
             return;
         }
-        window.history.pushState({}, '', path);
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        window.history.pushState({}, "", path);
+        window.dispatchEvent(new PopStateEvent("popstate"));
     }
 
     update(data: ComplexCardData = {}): void {
@@ -97,9 +95,9 @@ export default class ComplexesListCard {
     }
 
     destroy(): void {
-        this.rootEl.removeEventListener('click', this.onCardClick);
+        this.rootEl.removeEventListener("click", this.onCardClick);
         if (this.imageEl) {
-            this.imageEl.removeEventListener('error', this.onImageError);
+            this.imageEl.removeEventListener("error", this.onImageError);
         }
     }
 }

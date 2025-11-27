@@ -1,4 +1,3 @@
-// AppController.js
 import { API } from '../utils/API.js';
 import { API_CONFIG } from "../config.js";
 
@@ -14,17 +13,14 @@ export class AppController {
         this.router = router;
     }
 
-    // Геттер для получения текущего пользователя
     get user() {
         return this.model.userModel.user;
     }
 
-    // Геттер для проверки аутентификации
     get isAuthenticated() {
         return !!this.model.userModel.user;
     }
 
-    // Метод для обновления пользователя
     updateUser(userData) {
         this.model.userModel.updateUser(userData);
     }
@@ -37,7 +33,7 @@ export class AppController {
                     user.id = decoded.user_id;
                 }
             } catch (error) {
-                console.error('Error decoding JWT to get user ID:', error);
+                
             }
         }
 
@@ -47,7 +43,7 @@ export class AppController {
             try {
                 await this.loadUserProfile(user.id);
             } catch (error) {
-                console.error('Failed to load user profile:', error);
+
             }
         }
 
@@ -66,10 +62,10 @@ export class AppController {
                 this.model.userModel.updateUser(response.data);
                 this.updateUI();
             } else {
-                console.warn('Failed to load user profile:', response.error);
+
             }
         } catch (error) {
-            console.error('Error loading user profile:', error);
+
         }
     }
 
@@ -77,21 +73,26 @@ export class AppController {
         try {
             await this.api.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT, {});
         } catch (err) {
-            console.warn("Logout request failed:", err);
+
         } finally {
             this.model.userModel.clearUser();
             this.model.appStateModel.setOffers([]);
-            
+
+            const currentPage = this.model.appStateModel.currentPage;
+            if (currentPage && currentPage.cleanup) {
+                currentPage.cleanup();
+            }
+            this.model.appStateModel.setCurrentPage(null);
+
             this.updateUI();
 
             if (this.router) {
-                history.replaceState({}, "", "/");
-                this.router.loadRoute("/");
+                history.replaceState({}, "", "/login");
+                this.router.loadRoute("/login");
             }
         }
     }
 
-    // Метод для навигации
     navigate(path) {
         if (this.router) {
             this.router.navigate(path);
@@ -113,7 +114,7 @@ export class AppController {
             }
             return false;
         } catch (error) {
-            console.error('Error checking offer ownership:', error);
+
             return false;
         }
     }
@@ -155,16 +156,19 @@ export class AppController {
     }
 
     updateUI() {
-        // Обновляем header и текущую страницу
         if (this.view.header) {
             this.view.header.render();
         }
-        
+
         const currentPage = this.model.appStateModel.currentPage;
-        if (currentPage && currentPage.cleanup) {
+        const isPublicPage = ['/', '/login', '/register', '/offers'].includes(window.location.pathname);
+
+        if (currentPage && currentPage.cleanup && !this.isAuthenticated && !isPublicPage) {
             currentPage.cleanup();
+            this.model.appStateModel.setCurrentPage(null);
         }
-        if (currentPage && currentPage.render) {
+
+        if (currentPage && currentPage.render && this.isAuthenticated) {
             currentPage.render();
         }
     }
@@ -181,7 +185,6 @@ export class AppController {
         return this.model.appStateModel.getPage(name);
     }
 
-    // Метод для проверки владения оффером
     isOfferOwner(offer) {
         if (!this.model.userModel.user || !offer) return false;
 
@@ -191,20 +194,14 @@ export class AppController {
         return currentUserId === offerUserId;
     }
 
-    // Метод для проверки полноты профиля
     isProfileComplete() {
         return this.model.userModel.isProfileComplete();
     }
 
-    // Новые методы для работы с виджетами
-
-    // Проверка, лайкнуто ли объявление
     isOfferLiked(offerId) {
-        // Временная заглушка - в будущем можно добавить логику лайков
         return false;
     }
 
-    // Получение изображений объявления
     getOfferImages(apiData) {
         let images = [];
         
@@ -225,7 +222,6 @@ export class AppController {
         return images;
     }
 
-    // Загрузка отфильтрованных объявлений
     async loadFilteredOffers(filters = {}) {
         try {
             const apiParams = {
@@ -263,12 +259,11 @@ export class AppController {
 
             return { offers, meta };
         } catch (error) {
-            console.error('Error loading filtered offers:', error);
+
             throw new Error(`Не удалось загрузить объявления: ${error.message}`);
         }
     }
 
-    // Загрузка списка объявлений
     async loadOffers(params = {}) {
         try {
             const result = await this.api.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, params);
@@ -301,21 +296,18 @@ export class AppController {
                 }
             };
         } catch (error) {
-            console.error('Error loading offers:', error);
+
             throw new Error(`Не удалось загрузить объявления: ${error.message}`);
         }
     }
 
-    // Загрузка конкретного объявления
     async loadOffer(offerId) {
         const endpoint = `${API_CONFIG.ENDPOINTS.OFFERS.LIST}/${offerId}`;
         return await this.api.get(endpoint);
     }
 
-    // Загрузка данных продавца
     async loadSellerData(userId) {
         if (!userId) {
-            console.warn('No user ID provided for seller data');
             return null;
         }
 
@@ -323,12 +315,10 @@ export class AppController {
             const response = await this.api.get(`${API_CONFIG.ENDPOINTS.PROFILE.GET}${userId}`);
             return response.ok ? response.data : null;
         } catch (error) {
-            console.error('Error loading seller profile:', error);
             return null;
         }
     }
 
-    // Получение информации о продавце
     getSellerInfo(sellerData) {
         const sellerName = sellerData ?
             `${sellerData.firstName || sellerData.first_name || ''} ${sellerData.lastName || sellerData.last_name || ''}`.trim() || "Продавец" :
@@ -349,7 +339,6 @@ export class AppController {
         };
     }
 
-    // Валидация шага создания объявления
     validateOfferStep(step, data) {
         let errorMessage = '';
 
@@ -408,14 +397,12 @@ export class AppController {
         }
 
         if (errorMessage) {
-            console.error('Validation failed:', errorMessage);
             return false;
         }
 
         return true;
     }
 
-    // Валидация данных объявления
     validateOfferData(data) {
         const requiredFields = [
             { field: 'offer_type', name: 'Тип объявления' },
@@ -500,20 +487,15 @@ export class AppController {
         return { isValid: true };
     }
 
-    // Создание объявления
     async createOffer(offerData) {
         return await this.api.post(API_CONFIG.ENDPOINTS.OFFERS.CREATE, offerData);
     }
 
-    // Обновление объявления
     async updateOffer(offerId, offerData) {
         return await this.api.put(`${API_CONFIG.ENDPOINTS.OFFERS.UPDATE}${offerId}`, offerData);
     }
 
-    // Обработка ошибок API
     handleAPIError(result, isEditing = false) {
-        console.error('Full API error object:', result);
-
         const errorInfo = {
             timestamp: new Date().toISOString(),
             status: result.status,
@@ -521,7 +503,6 @@ export class AppController {
             endpoint: isEditing ? 'UPDATE_OFFER' : 'CREATE_OFFER',
             user_id: this.model.userModel.user?.id
         };
-        console.error('Error context:', errorInfo);
 
         let errorMessage = result.error || 'Произошла неизвестная ошибка';
 
@@ -548,7 +529,6 @@ export class AppController {
                 errorMessage = result.error || `Произошла неизвестная ошибка (${result.status})`;
         }
 
-        // Показываем ошибку пользователю
         if (this.view.modalView && this.view.modalView.showError) {
             this.view.modalView.showError(errorMessage);
         } else {
@@ -556,12 +536,10 @@ export class AppController {
         }
     }
 
-    // Показать требование заполнения профиля
     showProfileCompletionRequired(message) {
         this.showProfileCompletionModal();
     }
 
-    // Загрузка данных объявления для редактирования
     async loadOfferData(offerId, dataManager) {
         try {
             const result = await this.api.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIST}/${offerId}`);
@@ -569,11 +547,9 @@ export class AppController {
             if (result.ok && result.data) {
                 dataManager.populateFromAPI(result.data);
             } else {
-                console.error('Failed to load offer data:', result.error);
                 throw new Error('Не удалось загрузить данные объявления');
             }
         } catch (error) {
-            console.error('Error loading offer data:', error);
             throw error;
         }
     }

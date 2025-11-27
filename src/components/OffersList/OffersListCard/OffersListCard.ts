@@ -1,4 +1,3 @@
-// OffersListCard.ts - исправленная логика лайков
 import { MediaService } from "../../../utils/MediaService.ts";
 import { API } from "../../../utils/API.js";
 import { API_CONFIG } from "../../../config.js";
@@ -68,7 +67,6 @@ export class OffersListCard {
 
     async render(): Promise<HTMLElement> {
         try {
-            // Загружаем данные о лайках перед рендером
             await this.loadLikeData();
 
             const images = this.getImages();
@@ -103,26 +101,22 @@ export class OffersListCard {
 
             return this.parentElement;
         } catch (error) {
-            console.error('Error rendering offer card:', error);
             this.createCompleteFallbackCard();
             return this.parentElement;
         }
     }
 
-    // Новый метод для загрузки данных о лайках
     async loadLikeData(): Promise<void> {
         if (!this.offerData.id && !this.offerData.ID) return;
 
         try {
             const offerId = (this.offerData.id || this.offerData.ID).toString();
 
-            // Загружаем количество лайков
             const likesCountResponse = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIKECOUNT}${offerId}`);
             if (likesCountResponse.ok && likesCountResponse.data) {
                 this.offerData.likesCount = likesCountResponse.data.count || 0;
             }
 
-            // Загружаем статус лайка для текущего пользователя
             if (this.state.user) {
                 const isLikedResponse = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED}${offerId}`);
                 if (isLikedResponse.ok && isLikedResponse.data) {
@@ -130,7 +124,7 @@ export class OffersListCard {
                 }
             }
         } catch (error) {
-            console.error('Failed to load like data:', error);
+
         }
     }
 
@@ -278,7 +272,6 @@ export class OffersListCard {
     async handleLike(): Promise<void> {
         if (!this.offerData.id && !this.offerData.ID) return;
 
-        // Защита от множественных кликов
         if (this.isLikeRequestInProgress) return;
 
         const offerId = (this.offerData.id || this.offerData.ID).toString();
@@ -295,7 +288,6 @@ export class OffersListCard {
             const previousLikedState = this.offerData.isLiked || false;
             const previousLikesCount = this.offerData.likesCount || this.offerData.likes_count || 0;
 
-            // Оптимистичное обновление - сразу меняем состояние
             const newLikedState = !previousLikedState;
             const newLikesCount = previousLikedState ? previousLikesCount - 1 : previousLikesCount + 1;
 
@@ -307,25 +299,21 @@ export class OffersListCard {
             const response = await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.LIKE}${offerId}`, {});
 
             if (!response.ok) {
-                // Откатываем изменения при ошибке
                 this.offerData.isLiked = previousLikedState;
                 this.offerData.likesCount = previousLikesCount;
                 this.updateLikeUI();
-                console.error('Like request failed:', response.error);
                 return;
             }
 
-            // После успешного запроса сразу обновляем счетчик лайков
             await this.updateLikeCount(offerId);
 
         } catch (error) {
-            console.error('Like operation failed:', error);
+
         } finally {
             this.isLikeRequestInProgress = false;
         }
     }
 
-    // Метод для обновления счетчика лайков
     async updateLikeCount(offerId: string): Promise<void> {
         try {
             const response = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIKECOUNT}${offerId}`);
@@ -333,14 +321,13 @@ export class OffersListCard {
             if (response.ok && response.data) {
                 const newLikesCount = response.data.count || 0;
 
-                // Обновляем данные только если счетчик изменился
                 if (this.offerData.likesCount !== newLikesCount) {
                     this.offerData.likesCount = newLikesCount;
                     this.updateLikeUI();
                 }
             }
         } catch (error) {
-            console.error('Failed to update like count:', error);
+
         }
     }
 
@@ -360,11 +347,8 @@ export class OffersListCard {
             const currentLikesCount = this.offerData.likesCount || 0;
             likesCounter.textContent = this.formatLikesCount(currentLikesCount);
             likesCounter.classList.toggle('offer-card__likes-counter--active', this.offerData.isLiked);
-
-            console.log(`Updating likes counter: ${currentLikesCount} -> ${this.formatLikesCount(currentLikesCount)}`);
         }
 
-        // Анимация
         likeButton.classList.add('offer-card__like--animating');
         setTimeout(() => {
             likeButton.classList.remove('offer-card__like--animating');

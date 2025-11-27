@@ -70,7 +70,6 @@ export class ComplexCard {
 
             return this.rootEl;
         } catch (error) {
-            console.error('Error in ComplexCard.render:', error);
             const fallbackElement = document.createElement('div');
             fallbackElement.className = 'complex-card-error';
             fallbackElement.textContent = 'Ошибка загрузки комплекса';

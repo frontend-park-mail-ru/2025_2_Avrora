@@ -317,7 +317,14 @@ export class ProfileWidget {
             this.currentComponent.cleanup();
         }
 
-        if (this.parent) this.parent.innerHTML = "";
+        // Полная очистка родительского элемента
+        if (this.parent) {
+            this.parent.innerHTML = "";
+            // Добавляем элемент-заглушку или оставляем пустым
+            const placeholder = document.createElement('div');
+            placeholder.className = 'logout-placeholder';
+            this.parent.appendChild(placeholder);
+        }
         this.root = null;
         this.currentComponent = null;
     }

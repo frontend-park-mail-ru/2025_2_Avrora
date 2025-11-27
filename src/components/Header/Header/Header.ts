@@ -49,7 +49,6 @@ export class Header {
         };
 
         if (typeof template !== 'function') {
-            console.error('Template is not a function:', template);
             throw new Error('Header template is not a valid function');
         }
 
@@ -74,7 +73,6 @@ export class Header {
             }
             return this.template;
         } catch (error) {
-            console.error('Failed to load header template:', error);
             throw new Error('Header template loading failed');
         }
     }

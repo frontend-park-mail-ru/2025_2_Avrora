@@ -3,8 +3,6 @@ import { UserModel } from './models/UserModel.js';
 import { AppStateModel } from './models/AppStateModel.js';
 import { AppController } from './controllers/AppController.js';
 import { ModalView } from './views/ModalView.js';
-
-// Импорт виджетов
 import { MainPage } from './widgets/MainPage.ts';
 import { LoginPage } from './widgets/LoginPage.ts';
 import { RegisterPage } from './widgets/RegisterPage.ts';
@@ -15,9 +13,8 @@ import { OfferCreateWidget } from './widgets/OfferCreateWidget.ts';
 import { OfferWidget } from './widgets/OfferWidget.ts';
 import { SearchOffersWidget } from './widgets/SearchOffersWidget.ts';
 import { SearchMapWidget } from './widgets/SearchMapWidget.ts';
-import { OffersListWidget } from './widgets/OffersListWidget.ts'; // Добавлен импорт
+import { OffersListWidget } from './widgets/OffersListWidget.ts';
 import { Header } from './components/Header/Header/Header.ts';
-
 import { API } from './utils/API.js';
 import { Router } from './router.js';
 import { API_CONFIG } from "./config.js";
@@ -56,14 +53,11 @@ function initializeHandlebarsHelpers() {
 
 class App {
     constructor() {
-        // Инициализация моделей
         this.userModel = new UserModel();
         this.appStateModel = new AppStateModel();
         
-        // Инициализация представлений
         this.modalView = new ModalView();
         
-        // Инициализация контроллера
         this.controller = new AppController(
             {
                 userModel: this.userModel,
@@ -71,7 +65,7 @@ class App {
             },
             {
                 modalView: this.modalView,
-                header: null // будет установлен позже
+                header: null
             }
         );
 
@@ -84,12 +78,11 @@ class App {
         this.createDOMStructure();
         this.initializeComponents();
 
-        // Загрузка профиля пользователя при инициализации
         if (this.userModel.user && this.userModel.user.id) {
             try {
                 await this.controller.loadUserProfile(this.userModel.user.id);
             } catch (error) {
-                console.error('Failed to load user profile on init:', error);
+
             }
         }
 
@@ -110,11 +103,9 @@ class App {
     }
 
     initializeComponents() {
-        // Инициализация header с передачей контроллера
         this.header = new Header(this.headerElement, this.controller);
         this.controller.view.header = this.header;
 
-        // Инициализация страниц и передача контроллера
         this.controller.registerPage('main', new MainPage(this.mainElement, this.controller));
         this.controller.registerPage('login', new LoginPage(this.mainElement, this.controller));
         this.controller.registerPage('register', new RegisterPage(this.mainElement, this.controller));
@@ -125,7 +116,7 @@ class App {
         this.controller.registerPage('complexesList', new ComplexesListWidget(this.mainElement, this.controller));
         this.controller.registerPage('complexesDetail', new ComplexWidget(this.mainElement, this.controller));
         this.controller.registerPage('createAd', new OfferCreateWidget(this.mainElement, this.controller));
-        this.controller.registerPage('offersList', new OffersListWidget(this.mainElement, this.controller)); // Исправлено
+        this.controller.registerPage('offersList', new OffersListWidget(this.mainElement, this.controller));
         this.controller.registerPage('offerDetail', new OfferWidget(this.mainElement, this.controller));
         this.controller.registerPage('searchAds', new SearchOffersWidget(this.mainElement, this.controller));
         this.controller.registerPage('searchMap', new SearchMapWidget(this.mainElement, this.controller));
@@ -136,7 +127,6 @@ class App {
         this.router = new Router(this.controller);
         this.controller.setRouter(this.router);
 
-        // Регистрация маршрутов
         this.router.register("/", this.controller.getPage('main'));
         this.router.register("/login", this.controller.getPage('login'));
         this.router.register("/register", this.controller.getPage('register'));
@@ -170,21 +160,17 @@ class App {
         if ('serviceWorker' in navigator) {
             try {
 
-                console.log('Production mode - registering service worker');
                 const registration = await navigator.serviceWorker.register('/sw.js', {
                     scope: '/',
                     updateViaCache: 'none'
                 });
 
-                console.log('ServiceWorker registered successfully:', registration.scope);
-
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
-                    console.log('ServiceWorker update found!', newWorker);
 
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            console.log('New ServiceWorker ready to activate');
+                            
                         }
                     });
                 });
@@ -194,7 +180,6 @@ class App {
                 }
 
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('ServiceWorker controller changed');
                     if (navigator.serviceWorker.controller) {
                         navigator.serviceWorker.controller.postMessage('CLEAR_DYNAMIC_CACHE');
                     }
@@ -205,10 +190,10 @@ class App {
                 }, 60 * 60 * 1000);
 
             } catch (err) {
-                console.error('Service worker registration failed', err);
+
             }
         } else {
-            console.log('Service workers are not supported');
+
         }
     }
 }

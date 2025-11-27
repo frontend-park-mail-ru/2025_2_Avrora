@@ -156,7 +156,6 @@ export class LoginPage {
                 const userId = decoded?.user_id || decoded?.userID;
 
                 if (!userId) {
-                    console.error('JWT payload:', decoded);
                     throw new Error('Не удалось получить ID пользователя из токена. Доступные поля: ' + JSON.stringify(decoded));
                 }
 
@@ -183,7 +182,6 @@ export class LoginPage {
                 this.clearAllVisualStates();
             }
         } catch (error) {
-            console.error('Login error:', error);
             this.showFormError((error as Error).message || "Ошибка сети. Попробуйте позже.");
             this.setButtonErrorState(true);
             this.clearAllVisualStates();
@@ -203,7 +201,6 @@ export class LoginPage {
 
             return JSON.parse(jsonPayload);
         } catch (error) {
-            console.error('Error decoding JWT:', error);
             return null;
         }
     }

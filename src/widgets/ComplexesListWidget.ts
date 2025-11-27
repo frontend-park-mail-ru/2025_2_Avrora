@@ -70,7 +70,6 @@ export class ComplexesListWidget {
             this.template = Handlebars.templates['ComplexesList.hbs'];
             return this.template;
         } catch (error) {
-            console.error('Failed to load template:', error);
             throw new Error('Template loading failed');
         }
     }
@@ -81,7 +80,6 @@ export class ComplexesListWidget {
             const complexes = await this.loadComplexes();
             await this.renderContent(complexes);
         } catch (error) {
-            console.error("Error rendering complexes list:", error);
             this.renderError("Не удалось загрузить список ЖК");
         }
     }
@@ -91,7 +89,6 @@ export class ComplexesListWidget {
             this.renderLoading();
             await this.renderContent(complexes);
         } catch (error) {
-            console.error("Error rendering complexes list:", error);
             this.renderError("Не удалось отобразить список ЖК");
         }
     }
@@ -168,8 +165,7 @@ export class ComplexesListWidget {
                 }
             });
 
-            // Убрали вызов card.render() здесь, так как он уже вызывается в конструкторе
-            // и вызов здесь приведет к двойному рендеру
+            
             return card;
         });
     }

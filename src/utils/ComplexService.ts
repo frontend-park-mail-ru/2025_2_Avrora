@@ -45,7 +45,6 @@ export class ComplexService {
 
       throw new Error(result.error || "Ошибка загрузки названий ЖК");
     } catch (error) {
-      console.error('Error loading complex names:', error);
       return [];
     }
   }
@@ -76,7 +75,6 @@ export class ComplexService {
 
       throw new Error(result.error || "Ошибка загрузки списка ЖК");
     } catch (error) {
-      console.error('Error loading complexes:', error);
       return { complexes: [], meta: {} };
     }
   }
@@ -92,7 +90,6 @@ export class ComplexService {
 
       throw new Error(result.error || "Ошибка загрузки информации о ЖК");
     } catch (error) {
-      console.error('Error loading complex:', error);
       throw error;
     }
   }
@@ -105,7 +102,6 @@ export class ComplexService {
         return name.toLowerCase().includes(searchTerm.toLowerCase());
       });
     } catch (error) {
-      console.error('Error searching complexes:', error);
       return [];
     }
   }

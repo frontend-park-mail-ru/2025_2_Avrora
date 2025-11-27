@@ -1,4 +1,3 @@
-// API.js - исправленный файл
 import { API_CONFIG } from "../config.js";
 
 export const API = {
@@ -39,7 +38,6 @@ export const API = {
         };
       }
 
-      // Handle 204 No Content
       if (response.status === 204) {
         return {
           ok: true,
@@ -56,7 +54,6 @@ export const API = {
       };
 
     } catch (error) {
-      console.error('GET request failed:', error);
       return {
         ok: false,
         status: 0,
@@ -121,7 +118,6 @@ export const API = {
         };
       }
 
-      // Handle 204 No Content
       if (response.status === 204) {
         return {
           ok: true,
@@ -130,7 +126,6 @@ export const API = {
         };
       }
 
-      // Try to parse JSON, but handle empty responses gracefully
       try {
         const text = await response.text();
         if (!text) {
@@ -147,7 +142,6 @@ export const API = {
           data
         };
       } catch (parseError) {
-        // If we can't parse as JSON but the request was successful, return null data
         return {
           ok: true,
           status: response.status,
@@ -156,7 +150,6 @@ export const API = {
       }
 
     } catch (error) {
-      console.error('POST request failed:', error);
       return {
         ok: false,
         status: 0,
@@ -208,7 +201,6 @@ export const API = {
         };
       }
 
-      // Handle 204 No Content
       if (response.status === 204) {
         return {
           ok: true,
@@ -217,7 +209,6 @@ export const API = {
         };
       }
 
-      // Try to parse JSON, but handle empty responses gracefully
       try {
         const text = await response.text();
         if (!text) {
@@ -242,7 +233,6 @@ export const API = {
       }
 
     } catch (error) {
-      console.error('PUT request failed:', error);
       return {
         ok: false,
         status: 0,
@@ -289,7 +279,6 @@ export const API = {
         };
       }
 
-      // Handle 204 No Content
       if (response.status === 204) {
         return {
           ok: true,
@@ -298,7 +287,6 @@ export const API = {
         };
       }
 
-      // Try to parse JSON, but handle empty responses gracefully
       try {
         const text = await response.text();
         if (!text) {
@@ -323,7 +311,6 @@ export const API = {
       }
 
     } catch (error) {
-      console.error('DELETE request failed:', error);
       return {
         ok: false,
         status: 0,

@@ -5,11 +5,11 @@ import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 
 interface Offer {
-    // Define offer interface as needed
+
 }
 
 interface Complex {
-    // Define complex interface as needed
+
 }
 
 export class MainPage {
@@ -44,7 +44,6 @@ export class MainPage {
             this.createPageStructure();
 
         } catch (error) {
-            console.error("Error loading main page data:", error);
             this.renderError();
         }
     }
@@ -71,7 +70,6 @@ export class MainPage {
             this.firstOffers = allOffers.slice(0, 4) || [];
             this.secondOffers = allOffers.slice(4, 8) || [];
         } else {
-            console.warn('Failed to load offers:', offersResult.error);
             this.firstOffers = [];
             this.secondOffers = [];
         }
@@ -95,11 +93,9 @@ export class MainPage {
                     this.complexes = [];
                 }
             } else {
-                console.warn('Failed to load complexes:', complexesResult.error);
                 this.complexes = [];
             }
         } catch (complexError) {
-            console.error('Error loading complexes:', complexError);
             this.complexes = [];
         }
     }

@@ -1,4 +1,3 @@
-// ComplexWidget.ts
 import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 import { MediaService } from "../utils/MediaService.ts";
@@ -237,7 +236,6 @@ export class ComplexWidget {
 
         await this.loadAndRenderComplexOffers();
         
-        // Инициализируем карту после загрузки данных
         await this.initMap();
     }
 
@@ -289,7 +287,6 @@ export class ComplexWidget {
 
                         const images = this.controller.getOfferImages(offerDetailResult.data);
 
-                        // Загружаем актуальные данные о лайках для каждого оффера
                         const likeData = await this.loadOfferLikeData(offerId);
 
                         const detailedOffer: OfferData = {
@@ -309,14 +306,13 @@ export class ComplexWidget {
 
                         offersWithDetails.push(detailedOffer);
 
-                        // Сохраняем состояние лайка
                         this.offerLikeStates.set(offerId, {
                             isLiked: likeData.isLiked,
                             likesCount: likeData.likesCount
                         });
                     }
                 } catch (error) {
-                    console.error('Error loading offer details:', error);
+
                 }
             }
 
@@ -332,24 +328,20 @@ export class ComplexWidget {
 
             return filteredOffers.map(offer => this.formatOfferData(offer));
         } catch (error) {
-            console.error('Error loading complex offers:', error);
             throw error;
         }
     }
 
-    // Новый метод для загрузки данных о лайках оффера
     async loadOfferLikeData(offerId: number): Promise<{ isLiked: boolean; likesCount: number }> {
         try {
             let isLiked = false;
             let likesCount = 0;
 
-            // Загружаем количество лайков
             const likesCountResponse = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIKECOUNT}${offerId}`);
             if (likesCountResponse.ok && likesCountResponse.data) {
                 likesCount = likesCountResponse.data.count || 0;
             }
 
-            // Загружаем статус лайка для текущего пользователя
             if (this.controller.model?.userModel?.user) {
                 const isLikedResponse = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED}${offerId}`);
                 if (isLikedResponse.ok && isLikedResponse.data) {
@@ -359,7 +351,6 @@ export class ComplexWidget {
 
             return { isLiked, likesCount };
         } catch (error) {
-            console.error('Failed to load offer like data:', error);
             return { isLiked: false, likesCount: 0 };
         }
     }
@@ -575,7 +566,6 @@ export class ComplexWidget {
         const previousLikedState = currentState.isLiked;
         const previousLikesCount = currentState.likesCount;
 
-        // Оптимистичное обновление
         const newLikedState = !previousLikedState;
         const newLikesCount = previousLikedState ? previousLikesCount - 1 : previousLikesCount + 1;
 
@@ -590,7 +580,6 @@ export class ComplexWidget {
             const response = await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.LIKE}${offerId}`, {});
 
             if (!response.ok) {
-                // Откатываем изменения при ошибке
                 this.offerLikeStates.set(offerId, {
                     isLiked: previousLikedState,
                     likesCount: previousLikesCount
@@ -601,7 +590,6 @@ export class ComplexWidget {
                 return;
             }
 
-            // После успешного запроса обновляем данные о лайках с сервера
             const updatedLikeData = await this.loadOfferLikeData(offerId);
 
             this.offerLikeStates.set(offerId, {
@@ -611,8 +599,6 @@ export class ComplexWidget {
             this.updateLikeUI(offerId, likeButton, updatedLikeData.isLiked, updatedLikeData.likesCount);
 
         } catch (error) {
-            console.error('Like operation failed:', error);
-            // Откатываем изменения при ошибке
             this.offerLikeStates.set(offerId, {
                 isLiked: previousLikedState,
                 likesCount: previousLikesCount
@@ -636,7 +622,6 @@ export class ComplexWidget {
             likesCounter.classList.toggle('offer-card__likes-counter--active', isLiked);
         }
 
-        // Анимация
         likeButton.classList.add('offer-card__like--animating');
         setTimeout(() => {
             likeButton.classList.remove('offer-card__like--animating');
@@ -823,7 +808,6 @@ export class ComplexWidget {
             await YandexMapService.initMap('yandex-complex-map', this.complexData.address);
             this.mapInitialized = true;
         } catch (error) {
-            console.error('Error initializing map:', error);
             this.showMapError('Не удалось загрузить карту');
         }
     }
@@ -902,7 +886,6 @@ export class ComplexWidget {
         
         this.offerLikeStates.clear();
         
-        // Уничтожаем карту при очистке
         if (this.mapInitialized) {
             YandexMapService.destroyMap();
             this.mapInitialized = false;

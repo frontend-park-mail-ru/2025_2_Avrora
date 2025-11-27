@@ -11,13 +11,10 @@ export class View {
                 ...data,
                 user: this.state.userModel.user
             });
-        } else {
-            console.error(`Template ${template} not found`);
         }
     }
 
     cleanup() {
-        // Базовая реализация очистки
         this.element.innerHTML = '';
     }
 

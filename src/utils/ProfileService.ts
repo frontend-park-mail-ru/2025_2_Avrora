@@ -100,7 +100,6 @@ export class ProfileService {
 
       return JSON.parse(jsonPayload);
     } catch (error) {
-      console.error('Error decoding JWT:', error);
       return null;
     }
   }
@@ -130,10 +129,8 @@ export class ProfileService {
         }
       }
 
-      console.error('No user ID found');
       return null;
     } catch (error) {
-      console.error('Error getting user ID:', error);
       return null;
     }
   }
@@ -153,7 +150,6 @@ export class ProfileService {
 
       throw new Error(result.error || "Ошибка загрузки профиля");
     } catch (error) {
-      console.error('Error loading profile:', error);
       throw error;
     }
   }
@@ -173,7 +169,6 @@ export class ProfileService {
 
       throw new Error(result.error || "Ошибка обновления профиля");
     } catch (error) {
-      console.error('Error updating profile:', error);
       throw error;
     }
   }
@@ -193,7 +188,6 @@ export class ProfileService {
 
       throw new Error(result.error || "Ошибка обновления email");
     } catch (error) {
-      console.error('Error updating email:', error);
       throw error;
     }
   }
@@ -213,7 +207,6 @@ export class ProfileService {
 
       throw new Error(result.error || "Ошибка смены пароля");
     } catch (error) {
-      console.error('Error changing password:', error);
       throw error;
     }
   }
@@ -239,7 +232,6 @@ export class ProfileService {
 
       throw new Error(result.error || "Ошибка загрузки объявлений");
     } catch (error) {
-      console.error('Error loading my offers:', error);
       throw error;
     }
   }
@@ -265,7 +257,6 @@ export class ProfileService {
 
       throw new Error(result.error || "Ошибка загрузки аватара");
     } catch (error) {
-      console.error('Error uploading avatar:', error);
       throw error;
     }
   }

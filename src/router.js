@@ -49,6 +49,7 @@ export class Router {
     async loadRoute(fullPath) {
         
         if (fullPath === "/logout") {
+            await this.controller.logout();
             return;
         }
 

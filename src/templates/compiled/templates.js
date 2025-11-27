@@ -225,19 +225,7 @@ const templates = {
     + container.escapeExpression(container.lambda(((stack1 = (depth0 != null ? lookupProperty(depth0,"user") : depth0)) != null ? lookupProperty(stack1,"avatar") : stack1), depth0))
     + "\" alt=\"Профиль\" onerror=\"this.src='../../images/user.png'\">\r\n            </button>\r\n";
 },"3":function(container,depth0,helpers,partials,data) {
-    var stack1, alias1=depth0 != null ? depth0 : (container.nullContext || {}), lookupProperty = container.lookupProperty || function(parent, propertyName) {
-        if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
-          return parent[propertyName];
-        }
-        return undefined
-    };
-
-  return ((stack1 = lookupProperty(helpers,"unless").call(alias1,(depth0 != null ? lookupProperty(depth0,"isRegisterPage") : depth0),{"name":"unless","hash":{},"fn":container.program(4, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":20,"column":12},"end":{"line":24,"column":23}}})) != null ? stack1 : "")
-    + ((stack1 = lookupProperty(helpers,"unless").call(alias1,(depth0 != null ? lookupProperty(depth0,"isLoginPage") : depth0),{"name":"unless","hash":{},"fn":container.program(6, data, 0),"inverse":container.noop,"data":data,"loc":{"start":{"line":25,"column":12},"end":{"line":29,"column":23}}})) != null ? stack1 : "");
-},"4":function(container,depth0,helpers,partials,data) {
-    return "            <button type=\"button\" class=\"header__menu-btn header__menu-btn--register\">\r\n                Регистрация\r\n            </button>\r\n";
-},"6":function(container,depth0,helpers,partials,data) {
-    return "            <button type=\"button\" class=\"header__menu-btn header__menu-btn--login\">\r\n                Войти\r\n            </button>\r\n";
+    return "            <button type=\"button\" class=\"header__menu-btn header__menu-btn--register\">\r\n                Регистрация\r\n            </button>\r\n            <button type=\"button\" class=\"header__menu-btn header__menu-btn--login\">\r\n                Войти\r\n            </button>\r\n";
 },"compiler":[8,">= 4.3.0"],"main":function(container,depth0,helpers,partials,data) {
     var stack1, lookupProperty = container.lookupProperty || function(parent, propertyName) {
         if (Object.prototype.hasOwnProperty.call(parent, propertyName)) {
@@ -247,7 +235,7 @@ const templates = {
     };
 
   return "<div class=\"header__container\">\r\n    <div class=\"header__logo\">\r\n        <a href=\"/\" class=\"header__logo-link\">\r\n            <img src=\"../../images/logo.png\" class=\"header__logo-image\" alt=\"Логотип\">\r\n            <span class=\"header__logo-title\">Homa</span>\r\n        </a>\r\n    </div>\r\n    <div class=\"header__menu\">\r\n"
-    + ((stack1 = lookupProperty(helpers,"if").call(depth0 != null ? depth0 : (container.nullContext || {}),(depth0 != null ? lookupProperty(depth0,"isAuthenticated") : depth0),{"name":"if","hash":{},"fn":container.program(1, data, 0),"inverse":container.program(3, data, 0),"data":data,"loc":{"start":{"line":9,"column":8},"end":{"line":30,"column":15}}})) != null ? stack1 : "")
+    + ((stack1 = lookupProperty(helpers,"if").call(depth0 != null ? depth0 : (container.nullContext || {}),(depth0 != null ? lookupProperty(depth0,"isAuthenticated") : depth0),{"name":"if","hash":{},"fn":container.program(1, data, 0),"inverse":container.program(3, data, 0),"data":data,"loc":{"start":{"line":9,"column":8},"end":{"line":26,"column":15}}})) != null ? stack1 : "")
     + "    </div>\r\n</div>";
 },"useData":true}),
   'Offer': Handlebars.template({"1":function(container,depth0,helpers,partials,data) {

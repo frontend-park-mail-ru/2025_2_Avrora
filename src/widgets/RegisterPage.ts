@@ -243,7 +243,6 @@ export class RegisterPage {
                 this.clearAllVisualStates();
             }
         } catch (error) {
-            console.error('Register error:', error);
             this.showFormError((error as Error).message || "Ошибка сети. Проверьте подключение и попробуйте позже.");
             this.setButtonErrorState(true);
             this.clearAllVisualStates();
@@ -263,7 +262,6 @@ export class RegisterPage {
 
             return JSON.parse(jsonPayload);
         } catch (error) {
-            console.error('Error decoding JWT:', error);
             return null;
         }
     }

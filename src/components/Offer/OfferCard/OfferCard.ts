@@ -1,4 +1,3 @@
-// OfferCard.ts
 import { API } from "../../../utils/API.js";
 import { API_CONFIG } from "../../../config.js";
 import { MediaService } from "../../../utils/MediaService.ts";
@@ -110,8 +109,6 @@ export class OfferCard {
         this.sellerData = null;
         this.isLikeRequestInProgress = false;
         this.hasViewIncremented = false;
-
-        console.log('OfferCard initialized with images:', this.data.images);
     }
 
     async render(): Promise<HTMLElement> {
@@ -123,7 +120,6 @@ export class OfferCard {
                 this.data.id ? this.loadLikeData() : Promise.resolve()
             ]);
 
-            // Увеличиваем счетчик просмотров только один раз
             if (this.data.id && !this.hasViewIncremented) {
                 await this.incrementViewCount();
                 this.hasViewIncremented = true;
@@ -199,7 +195,6 @@ export class OfferCard {
 
             return this.rootEl;
         } catch (error) {
-            console.error('Error rendering offer card:', error);
             const fallbackElement = document.createElement('div');
             fallbackElement.className = 'offer-card-error';
             fallbackElement.textContent = 'Ошибка загрузки объявления';
@@ -214,27 +209,21 @@ export class OfferCard {
             const response = await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.VIEW}${this.data.id}`, {});
 
             if (response.ok) {
-                // Загружаем актуальное количество просмотров с сервера
                 const viewCountResponse = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.VIEWCOUNT}${this.data.id}`);
 
                 if (viewCountResponse.ok && viewCountResponse.data) {
                     this.data.views = viewCountResponse.data.count || this.data.views;
                 } else {
-                    // Если не удалось получить актуальное количество, увеличиваем на 1
                     this.data.views += 1;
                 }
 
-                // Обновляем отображение счетчика просмотров
                 const viewsElement = this.rootEl?.querySelector('.offer__views span');
                 if (viewsElement) {
                     viewsElement.textContent = this.data.views.toString();
                 }
             } else {
-                console.error('Failed to increment view count on server');
             }
         } catch (error) {
-            console.error('Failed to increment view count:', error);
-            // В случае ошибки все равно увеличиваем локально для UX
             this.data.views += 1;
         }
     }
@@ -255,7 +244,7 @@ export class OfferCard {
                 }
             }
         } catch (error) {
-            console.error('Failed to load like data:', error);
+
         }
     }
 
@@ -263,7 +252,6 @@ export class OfferCard {
         try {
             this.sellerData = await ProfileService.getProfile(this.data.userId);
         } catch (error) {
-            console.error('Failed to load seller data:', error);
             this.sellerData = null;
         }
     }
@@ -280,7 +268,6 @@ export class OfferCard {
                 this.data.housingComplexName = null;
             }
         } catch (error) {
-            console.error('Failed to load complex data:', error);
             this.data.housingComplexName = null;
         }
     }
@@ -296,7 +283,7 @@ export class OfferCard {
                 this.data.priceHistory = this.transformPriceHistoryData(response.data);
             }
         } catch (error) {
-            console.error('Failed to load price history:', error);
+
         }
     }
 
@@ -331,14 +318,13 @@ export class OfferCard {
                 this.data.isLiked = previousLikedState;
                 this.data.likesCount = previousLikesCount;
                 this.updateLikeUI();
-                console.error('Like request failed:', response.error);
                 return;
             }
 
             await this.updateLikeCount();
 
         } catch (error) {
-            console.error('Like operation failed:', error);
+
         } finally {
             this.isLikeRequestInProgress = false;
         }
@@ -359,7 +345,7 @@ export class OfferCard {
                 }
             }
         } catch (error) {
-            console.error('Failed to update like count:', error);
+
         }
     }
 
@@ -401,7 +387,6 @@ export class OfferCard {
     initializeSlider(): void {
         const gallery = this.rootEl!.querySelector('.offer__gallery');
         if (!gallery) {
-            console.warn('Gallery element not found');
             return;
         }
 
@@ -412,14 +397,6 @@ export class OfferCard {
             next: gallery.querySelector('.slider__btn_next'),
             fullscreenBtn: gallery.querySelector('.slider__fullscreen-btn')
         } as SliderElements;
-
-        console.log('Slider elements:', {
-            images: this.sliderElements.images.length,
-            dots: this.sliderElements.dots.length,
-            prev: !!this.sliderElements.prev,
-            next: !!this.sliderElements.next,
-            fullscreenBtn: !!this.sliderElements.fullscreenBtn
-        });
 
         if (this.data.images.length <= 1) {
             this.hideSliderControls();
@@ -440,28 +417,22 @@ export class OfferCard {
     }
 
     attachEventListeners(): void {
-        if (!this.rootEl) {
-            console.warn('Root element not found for attaching event listeners');
+        if (!this.rootEl) {;
             return;
         }
 
-        console.log('Attaching event listeners...');
 
-        // Основной обработчик через делегирование событий
         this.rootEl.addEventListener('click', (e) => {
             const target = e.target as HTMLElement;
 
-            // Обработка полноэкранного режима
             const fullscreenBtn = target.closest('.slider__fullscreen-btn');
             if (fullscreenBtn) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Fullscreen button clicked via delegation');
                 this.openFullscreen();
                 return;
             }
 
-            // Обработка ссылок на комплексы
             const complexLink = target.closest('.offer__feature-value--complex');
             if (complexLink) {
                 e.preventDefault();
@@ -474,46 +445,35 @@ export class OfferCard {
             }
         });
 
-        // Дополнительная прямая привязка для полноэкранной кнопки
         this.attachFullscreenButtonDirectly();
 
-        // Слайдер события
         if (this.data.images.length > 1) {
             this.attachSliderEvents();
         }
 
-        // Остальные обработчики
         this.attachOtherEventListeners();
     }
 
     private attachFullscreenButtonDirectly(): void {
         const attachHandler = () => {
             const fullscreenBtn = this.rootEl?.querySelector('.slider__fullscreen-btn');
-            console.log('Direct fullscreen button search:', fullscreenBtn);
 
             if (fullscreenBtn) {
-                // Удаляем старый обработчик если есть
                 if (this.handleFullscreenClick) {
                     fullscreenBtn.removeEventListener('click', this.handleFullscreenClick);
                 }
 
-                // Создаем новый обработчик
                 this.handleFullscreenClick = () => {
-                    console.log('Fullscreen button clicked directly');
                     this.openFullscreen();
                 };
 
                 fullscreenBtn.addEventListener('click', this.handleFullscreenClick);
-                console.log('Direct fullscreen event listener attached');
             }
         };
 
-        // Пытаемся найти кнопку сразу
         attachHandler();
 
-        // И еще раз после задержки на случай асинхронного рендеринга
-        setTimeout(attachHandler, 100);
-        setTimeout(attachHandler, 500); // Дополнительная проверка
+        setTimeout(attachHandler, 500);
     }
 
     private attachOtherEventListeners(): void {
@@ -584,10 +544,7 @@ export class OfferCard {
     }
 
     openFullscreen(): void {
-        console.log('openFullscreen called, currentSlide:', this.currentSlide, 'images count:', this.data.images.length);
-
         if (!this.data.images || this.data.images.length === 0) {
-            console.warn('No images available for fullscreen view');
             return;
         }
 
@@ -596,8 +553,6 @@ export class OfferCard {
     }
 
     createFullscreenViewer(): void {
-        console.log('Creating fullscreen viewer...');
-
         const overlay = document.createElement('div');
         overlay.className = 'fullscreen-overlay';
         overlay.style.cssText = `
@@ -749,14 +704,9 @@ export class OfferCard {
 
         document.body.appendChild(overlay);
         document.body.style.overflow = 'hidden';
-
-        console.log('Fullscreen viewer created successfully');
     }
 
     closeFullscreen(overlay: HTMLElement): void {
-        console.log('Closing fullscreen');
-
-        // Удаляем обработчики клавиатуры
         const keyHandler = (overlay as any)._keyHandler;
         if (keyHandler) {
             document.removeEventListener('keydown', keyHandler);
