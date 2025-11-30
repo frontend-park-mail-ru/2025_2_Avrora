@@ -223,7 +223,7 @@ const templates = {
 
   return "            <button type=\"button\" class=\"header__menu-btn header__menu-btn--like\">\r\n                <img src=\"../../images/menu__like.png\" alt=\"Избранное\">\r\n            </button>\r\n            <button type=\"button\" class=\"header__menu-btn header__menu-btn--add-object\">\r\n                + Объект\r\n            </button>\r\n            <button type=\"button\" class=\"header__menu-btn header__menu-btn--user\">\r\n                <img src=\""
     + container.escapeExpression(container.lambda(((stack1 = (depth0 != null ? lookupProperty(depth0,"user") : depth0)) != null ? lookupProperty(stack1,"avatar") : stack1), depth0))
-    + "\" alt=\"Профиль\" onerror=\"this.src='../../images/user.png'\">\r\n            </button>\r\n";
+    + "\" alt=\"Профиль\" onerror=\"this.src='../../images/default_avatar.jpg'\">\r\n            </button>\r\n";
 },"3":function(container,depth0,helpers,partials,data) {
     return "            <button type=\"button\" class=\"header__menu-btn header__menu-btn--register\">\r\n                Регистрация\r\n            </button>\r\n            <button type=\"button\" class=\"header__menu-btn header__menu-btn--login\">\r\n                Войти\r\n            </button>\r\n";
 },"compiler":[8,">= 4.3.0"],"main":function(container,depth0,helpers,partials,data) {

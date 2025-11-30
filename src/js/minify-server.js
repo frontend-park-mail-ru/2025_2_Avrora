@@ -8,8 +8,8 @@ const __dirname = path.dirname(__filename);
 
 async function minifyServerFiles() {
   try {
-    const serverFile = path.join(__dirname, '../server.js');
-    const distDir = path.join(__dirname, '../dist-server');
+    const serverFile = path.join(__dirname, '../../server.js');
+    const distDir = path.join(__dirname, '../../dist-server');
 
     try {
       await fs.access(distDir);

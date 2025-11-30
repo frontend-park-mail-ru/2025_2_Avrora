@@ -7,22 +7,16 @@
   "scripts": {
     "dev": "npm run compile-hbs && npm run build-css && vite --mode development",
     "build": "npm run compile-hbs && npm run build-css-prod && vite build --mode production",
-    "build:minified": "npm run compile-hbs && npm run build-css-prod && vite build --mode production && npm run minify:server",
     "preview": "vite preview",
     "lint": "eslint . --color",
     "lint:report": "eslint . --format stylish",
     "lint:fix": "eslint . --fix",
     "docs": "jsdoc -c jsdoc.json",
     "build-css": "sass src/styles/index.scss src/styles/index.css",
-    "watch-css": "sass --watch src/styles/index.scss src/styles/index.css",
     "build-css-prod": "sass src/styles/index.scss src/styles/index.css --style=compressed",
     "compile-hbs": "node compile-templates.js",
-    "minify:server": "node src/js/minify-server.js",
-    "sw:unregister": "node -e \"if('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister())) }\"",
-    "sw:clean": "node -e \"caches.keys().then(keys => keys.forEach(key => caches.delete(key)))\"",
-    "babel:check": "babel src/js --out-dir dist-check --verbose",
-    "babel:build": "babel src/js --out-dir dist-babel",
     "start": "node server.js",
+    "minify:server": "node src/js/minify-server.js",
     "start:minified": "node dist-server/server.js"
   },
   "keywords": [
