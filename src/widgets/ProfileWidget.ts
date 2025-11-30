@@ -199,7 +199,7 @@ export class ProfileWidget {
         avatar.className = "profile__sidebar-avatar";
 
         const user = this.controller.user;
-        let userAvatar = "../../images/user.png";
+        let userAvatar = "../../images/default_avatar.jpg";
         let userName = "Пользователь";
 
         if (user) {
@@ -207,7 +207,7 @@ export class ProfileWidget {
                        user.avatar ||
                        user.photo_url ||
                        user.avatarUrl ||
-                       "../../images/user.png";
+                       "../../images/default_avatar.jpg";
 
             if (user.FirstName && user.LastName) {
                 userName = `${user.FirstName} ${user.LastName}`;
@@ -225,7 +225,7 @@ export class ProfileWidget {
         avatar.src = userAvatar;
         avatar.alt = "Аватар";
         avatar.onerror = () => {
-            avatar.src = "../../images/user.png";
+            avatar.src = "../../images/default_avatar.jpg";
         };
 
         const name = document.createElement("span");

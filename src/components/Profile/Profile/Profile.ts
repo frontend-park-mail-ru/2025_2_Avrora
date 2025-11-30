@@ -1,3 +1,4 @@
+// Profile.ts
 import { ProfileService } from '../../../utils/ProfileService.ts';
 import { MediaService } from '../../../utils/MediaService.ts';
 import { Modal } from '../../OfferCreate/Modal/Modal.ts';
@@ -91,21 +92,21 @@ export class Profile {
             avatar.className = "profile__avatar";
 
             const user = this.controller.user;
-            let avatarUrl = "../../../images/user.png";
+            let avatarUrl = "../../../images/default_avatar.jpg";
 
             if (user) {
                 avatarUrl = user.AvatarURL ||
                            user.avatar ||
                            user.photo_url ||
                            user.avatarUrl ||
-                           "../../../images/user.png";
+                           "../../../images/default_avatar.jpg";
             }
 
             avatar.src = avatarUrl.startsWith('http') ? avatarUrl : MediaService.getImageUrl(avatarUrl);
             avatar.alt = "Аватар";
             avatar.id = "profile-avatar";
             avatar.onerror = () => {
-                avatar.src = "../../../images/user.png";
+                avatar.src = "../../../images/default_avatar.jpg";
             };
 
             const name = document.createElement("span");
@@ -137,17 +138,17 @@ export class Profile {
             const avatar = document.createElement("img");
             avatar.className = "profile__avatar";
             const user = this.controller.user;
-            let avatarUrl = "../../../images/user.png";
+            let avatarUrl = "../../../images/default_avatar.jpg";
 
             if (user) {
-                avatarUrl = user.AvatarURL || user.avatar || "../../../images/user.png";
+                avatarUrl = user.AvatarURL || user.avatar || "../../../images/default_avatar.jpg";
             }
 
             avatar.src = avatarUrl.startsWith('http') ? avatarUrl : MediaService.getImageUrl(avatarUrl);
             avatar.alt = "Аватар";
             avatar.id = "profile-avatar";
             avatar.onerror = () => {
-                avatar.src = "../../../images/user.png";
+                avatar.src = "../../../images/default_avatar.jpg";
             };
 
             const name = document.createElement("span");
@@ -266,7 +267,7 @@ export class Profile {
         const fields = [
             { label: "Имя", key: "first_name", placeholder: "Введите имя", type: "text" },
             { label: "Фамилия", key: "last_name", placeholder: "Введите фамилию", type: "text" },
-            { label: "Телефон", key: "phone", placeholder: "Введите телефон", type: "tel" },
+            { label: "Телефон", key: "phone", placeholder: "+7 (___) ___-__-__", type: "tel" },
             { label: "Email", key: "email", placeholder: "Введите email", type: "email" }
         ];
 
@@ -283,6 +284,10 @@ export class Profile {
             input.type = type;
             input.placeholder = placeholder;
             input.dataset.field = key;
+
+            if (key === 'phone') {
+                this.applyPhoneMask(input);
+            }
 
             input.addEventListener('blur', () => {
                 this.validateField(input);
@@ -301,7 +306,7 @@ export class Profile {
                         input.value = this.profileData.last_name || "";
                         break;
                     case 'phone':
-                        input.value = this.profileData.phone || "";
+                        input.value = this.formatPhoneValue(this.profileData.phone || "");
                         break;
                     case 'email':
                         input.value = this.profileData.email || "";
@@ -317,7 +322,7 @@ export class Profile {
                         input.value = userData.lastName || "";
                         break;
                     case 'phone':
-                        input.value = userData.phone || "";
+                        input.value = this.formatPhoneValue(userData.phone || "");
                         break;
                     case 'email':
                         input.value = userData.email || "";
@@ -332,9 +337,116 @@ export class Profile {
         });
     }
 
+    private applyPhoneMask(input: HTMLInputElement): void {
+        input.addEventListener('input', (e) => {
+            const target = e.target as HTMLInputElement;
+            let value = target.value.replace(/\D/g, '');
+            
+            if (value.startsWith('7') || value.startsWith('8')) {
+                value = value.substring(1);
+            }
+            
+            value = value.substring(0, 10);
+            
+            let formattedValue = '+7 (';
+            
+            if (value.length > 0) {
+                formattedValue += value.substring(0, 3);
+            }
+            
+            if (value.length >= 3) {
+                formattedValue += ') ';
+            }
+            
+            if (value.length > 3) {
+                formattedValue += value.substring(3, 6);
+            }
+            
+            if (value.length >= 6) {
+                formattedValue += '-';
+            }
+            
+            if (value.length > 6) {
+                formattedValue += value.substring(6, 8);
+            }
+            
+            if (value.length >= 8) {
+                formattedValue += '-';
+            }
+            
+            if (value.length > 8) {
+                formattedValue += value.substring(8, 10);
+            }
+            
+            target.value = formattedValue;
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+                const target = e.target as HTMLInputElement;
+                const value = target.value;
+                
+                if (value.length === 7 || value.length === 11 || value.length === 14) {
+                    e.preventDefault();
+                    target.value = value.slice(0, -1);
+                }
+            }
+        });
+
+        input.addEventListener('focus', () => {
+            if (!input.value) {
+                input.value = '+7 (';
+            }
+        });
+    }
+
+    private formatPhoneValue(phone: string): string {
+        if (!phone) return '';
+        
+        let digits = phone.replace(/\D/g, '');
+        
+        if (digits.startsWith('7') || digits.startsWith('8')) {
+            digits = digits.substring(1);
+        }
+        
+        digits = digits.substring(0, 10);
+        
+        let formatted = '+7 (';
+        
+        if (digits.length > 0) {
+            formatted += digits.substring(0, 3);
+        }
+        
+        if (digits.length >= 3) {
+            formatted += ') ';
+        }
+        
+        if (digits.length > 3) {
+            formatted += digits.substring(3, 6);
+        }
+        
+        if (digits.length >= 6) {
+            formatted += '-';
+        }
+        
+        if (digits.length > 6) {
+            formatted += digits.substring(6, 8);
+        }
+        
+        if (digits.length >= 8) {
+            formatted += '-';
+        }
+        
+        if (digits.length > 8) {
+            formatted += digits.substring(8, 10);
+        }
+        
+        return formatted;
+    }
+
     private validateField(input: HTMLInputElement): boolean {
         const fieldName = input.dataset.field;
-        const value = input.value.trim();
+        let value = input.value.trim();
 
         let errors: string[] = [];
 
@@ -352,7 +464,11 @@ export class Profile {
                 }
                 break;
             case 'phone':
-                const phoneErrors = validPhone(value);
+                const phoneValue = value.replace(/\D/g, '');
+                if (phoneValue.startsWith('7') || phoneValue.startsWith('8')) {
+                    value = phoneValue.substring(1);
+                }
+                const phoneErrors = validPhone(phoneValue);
                 errors = phoneErrors;
                 break;
         }
@@ -392,10 +508,17 @@ export class Profile {
 
             this.showLoading(true);
 
+            const phoneInput = document.querySelector('input[data-field="phone"]') as HTMLInputElement;
+            let phoneValue = phoneInput?.value.trim() || "";
+            phoneValue = phoneValue.replace(/\D/g, '');
+            if (phoneValue.startsWith('7') || phoneValue.startsWith('8')) {
+                phoneValue = phoneValue.substring(1);
+            }
+
             const profileData = {
                 first_name: (inputs[0] as HTMLInputElement)?.value.trim() || "",
                 last_name: (inputs[1] as HTMLInputElement)?.value.trim() || "",
-                phone: (inputs[2] as HTMLInputElement)?.value.trim() || "",
+                phone: phoneValue,
                 email: (inputs[3] as HTMLInputElement)?.value.trim() || "",
                 avatar_url: this.currentAvatarUrl || this.profileData?.photo_url || this.controller.user?.avatar
             };

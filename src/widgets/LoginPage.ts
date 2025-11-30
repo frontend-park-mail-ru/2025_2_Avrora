@@ -162,7 +162,7 @@ export class LoginPage {
                 const user = {
                     id: userId.toString(),
                     email: emailStr,
-                    avatar: '../../images/user.png',
+                    avatar: '../../images/default_avatar.jpg',
                     firstName: '',
                     lastName: '',
                     phone: ''

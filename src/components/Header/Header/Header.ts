@@ -29,14 +29,14 @@ export class Header {
         const isRegisterPage = window.location.pathname === '/register';
 
         const user = this.controller.user;
-        let userAvatar = "../../images/user.png";
+        let userAvatar = "../../images/default_avatar.jpg";
 
         if (user) {
             userAvatar = user.AvatarURL ||
                         user.avatar ||
                         user.photo_url ||
                         user.avatarUrl ||
-                        "../../images/user.png";
+                        "../../images/default_avatar.jpg";
         }
 
         const templateData: TemplateData = {
