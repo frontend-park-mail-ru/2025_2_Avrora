@@ -1,4 +1,3 @@
-// Profile.ts
 import { ProfileService } from '../../../utils/ProfileService.ts';
 import { MediaService } from '../../../utils/MediaService.ts';
 import { Modal } from '../../OfferCreate/Modal/Modal.ts';
@@ -43,6 +42,7 @@ export class Profile {
     private profileData: ProfileData | null;
     private originalEmail: string;
     private parentWidget: any;
+    private contentElement: HTMLElement | null;
 
     constructor(controller: any, parentWidget?: any) {
         this.controller = controller;
@@ -51,11 +51,36 @@ export class Profile {
         this.isLoading = false;
         this.profileData = null;
         this.originalEmail = '';
+        this.contentElement = null;
+        
+        // Инициализируем текущую аватарку из данных пользователя
+        this.initializeCurrentAvatar();
+    }
+
+    private initializeCurrentAvatar(): void {
+        if (this.controller.user) {
+            const user = this.controller.user;
+            let avatarUrl = user.AvatarURL ||
+                           user.avatar ||
+                           user.photo_url ||
+                           user.avatarUrl ||
+                           null;
+            
+            if (avatarUrl) {
+                this.currentAvatarUrl = MediaService.getAvatarUrl(avatarUrl);
+            }
+        }
     }
 
     async render(): Promise<HTMLElement> {
+        // Очищаем предыдущий контент
+        if (this.contentElement) {
+            this.cleanup();
+        }
+        
         const content = document.createElement("div");
         content.className = "profile__content";
+        this.contentElement = content;
 
         const block = document.createElement("div");
         block.className = "profile__block";
@@ -69,6 +94,11 @@ export class Profile {
         try {
             this.profileData = await ProfileService.getProfile();
             this.originalEmail = this.profileData.email;
+            
+            // Обновляем аватарку из данных профиля
+            if (this.profileData.photo_url) {
+                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+            }
 
             const userSection = await this.createUserSection();
             const dataSection = this.createDataSection();
@@ -76,6 +106,7 @@ export class Profile {
             block.appendChild(userSection);
             block.appendChild(dataSection);
         } catch (error) {
+            console.error('Ошибка загрузки профиля:', error);
             block.appendChild(this.createErrorSection((error as Error).message));
         }
 
@@ -83,91 +114,100 @@ export class Profile {
         return content;
     }
 
+    // Новый метод для обновления данных без полного перерендера
+    async updateData(): Promise<void> {
+        if (!this.contentElement) {
+            return;
+        }
+        
+        // Полностью очищаем контент
+        this.contentElement.innerHTML = '';
+        
+        // Загружаем актуальные данные
+        try {
+            this.profileData = await ProfileService.getProfile();
+            this.originalEmail = this.profileData.email;
+            
+            // Обновляем аватарку из данных профиля
+            if (this.profileData.photo_url) {
+                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+            }
+            
+            const block = document.createElement("div");
+            block.className = "profile__block";
+
+            const userSection = await this.createUserSection();
+            const dataSection = this.createDataSection();
+
+            block.appendChild(userSection);
+            block.appendChild(dataSection);
+            
+            this.contentElement.appendChild(block);
+            
+        } catch (error) {
+            console.error('Ошибка обновления профиля:', error);
+            const errorSection = this.createErrorSection((error as Error).message);
+            this.contentElement.appendChild(errorSection);
+        }
+    }
+
     private async createUserSection(): Promise<HTMLElement> {
         const userSection = document.createElement("div");
         userSection.className = "profile__user-section";
 
-        try {
-            const avatar = document.createElement("img");
-            avatar.className = "profile__avatar";
+        const avatar = document.createElement("img");
+        avatar.className = "profile__avatar";
 
+        // Используем актуальную аватарку
+        let avatarUrl = MediaService.getAvatarUrl("default_avatar.jpg");
+        
+        if (this.currentAvatarUrl) {
+            avatarUrl = this.currentAvatarUrl;
+        } else if (this.profileData?.photo_url) {
+            avatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+        } else if (this.controller.user) {
             const user = this.controller.user;
-            let avatarUrl = "../../../images/default_avatar.jpg";
-
-            if (user) {
-                avatarUrl = user.AvatarURL ||
-                           user.avatar ||
-                           user.photo_url ||
-                           user.avatarUrl ||
-                           "../../../images/default_avatar.jpg";
+            const userAvatar = user.AvatarURL ||
+                             user.avatar ||
+                             user.photo_url ||
+                             user.avatarUrl;
+            if (userAvatar) {
+                avatarUrl = MediaService.getAvatarUrl(userAvatar);
             }
-
-            avatar.src = avatarUrl.startsWith('http') ? avatarUrl : MediaService.getImageUrl(avatarUrl);
-            avatar.alt = "Аватар";
-            avatar.id = "profile-avatar";
-            avatar.onerror = () => {
-                avatar.src = "../../../images/default_avatar.jpg";
-            };
-
-            const name = document.createElement("span");
-            name.className = "profile__user-name";
-
-            let fullName = "Пользователь";
-            if (user) {
-                if (user.FirstName && user.LastName) {
-                    fullName = `${user.FirstName} ${user.LastName}`;
-                } else if (user.firstName && user.lastName) {
-                    fullName = `${user.firstName} ${user.lastName}`;
-                } else if (user.first_name && user.last_name) {
-                    fullName = `${user.first_name} ${user.last_name}`;
-                } else if (user.name) {
-                    fullName = user.name;
-                } else if (user.email) {
-                    fullName = user.email.split('@')[0];
-                }
-            }
-
-            name.textContent = fullName;
-
-            userSection.appendChild(avatar);
-            userSection.appendChild(name);
-
-            this.currentAvatarUrl = avatarUrl;
-
-        } catch (error) {
-            const avatar = document.createElement("img");
-            avatar.className = "profile__avatar";
-            const user = this.controller.user;
-            let avatarUrl = "../../../images/default_avatar.jpg";
-
-            if (user) {
-                avatarUrl = user.AvatarURL || user.avatar || "../../../images/default_avatar.jpg";
-            }
-
-            avatar.src = avatarUrl.startsWith('http') ? avatarUrl : MediaService.getImageUrl(avatarUrl);
-            avatar.alt = "Аватар";
-            avatar.id = "profile-avatar";
-            avatar.onerror = () => {
-                avatar.src = "../../../images/default_avatar.jpg";
-            };
-
-            const name = document.createElement("span");
-            name.className = "profile__user-name";
-            let fullName = "Пользователь";
-            if (user) {
-                if (user.FirstName && user.LastName) {
-                    fullName = `${user.FirstName} ${user.LastName}`;
-                } else if (user.firstName && user.lastName) {
-                    fullName = `${user.firstName} ${user.lastName}`;
-                } else if (user.name) {
-                    fullName = user.name;
-                }
-            }
-            name.textContent = fullName;
-
-            userSection.appendChild(avatar);
-            userSection.appendChild(name);
         }
+
+        avatar.src = avatarUrl;
+        avatar.alt = "Аватар";
+        avatar.id = "profile-avatar";
+        avatar.onerror = () => {
+            console.warn('Ошибка загрузки аватарки, используем дефолтную');
+            avatar.src = MediaService.getAvatarUrl("default_avatar.jpg");
+        };
+
+        const name = document.createElement("span");
+        name.className = "profile__user-name";
+
+        let fullName = "Пользователь";
+        const user = this.controller.user;
+        
+        if (user) {
+            if (user.FirstName && user.LastName) {
+                fullName = `${user.FirstName} ${user.LastName}`;
+            } else if (user.firstName && user.lastName) {
+                fullName = `${user.firstName} ${user.lastName}`;
+            } else if (user.first_name && user.last_name) {
+                fullName = `${user.first_name} ${user.last_name}`;
+            } else if (user.name) {
+                fullName = user.name;
+            } else if (user.email) {
+                fullName = user.email.split('@')[0];
+            }
+        }
+
+        name.textContent = fullName;
+
+        userSection.appendChild(avatar);
+        userSection.appendChild(name);
 
         return userSection;
     }
@@ -209,30 +249,38 @@ export class Profile {
                         throw new Error(fileErrors.join(', '));
                     }
 
-                    const avatarUrl = await ProfileService.uploadAvatar(file);
+                    // Загружаем аватар
+                    const uploadResult = await MediaService.uploadImage(file);
+                    const avatarUrl = uploadResult.url;
+                    
+                    // Обновляем аватарку в интерфейсе
+                    this.updateCurrentAvatar(avatarUrl);
 
-                    const img = document.getElementById("profile-avatar") as HTMLImageElement;
-                    if (img) {
-                        img.src = avatarUrl;
-                        this.currentAvatarUrl = avatarUrl;
-                    }
-
+                    // Обновляем данные пользователя в контроллере
                     if (this.controller.user) {
-                        this.controller.updateUser({
+                        const updatedUser = {
                             ...this.controller.user,
                             avatar: avatarUrl,
-                            photo_url: avatarUrl
-                        });
+                            photo_url: avatarUrl,
+                            AvatarURL: avatarUrl
+                        };
+                        this.controller.updateUser(updatedUser);
                     }
 
+                    // Сохраняем URL аватарки для отправки при сохранении профиля
+                    this.currentAvatarUrl = avatarUrl;
+
+                    // Обновляем сайдбар
                     if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
-                        this.parentWidget.updateSidebar();
+                        await this.parentWidget.updateSidebar();
                     }
 
                     this.showLoading(false);
+                    
+                    // Показываем успешное сообщение
                     Modal.show({
                         title: 'Успех',
-                        message: 'Аватар успешно загружен',
+                        message: 'Аватар успешно загружен! Нажмите "Сохранить изменения", чтобы сохранить его в профиле.',
                         type: 'info'
                     });
 
@@ -520,7 +568,7 @@ export class Profile {
                 last_name: (inputs[1] as HTMLInputElement)?.value.trim() || "",
                 phone: phoneValue,
                 email: (inputs[3] as HTMLInputElement)?.value.trim() || "",
-                avatar_url: this.currentAvatarUrl || this.profileData?.photo_url || this.controller.user?.avatar
+                photo_url: this.currentAvatarUrl || this.profileData?.photo_url || this.controller.user?.avatar
             };
 
             const validation = ProfileService.validateProfile(profileData);
@@ -536,6 +584,7 @@ export class Profile {
                 this.originalEmail = profileData.email;
             }
 
+            // Обновляем данные пользователя в контроллере
             const updatedUser = {
                 ...this.controller.user,
                 id: this.controller.user?.id || ProfileService.getCurrentUserId(),
@@ -544,24 +593,28 @@ export class Profile {
                 email: profileData.email,
                 phone: profileData.phone,
                 name: `${profileData.first_name} ${profileData.last_name}`,
-                avatar: profileData.avatar_url,
-                photo_url: profileData.avatar_url
+                avatar: profileData.photo_url,
+                photo_url: profileData.photo_url
             };
 
             this.controller.updateUser(updatedUser);
-
-            this.profileData = {
-                ...this.profileData,
-                ...profileData
-            } as ProfileData;
-
-            this.controller.updateUI();
-
-            if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
-                this.parentWidget.updateSidebar();
-            }
-
+            
+            // Устанавливаем флаг загрузки в false
             this.showLoading(false);
+            
+            // Обновляем текущую аватарку в форме
+            this.updateCurrentAvatar(profileData.photo_url);
+            
+            // 1. Обновляем данные текущего компонента
+            await this.updateData();
+            
+            // 2. Обновляем сайдбар
+            if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
+                await this.parentWidget.updateSidebar();
+            }
+            
+            // 3. Вызываем обновление UI контроллера
+            await this.controller.refreshProfileAndUI();
 
             Modal.show({
                 title: 'Успех',
@@ -579,6 +632,17 @@ export class Profile {
                 message: errorMessage,
                 type: 'error'
             });
+        }
+    }
+
+    private updateCurrentAvatar(avatarUrl: string): void {
+        // Обновляем текущую аватарку
+        this.currentAvatarUrl = MediaService.getAvatarUrl(avatarUrl);
+        
+        // Обновляем изображение в форме, если оно есть
+        const avatarImg = document.getElementById("profile-avatar") as HTMLImageElement;
+        if (avatarImg && avatarUrl) {
+            avatarImg.src = this.currentAvatarUrl;
         }
     }
 
@@ -600,13 +664,8 @@ export class Profile {
         const retryButton = document.createElement("button");
         retryButton.className = "profile__retry-button";
         retryButton.textContent = "Попробовать снова";
-        retryButton.addEventListener("click", () => {
-            this.render().then(newContent => {
-                const currentContent = document.querySelector('.profile__content');
-                if (currentContent && currentContent.parentNode) {
-                    currentContent.parentNode.replaceChild(newContent, currentContent);
-                }
-            });
+        retryButton.addEventListener("click", async () => {
+            await this.updateData();
         });
         errorDiv.appendChild(retryButton);
 
@@ -623,6 +682,22 @@ export class Profile {
     }
 
     cleanup(): void {
-
+        // Очищаем все слушатели событий
+        const inputs = document.querySelectorAll('.profile__field-input');
+        inputs.forEach(input => {
+            input.removeEventListener('blur', () => {});
+            input.removeEventListener('input', () => {});
+        });
+        
+        const fileInput = document.getElementById('avatar-upload-input');
+        if (fileInput) {
+            fileInput.removeEventListener('change', () => {});
+        }
+        
+        // Очищаем контент
+        if (this.contentElement) {
+            this.contentElement.innerHTML = '';
+            this.contentElement = null;
+        }
     }
 }

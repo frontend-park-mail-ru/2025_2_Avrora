@@ -1,4 +1,3 @@
-// ProfileWidget.ts
 import { Summary } from '../components/Profile/Summary/Summary.ts';
 import { Profile } from '../components/Profile/Profile/Profile.ts';
 import { Safety } from '../components/Profile/Safety/Safety.ts';
@@ -23,6 +22,7 @@ interface User {
 interface Component {
     render: () => Promise<HTMLElement> | HTMLElement;
     cleanup?: () => void;
+    updateData?: () => Promise<void>;
 }
 
 interface EventListener {
@@ -43,6 +43,10 @@ export class ProfileWidget {
     private root: HTMLElement | null;
     private currentComponent: Component | null;
     private myOffersCount: number;
+    private isRendering: boolean;
+    private isUpdating: boolean;
+    private profileUpdateListener: (event: Event) => void;
+    private uiUpdateListener: (event: Event) => void;
 
     constructor(parent: HTMLElement, controller: any, options: ProfileWidgetOptions = {}) {
         this.parent = parent;
@@ -52,6 +56,59 @@ export class ProfileWidget {
         this.root = null;
         this.currentComponent = null;
         this.myOffersCount = 0;
+        this.isRendering = false;
+        this.isUpdating = false;
+        
+        this.profileUpdateListener = this.handleProfileUpdate.bind(this);
+        this.uiUpdateListener = this.handleUIUpdate.bind(this);
+        
+        this.setupEventListeners();
+    }
+    
+    private setupEventListeners(): void {
+        window.addEventListener('profileUpdated', this.profileUpdateListener);
+        window.addEventListener('uiUpdate', this.uiUpdateListener);
+    }
+    
+    private handleProfileUpdate(event: Event): void {
+        console.log('ProfileWidget: получено обновление профиля');
+        this.forceUpdate();
+    }
+    
+    private handleUIUpdate(event: Event): void {
+        console.log('ProfileWidget: получено обновление UI');
+        this.updateSidebar().catch(console.error);
+    }
+
+    // Метод для принудительного обновления всех данных
+    async forceUpdate(): Promise<void> {
+        if (this.isUpdating) {
+            console.log('Обновление уже выполняется, пропускаем');
+            return;
+        }
+        
+        this.isUpdating = true;
+        
+        try {
+            console.log('ProfileWidget: принудительное обновление всех данных');
+            
+            // Обновляем счетчик объявлений
+            await this.updateMyOffersCount();
+            
+            // Обновляем сайдбар
+            await this.updateSidebar();
+            
+            // Если текущий компонент поддерживает обновление, обновляем его
+            if (this.currentComponent && typeof this.currentComponent.updateData === 'function') {
+                await this.currentComponent.updateData();
+            }
+            
+            console.log('ProfileWidget: обновление завершено');
+        } catch (error) {
+            console.error('Ошибка при принудительном обновлении:', error);
+        } finally {
+            this.isUpdating = false;
+        }
     }
 
     private resolveViewFromLocation(): string {
@@ -63,16 +120,16 @@ export class ProfileWidget {
     }
 
     async render(): Promise<void> {
+        if (this.isRendering) {
+            return;
+        }
+        
+        this.isRendering = true;
         this.cleanup();
 
         this.view = this.resolveViewFromLocation();
 
-        try {
-            const offers = await ProfileService.getMyOffers();
-            this.myOffersCount = offers.length;
-        } catch (error) {
-            this.myOffersCount = 0;
-        }
+        await this.updateMyOffersCount();
 
         this.root = document.createElement("div");
         this.root.className = "profile";
@@ -80,28 +137,31 @@ export class ProfileWidget {
         const sidebar = this.createSidebar();
         this.root.appendChild(sidebar);
 
+        // Полностью очищаем родительский контейнер
+        this.parent.innerHTML = '';
         this.parent.appendChild(this.root);
 
         await this.renderActiveView();
+        
+        this.isRendering = false;
     }
 
     private async renderActiveView(): Promise<void> {
         if (!this.root) return;
 
-        while (this.root.childNodes.length > 1) {
-            this.root.removeChild(this.root.lastChild);
-        }
+        // Очищаем предыдущий контент (кроме сайдбара)
+        this.cleanupContent();
 
         let component: Component;
         switch (this.view) {
             case "profile":
-                component = new Profile(this.controller, this); // Передаем this как parentWidget
+                component = new Profile(this.controller, this);
                 break;
             case "safety":
                 component = new Safety(this.controller);
                 break;
             case "myads":
-                component = new MyAdvertisements(this.controller);
+                component = new MyAdvertisements(this.controller, this);
                 break;
             case "summary":
             default:
@@ -119,12 +179,39 @@ export class ProfileWidget {
                 this.renderError("Ошибка при загрузке компонента");
             }
         } catch (error) {
+            console.error('Ошибка при рендеринге компонента:', error);
             this.renderError("Не удалось загрузить компонент");
         }
     }
 
-    // Новый метод для обновления сайдбара в реальном времени
-    updateSidebar(): void {
+    // Очищаем только контент, оставляя сайдбар
+    private cleanupContent(): void {
+        if (!this.root) return;
+
+        // Находим все элементы кроме сайдбара
+        const contentElements = Array.from(this.root.children).filter(
+            child => !child.classList.contains('profile__sidebar')
+        );
+
+        // Удаляем их
+        contentElements.forEach(element => {
+            this.root?.removeChild(element);
+        });
+
+        // Также очищаем текущий компонент
+        if (this.currentComponent && typeof this.currentComponent.cleanup === 'function') {
+            this.currentComponent.cleanup();
+        }
+        this.currentComponent = null;
+    }
+
+    // Метод для обновления данных профиля
+    async updateProfileData(): Promise<void> {
+        await this.forceUpdate();
+    }
+
+    // Метод для обновления сайдбара в реальном времени
+    async updateSidebar(): Promise<void> {
         if (!this.root) return;
 
         const oldSidebar = this.root.querySelector('.profile__sidebar');
@@ -132,45 +219,16 @@ export class ProfileWidget {
             const newSidebar = this.createSidebar();
             this.root.replaceChild(newSidebar, oldSidebar);
         }
-
-        // Также обновляем счетчик объявлений в навигации
-        this.updateMyOffersCount();
     }
 
     private async updateMyOffersCount(): Promise<void> {
         try {
             const offers = await ProfileService.getMyOffers();
             this.myOffersCount = offers.length;
-
-            // Обновляем текст в навигации
-            const myAdsButton = this.root?.querySelector('[data-path="/profile/myoffers"]');
-            if (myAdsButton) {
-                myAdsButton.textContent = `Мои объявления (${this.myOffersCount})`;
-            }
         } catch (error) {
+            console.error('Ошибка при загрузке счетчика объявлений:', error);
             this.myOffersCount = 0;
         }
-    }
-
-    private renderError(message: string): void {
-        if (!this.root) return;
-
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "profile__error";
-
-        const errorText = document.createElement("p");
-        errorText.textContent = message;
-        errorDiv.appendChild(errorText);
-
-        const retryButton = document.createElement("button");
-        retryButton.className = "profile__retry-button";
-        retryButton.textContent = "Попробовать снова";
-        retryButton.addEventListener("click", () => {
-            this.renderActiveView();
-        });
-        errorDiv.appendChild(retryButton);
-
-        this.root.appendChild(errorDiv);
     }
 
     private createSidebar(): HTMLElement {
@@ -297,34 +355,48 @@ export class ProfileWidget {
         return block;
     }
 
-    private addEventListener(element: HTMLElement, event: string, handler: (event: Event) => void): void {
-        if (!element) return;
-        element.addEventListener(event, handler);
-        this.eventListeners.push({ element, event, handler });
-    }
+    private renderError(message: string): void {
+        if (!this.root) return;
 
-    private removeEventListeners(): void {
-        this.eventListeners.forEach(({ element, event, handler }) => {
-            element.removeEventListener(event, handler);
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "profile__error";
+
+        const errorText = document.createElement("p");
+        errorText.textContent = message;
+        errorDiv.appendChild(errorText);
+
+        const retryButton = document.createElement("button");
+        retryButton.className = "profile__retry-button";
+        retryButton.textContent = "Попробовать снова";
+        retryButton.addEventListener("click", () => {
+            this.renderActiveView();
         });
-        this.eventListeners = [];
+        errorDiv.appendChild(retryButton);
+
+        this.root.appendChild(errorDiv);
     }
 
     cleanup(): void {
-        this.removeEventListeners();
-
+        // Удаляем слушатели событий
+        window.removeEventListener('profileUpdated', this.profileUpdateListener);
+        window.removeEventListener('uiUpdate', this.uiUpdateListener);
+        
+        // Очищаем текущий компонент
         if (this.currentComponent && typeof this.currentComponent.cleanup === 'function') {
             this.currentComponent.cleanup();
         }
 
+        // Очищаем все слушатели событий
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
+
         // Полная очистка родительского элемента
         if (this.parent) {
             this.parent.innerHTML = "";
-            // Добавляем элемент-заглушку или оставляем пустым
-            const placeholder = document.createElement('div');
-            placeholder.className = 'logout-placeholder';
-            this.parent.appendChild(placeholder);
         }
+        
         this.root = null;
         this.currentComponent = null;
     }

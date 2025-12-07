@@ -68,6 +68,11 @@ class App {
             }
         );
 
+        this.header = null;
+        this.router = null;
+        this.initialHeaderRendered = false;
+        this.profileUpdateTimeout = null;
+
         this.init();
     }
 
@@ -77,10 +82,14 @@ class App {
         this.createDOMStructure();
         this.initializeComponents();
 
+        // Настраиваем глобальные обработчики событий
+        this.setupGlobalEventListeners();
+
         if (this.userModel.user && this.userModel.user.id) {
             try {
                 await this.controller.loadUserProfile(this.userModel.user.id);
             } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
             }
         }
 
@@ -119,6 +128,43 @@ class App {
         this.controller.registerPage('searchAds', new SearchOffersWidget(this.mainElement, this.controller));
         this.controller.registerPage('searchMap', new SearchMapWidget(this.mainElement, this.controller));
         this.controller.registerPage('editOffer', new OfferCreateWidget(this.mainElement, this.controller, { isEditing: true }));
+    }
+
+    setupGlobalEventListeners() {
+        // Обработчик события обновления профиля
+        window.addEventListener('profileUpdated', (event) => {
+            console.log('Получено событие обновления профиля', event.detail);
+            
+            // Обновляем хедер
+            if (this.header) {
+                this.header.render().catch(error => {
+                    console.error('Ошибка при обновлении хедера:', error);
+                });
+            }
+        });
+
+        // Обработчик для обновления UI
+        window.addEventListener('uiUpdate', () => {
+            console.log('Обновление UI');
+            
+            // Обновляем сайдбар профиля
+            this.updateProfileSidebarCounters();
+        });
+
+        // Обработчик для обновления счетчика объявлений
+        window.addEventListener('offersCountUpdated', () => {
+            this.updateProfileSidebarCounters();
+        });
+    }
+
+    updateProfileSidebarCounters() {
+        // Если текущая страница - профиль, обновляем сайдбар
+        const currentPage = this.controller.model.appStateModel.currentPage;
+        if (currentPage && currentPage instanceof ProfileWidget) {
+            currentPage.updateSidebar().catch(error => {
+                console.error('Ошибка при обновлении сайдбара:', error);
+            });
+        }
     }
 
     setupRouter() {
@@ -164,6 +210,7 @@ class App {
 
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
+                    console.log('Service Worker обновляется');
                 });
 
                 if (registration.active) {
@@ -171,10 +218,12 @@ class App {
                 }
 
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    console.log('Service Worker изменился, перезагружаем страницу');
                     window.location.reload();
                 });
 
             } catch (err) {
+                console.error('Ошибка регистрации Service Worker:', err);
             }
         }
     }

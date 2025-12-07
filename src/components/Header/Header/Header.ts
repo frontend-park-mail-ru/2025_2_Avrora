@@ -13,6 +13,9 @@ export class Header {
     private eventListeners: { element: Element; event: string; handler: EventListenerOrEventListenerObject }[];
     private template: ((data: TemplateData) => string) | null;
     private container: HTMLElement | null;
+    private profileUpdateListener: (event: Event) => void;
+    private uiUpdateListener: (event: Event) => void;
+    private isRendering: boolean;
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -20,44 +23,87 @@ export class Header {
         this.eventListeners = [];
         this.template = null;
         this.container = null;
+        this.isRendering = false;
+        this.profileUpdateListener = this.handleProfileUpdate.bind(this);
+        this.uiUpdateListener = this.handleUIUpdate.bind(this);
+        
+        // Добавляем слушатель события обновления профиля
+        this.setupEventListeners();
+    }
+
+    private setupEventListeners(): void {
+        window.addEventListener('profileUpdated', this.profileUpdateListener);
+        window.addEventListener('uiUpdate', this.uiUpdateListener);
+    }
+
+    private handleProfileUpdate(): void {
+        console.log('Header: получено обновление профиля');
+        this.render().catch(error => {
+            console.error('Ошибка при обновлении хедера:', error);
+        });
+    }
+    
+    private handleUIUpdate(): void {
+        console.log('Header: получено обновление UI');
+        this.render().catch(error => {
+            console.error('Ошибка при обновлении хедера (uiUpdate):', error);
+        });
     }
 
     async render(): Promise<void> {
+        if (this.isRendering) {
+            return;
+        }
+        
+        this.isRendering = true;
+        
+        // Очищаем старый контент перед рендером
         this.cleanup();
-        const template = await this.loadTemplate();
-        const isLoginPage = window.location.pathname === '/login';
-        const isRegisterPage = window.location.pathname === '/register';
+        
+        try {
+            const template = await this.loadTemplate();
+            const isLoginPage = window.location.pathname === '/login';
+            const isRegisterPage = window.location.pathname === '/register';
 
-        const user = this.controller.user;
-        let userAvatar = "../../images/default_avatar.jpg";
+            const user = this.controller.user;
+            let userAvatar = "../../images/default_avatar.jpg";
 
-        if (user) {
-            userAvatar = user.AvatarURL ||
-                        user.avatar ||
-                        user.photo_url ||
-                        user.avatarUrl ||
-                        "../../images/default_avatar.jpg";
+            if (user) {
+                userAvatar = user.AvatarURL ||
+                            user.avatar ||
+                            user.photo_url ||
+                            user.avatarUrl ||
+                            "../../images/default_avatar.jpg";
+            }
+
+            const templateData: TemplateData = {
+                isAuthenticated: this.controller.isAuthenticated,
+                user: {
+                    avatar: userAvatar
+                },
+                isLoginPage,
+                isRegisterPage
+            };
+
+            if (typeof template !== 'function') {
+                throw new Error('Header template is not a valid function');
+            }
+
+            const html = template(templateData);
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html;
+            this.container = tempContainer.firstElementChild as HTMLElement;
+            
+            // Полностью очищаем родительский контейнер
+            this.parent.innerHTML = '';
+            this.parent.appendChild(this.container);
+            this.attachEventListeners();
+        } catch (error) {
+            console.error('Ошибка при рендеринге хедера:', error);
+            throw error;
+        } finally {
+            this.isRendering = false;
         }
-
-        const templateData: TemplateData = {
-            isAuthenticated: this.controller.isAuthenticated,
-            user: {
-                avatar: userAvatar
-            },
-            isLoginPage,
-            isRegisterPage
-        };
-
-        if (typeof template !== 'function') {
-            throw new Error('Header template is not a valid function');
-        }
-
-        const html = template(templateData);
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = html;
-        this.container = tempContainer.firstElementChild as HTMLElement;
-        this.parent.appendChild(this.container);
-        this.attachEventListeners();
     }
 
     private async loadTemplate(): Promise<(data: TemplateData) => string> {
@@ -157,13 +203,25 @@ export class Header {
     }
 
     private cleanup(): void {
+        // Очищаем все слушатели событий
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
+        
+        // Удаляем контейнер если он существует
         if (this.container) {
-            this.container.remove();
+            if (this.container.parentNode === this.parent) {
+                this.parent.removeChild(this.container);
+            }
             this.container = null;
         }
+    }
+
+    // Метод для очистки слушателей при уничтожении компонента
+    destroy(): void {
+        window.removeEventListener('profileUpdated', this.profileUpdateListener);
+        window.removeEventListener('uiUpdate', this.uiUpdateListener);
+        this.cleanup();
     }
 }

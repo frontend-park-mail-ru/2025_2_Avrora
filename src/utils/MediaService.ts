@@ -1,6 +1,5 @@
-import { API } from "../utils/API.js";
+import { API } from "./API.js";
 import { API_CONFIG } from "../config.js";
-
 
 interface UploadResult {
   filename: string;
@@ -57,6 +56,11 @@ export class MediaService {
       return filename;
     }
 
+    // Для аватарки используем правильный путь
+    if (filename.includes('avatar') || filename.includes('default_avatar')) {
+      return `${window.location.origin}/images/${filename}`;
+    }
+
     return `${API_CONFIG.API_BASE_URL}${API_CONFIG.ENDPOINTS.MEDIA.BY_FILENAME}/${filename}`;
   }
 
@@ -102,5 +106,52 @@ export class MediaService {
     } catch (error) {
       return false;
     }
+  }
+
+  // Новые методы для работы с путями изображений
+  static getAvatarUrl(avatarPath: string | null | undefined): string {
+    if (!avatarPath) {
+      return `${window.location.origin}/images/default_avatar.jpg`;
+    }
+
+    if (avatarPath.startsWith('http') || avatarPath.startsWith('data:')) {
+      return avatarPath;
+    }
+
+    // Если путь уже содержит /images/
+    if (avatarPath.includes('/images/')) {
+      return `${window.location.origin}${avatarPath.startsWith('/') ? '' : '/'}${avatarPath}`;
+    }
+
+    // Если это просто имя файла
+    if (avatarPath.includes('.')) {
+      return `${window.location.origin}/images/${avatarPath}`;
+    }
+
+    // По умолчанию
+    return `${window.location.origin}/images/default_avatar.jpg`;
+  }
+
+  static getOfferImageUrl(imagePath: string | null | undefined): string {
+    if (!imagePath) {
+      return `${window.location.origin}/images/default_offer.jpg`;
+    }
+
+    if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+      return imagePath;
+    }
+
+    // Если путь уже содержит /images/
+    if (imagePath.includes('/images/')) {
+      return `${window.location.origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    }
+
+    // Если это просто имя файла
+    if (imagePath.includes('.')) {
+      return `${API_CONFIG.API_BASE_URL}${API_CONFIG.ENDPOINTS.MEDIA.BY_FILENAME}/${imagePath}`;
+    }
+
+    // По умолчанию
+    return `${window.location.origin}/images/default_offer.jpg`;
   }
 }

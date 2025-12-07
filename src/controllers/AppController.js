@@ -1,5 +1,6 @@
 import { API } from '../utils/API.js';
 import { API_CONFIG } from "../config.js";
+import { EventDispatcher } from '../utils/EventDispatcher.js';
 
 export class AppController {
     constructor(model, view) {
@@ -7,6 +8,8 @@ export class AppController {
         this.view = view;
         this.router = null;
         this.api = API;
+        this.isRefreshing = false;
+        this.updateTimeout = null;
     }
 
     setRouter(router) {
@@ -33,7 +36,7 @@ export class AppController {
                     user.id = decoded.user_id;
                 }
             } catch (error) {
-                
+                // Игнорируем ошибки декодирования
             }
         }
 
@@ -43,7 +46,7 @@ export class AppController {
             try {
                 await this.loadUserProfile(user.id);
             } catch (error) {
-
+                // Игнорируем ошибки загрузки профиля
             }
         }
 
@@ -62,10 +65,10 @@ export class AppController {
                 this.model.userModel.updateUser(response.data);
                 this.updateUI();
             } else {
-
+                // Если не удалось загрузить профиль, используем базовые данные
             }
         } catch (error) {
-
+            // Игнорируем ошибки загрузки профиля
         }
     }
 
@@ -73,7 +76,7 @@ export class AppController {
         try {
             await this.api.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT, {});
         } catch (err) {
-
+            // Игнорируем ошибки выхода
         } finally {
             this.model.userModel.clearUser();
             this.model.appStateModel.setOffers([]);
@@ -114,7 +117,7 @@ export class AppController {
             }
             return false;
         } catch (error) {
-
+            // Игнорируем ошибки проверки владения
             return false;
         }
     }
@@ -157,7 +160,9 @@ export class AppController {
 
     updateUI() {
         if (this.view.header) {
-            this.view.header.render();
+            this.view.header.render().catch(error => {
+                console.error('Ошибка при обновлении хедера:', error);
+            });
         }
 
         const currentPage = this.model.appStateModel.currentPage;
@@ -259,7 +264,6 @@ export class AppController {
 
             return { offers, meta };
         } catch (error) {
-
             throw new Error(`Не удалось загрузить объявления: ${error.message}`);
         }
     }
@@ -296,7 +300,6 @@ export class AppController {
                 }
             };
         } catch (error) {
-
             throw new Error(`Не удалось загрузить объявления: ${error.message}`);
         }
     }
@@ -551,6 +554,93 @@ export class AppController {
             }
         } catch (error) {
             throw error;
+        }
+    }
+
+    // Метод для очистки текущей страницы перед обновлением
+    cleanupCurrentPage() {
+        const currentPage = this.model.appStateModel.currentPage;
+        if (currentPage && typeof currentPage.cleanup === 'function') {
+            try {
+                console.log('Очищаем текущую страницу перед обновлением');
+                currentPage.cleanup();
+            } catch (error) {
+                console.error('Ошибка при очистке текущей страницы:', error);
+            }
+        }
+    }
+
+    // Метод для уведомления компонентов об обновлении профиля
+    notifyProfileUpdate() {
+        // Очищаем предыдущий таймаут
+        if (this.updateTimeout) {
+            clearTimeout(this.updateTimeout);
+        }
+        
+        // Устанавливаем новый таймаут для debounce
+        this.updateTimeout = setTimeout(() => {
+            // Отправляем событие обновления профиля
+            EventDispatcher.dispatchProfileUpdated(this.model.userModel.user);
+            
+            // Отправляем событие обновления UI
+            EventDispatcher.dispatchUIUpdate();
+            
+            console.log('Отправлены события обновления профиля и UI');
+        }, 100);
+    }
+
+    // Новый метод для обновления профиля и UI с debounce
+    async refreshProfileAndUI() {
+        // Предотвращаем множественные одновременные обновления
+        if (this.isRefreshing) {
+            console.log('Обновление уже выполняется, пропускаем');
+            return;
+        }
+        
+        this.isRefreshing = true;
+        
+        try {
+            console.log('Начинаем обновление профиля и UI');
+            
+            // Загружаем актуальные данные профиля
+            if (this.model.userModel.user?.id) {
+                await this.loadUserProfile(this.model.userModel.user.id);
+            }
+            
+            // Очищаем текущую страницу перед обновлением
+            this.cleanupCurrentPage();
+            
+            // 1. Обновляем хедер
+            if (this.view.header) {
+                this.view.header.render().catch(error => {
+                    console.error('Ошибка при обновлении хедера:', error);
+                });
+            }
+            
+            // 2. Обновляем текущую страницу
+            const currentPage = this.model.appStateModel.currentPage;
+            if (currentPage && currentPage.render) {
+                currentPage.render();
+            }
+            
+            // 3. Уведомляем все виджеты о необходимости обновления
+            this.notifyProfileUpdate();
+            
+            console.log('Обновление профиля и UI завершено');
+        } catch (error) {
+            console.error('Ошибка при обновлении профиля:', error);
+        } finally {
+            this.isRefreshing = false;
+        }
+    }
+
+    // Метод для принудительного обновления счетчика объявлений
+    async refreshOffersCount() {
+        try {
+            // Отправляем событие обновления счетчика
+            EventDispatcher.dispatchOffersCountUpdated();
+        } catch (error) {
+            console.error('Ошибка при обновлении счетчика объявлений:', error);
         }
     }
 }
