@@ -71,41 +71,32 @@ export class ProfileWidget {
     }
     
     private handleProfileUpdate(event: Event): void {
-        console.log('ProfileWidget: получено обновление профиля');
         this.forceUpdate();
     }
     
     private handleUIUpdate(event: Event): void {
-        console.log('ProfileWidget: получено обновление UI');
-        this.updateSidebar().catch(console.error);
+        this.updateSidebar().catch();
     }
 
-    // Метод для принудительного обновления всех данных
     async forceUpdate(): Promise<void> {
         if (this.isUpdating) {
-            console.log('Обновление уже выполняется, пропускаем');
             return;
         }
         
         this.isUpdating = true;
         
         try {
-            console.log('ProfileWidget: принудительное обновление всех данных');
-            
-            // Обновляем счетчик объявлений
+
             await this.updateMyOffersCount();
-            
-            // Обновляем сайдбар
+
             await this.updateSidebar();
-            
-            // Если текущий компонент поддерживает обновление, обновляем его
+
             if (this.currentComponent && typeof this.currentComponent.updateData === 'function') {
                 await this.currentComponent.updateData();
             }
-            
-            console.log('ProfileWidget: обновление завершено');
+
         } catch (error) {
-            console.error('Ошибка при принудительном обновлении:', error);
+
         } finally {
             this.isUpdating = false;
         }
@@ -137,7 +128,6 @@ export class ProfileWidget {
         const sidebar = this.createSidebar();
         this.root.appendChild(sidebar);
 
-        // Полностью очищаем родительский контейнер
         this.parent.innerHTML = '';
         this.parent.appendChild(this.root);
 
@@ -149,7 +139,6 @@ export class ProfileWidget {
     private async renderActiveView(): Promise<void> {
         if (!this.root) return;
 
-        // Очищаем предыдущий контент (кроме сайдбара)
         this.cleanupContent();
 
         let component: Component;
@@ -179,38 +168,31 @@ export class ProfileWidget {
                 this.renderError("Ошибка при загрузке компонента");
             }
         } catch (error) {
-            console.error('Ошибка при рендеринге компонента:', error);
             this.renderError("Не удалось загрузить компонент");
         }
     }
 
-    // Очищаем только контент, оставляя сайдбар
     private cleanupContent(): void {
         if (!this.root) return;
 
-        // Находим все элементы кроме сайдбара
         const contentElements = Array.from(this.root.children).filter(
             child => !child.classList.contains('profile__sidebar')
         );
 
-        // Удаляем их
         contentElements.forEach(element => {
             this.root?.removeChild(element);
         });
 
-        // Также очищаем текущий компонент
         if (this.currentComponent && typeof this.currentComponent.cleanup === 'function') {
             this.currentComponent.cleanup();
         }
         this.currentComponent = null;
     }
 
-    // Метод для обновления данных профиля
     async updateProfileData(): Promise<void> {
         await this.forceUpdate();
     }
 
-    // Метод для обновления сайдбара в реальном времени
     async updateSidebar(): Promise<void> {
         if (!this.root) return;
 
@@ -226,7 +208,6 @@ export class ProfileWidget {
             const offers = await ProfileService.getMyOffers();
             this.myOffersCount = offers.length;
         } catch (error) {
-            console.error('Ошибка при загрузке счетчика объявлений:', error);
             this.myOffersCount = 0;
         }
     }
@@ -377,22 +358,18 @@ export class ProfileWidget {
     }
 
     cleanup(): void {
-        // Удаляем слушатели событий
         window.removeEventListener('profileUpdated', this.profileUpdateListener);
         window.removeEventListener('uiUpdate', this.uiUpdateListener);
-        
-        // Очищаем текущий компонент
+
         if (this.currentComponent && typeof this.currentComponent.cleanup === 'function') {
             this.currentComponent.cleanup();
         }
 
-        // Очищаем все слушатели событий
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
 
-        // Полная очистка родительского элемента
         if (this.parent) {
             this.parent.innerHTML = "";
         }

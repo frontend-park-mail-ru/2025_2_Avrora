@@ -26,8 +26,7 @@ export class Header {
         this.isRendering = false;
         this.profileUpdateListener = this.handleProfileUpdate.bind(this);
         this.uiUpdateListener = this.handleUIUpdate.bind(this);
-        
-        // Добавляем слушатель события обновления профиля
+
         this.setupEventListeners();
     }
 
@@ -37,16 +36,14 @@ export class Header {
     }
 
     private handleProfileUpdate(): void {
-        console.log('Header: получено обновление профиля');
         this.render().catch(error => {
-            console.error('Ошибка при обновлении хедера:', error);
+
         });
     }
     
     private handleUIUpdate(): void {
-        console.log('Header: получено обновление UI');
         this.render().catch(error => {
-            console.error('Ошибка при обновлении хедера (uiUpdate):', error);
+
         });
     }
 
@@ -56,8 +53,7 @@ export class Header {
         }
         
         this.isRendering = true;
-        
-        // Очищаем старый контент перед рендером
+
         this.cleanup();
         
         try {
@@ -93,13 +89,11 @@ export class Header {
             const tempContainer = document.createElement('div');
             tempContainer.innerHTML = html;
             this.container = tempContainer.firstElementChild as HTMLElement;
-            
-            // Полностью очищаем родительский контейнер
+
             this.parent.innerHTML = '';
             this.parent.appendChild(this.container);
             this.attachEventListeners();
         } catch (error) {
-            console.error('Ошибка при рендеринге хедера:', error);
             throw error;
         } finally {
             this.isRendering = false;
@@ -203,13 +197,11 @@ export class Header {
     }
 
     private cleanup(): void {
-        // Очищаем все слушатели событий
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
-        
-        // Удаляем контейнер если он существует
+
         if (this.container) {
             if (this.container.parentNode === this.parent) {
                 this.parent.removeChild(this.container);
@@ -218,7 +210,6 @@ export class Header {
         }
     }
 
-    // Метод для очистки слушателей при уничтожении компонента
     destroy(): void {
         window.removeEventListener('profileUpdated', this.profileUpdateListener);
         window.removeEventListener('uiUpdate', this.uiUpdateListener);

@@ -36,8 +36,7 @@ export class Summary {
         }
         
         this.isRendering = true;
-        
-        // Очищаем предыдущий контент
+
         if (this.contentElement) {
             this.contentElement.innerHTML = '';
         } else {
@@ -46,7 +45,6 @@ export class Summary {
         }
 
         try {
-            // Загружаем данные асинхронно
             await this.loadData();
             
             const quickAdBlock = this.createQuickAdBlock();
@@ -58,7 +56,6 @@ export class Summary {
             this.contentElement.appendChild(favoritesBlock);
             
         } catch (error) {
-            console.error('Ошибка при рендеринге Summary:', error);
             this.contentElement.innerHTML = `
                 <div class="profile__error">
                     <p>Не удалось загрузить данные сводки</p>
@@ -76,7 +73,6 @@ export class Summary {
         return this.contentElement;
     }
 
-    // Новый метод для обновления данных без полного перерендера
     async updateData(): Promise<void> {
         if (!this.contentElement || this.isRendering) {
             return;
@@ -85,10 +81,8 @@ export class Summary {
         this.isRendering = true;
         
         try {
-            // Загружаем актуальные данные
             await this.loadData();
-            
-            // Полностью перерисовываем контент
+
             this.contentElement.innerHTML = '';
 
             const quickAdBlock = this.createQuickAdBlock();
@@ -100,7 +94,7 @@ export class Summary {
             this.contentElement.appendChild(favoritesBlock);
             
         } catch (error) {
-            console.error('Ошибка при обновлении Summary:', error);
+
         } finally {
             this.isRendering = false;
         }
@@ -110,11 +104,9 @@ export class Summary {
         try {
             this.myOffers = await ProfileService.getMyOffers();
         } catch (error) {
-            console.error('Ошибка загрузки объявлений:', error);
             this.myOffers = [];
         }
-        
-        // Избранные пока оставляем пустыми
+
         this.favoriteOffers = [];
     }
 
@@ -178,7 +170,6 @@ export class Summary {
                     const ad = this.createOfferAd(offer);
                     block.appendChild(ad);
                 } catch (error) {
-                    console.error('Ошибка создания карточки объявления:', error);
                 }
             }
         }

@@ -247,7 +247,17 @@ export class OfferCreateFifthStage {
         img.loading = 'lazy';
 
         img.onerror = () => {
-            img.src = '../../images/default_offer.jpg';
+            const mediaServiceUrl = MediaService.getImageUrl(imageData.filename);
+            if (mediaServiceUrl !== imageData.url) {
+                img.src = mediaServiceUrl;
+                img.onerror = () => {
+                    img.src = this.getDefaultImagePlaceholder();
+                    img.style.opacity = '0.7';
+                };
+            } else {
+                img.src = this.getDefaultImagePlaceholder();
+                img.style.opacity = '0.7';
+            }
         };
 
         const removeBtn = document.createElement('button');
@@ -279,6 +289,10 @@ export class OfferCreateFifthStage {
         imgWrap.appendChild(img);
         imgWrap.appendChild(removeBtn);
         container.appendChild(imgWrap);
+    }
+
+    private getDefaultImagePlaceholder(): string {
+        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjBGMUYyIi8+CjxwYXRoIGQ9Ik04MCA4MEgxMjBWMTIwSDgwVjgwWiIgZmlsbD0iI0RBRENEQyIvPgo8cGF0aCBkPSJNNTAgNTBIMTUwVjE1MEg1MFY1MFoiIHN0cm9rZT0iI0Q4RDhEOCIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Ik03NSAxMjVMMTI1IDc1IiBzdHJva2U9IiNEOEQ4RDgiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNMTI1IDEyNUw3NSA3NSIgc3Ryb2tlPSIjRDhEOEQ4IiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+';
     }
 
     updateUploadState(isUploading: boolean): void {
@@ -381,14 +395,23 @@ export class OfferCreateFifthStage {
 
         if (currentData.images && Array.isArray(currentData.images)) {
             this.images = currentData.images.map((img: any) => {
-                const normalizedImg = {
-                    filename: img.filename || img.url?.split('/').pop() || '',
-                    url: img.url || MediaService.getImageUrl(img.filename)
-                };
+                let filename = img.filename || img.url?.split('/').pop() || '';
+                let url = img.url || '';
 
-                if (!normalizedImg.filename) {
+                if (!url && filename.startsWith('http')) {
+                    url = filename;
+                } else if (!url && filename) {
+                    url = MediaService.getImageUrl(filename);
+                }
+
+                if (!url || !filename) {
                     return null;
                 }
+
+                const normalizedImg: ImageData = {
+                    filename: filename,
+                    url: url
+                };
 
                 return normalizedImg;
             }).filter((img: ImageData | null): img is ImageData => img !== null);

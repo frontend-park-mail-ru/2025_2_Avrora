@@ -111,6 +111,7 @@ export class OfferCreateFirstStage {
         btn.dataset.value = value;
 
         const currentData = this.dataManager.getData();
+
         if (currentData[field] === value) {
             btn.classList.add('active');
         }

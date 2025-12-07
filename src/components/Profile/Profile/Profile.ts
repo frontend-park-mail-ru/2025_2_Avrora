@@ -52,8 +52,7 @@ export class Profile {
         this.profileData = null;
         this.originalEmail = '';
         this.contentElement = null;
-        
-        // Инициализируем текущую аватарку из данных пользователя
+
         this.initializeCurrentAvatar();
     }
 
@@ -73,7 +72,6 @@ export class Profile {
     }
 
     async render(): Promise<HTMLElement> {
-        // Очищаем предыдущий контент
         if (this.contentElement) {
             this.cleanup();
         }
@@ -94,10 +92,14 @@ export class Profile {
         try {
             this.profileData = await ProfileService.getProfile();
             this.originalEmail = this.profileData.email;
-            
-            // Обновляем аватарку из данных профиля
-            if (this.profileData.photo_url) {
+
+            if (this.currentAvatarUrl) {
+                this.profileData.photo_url = this.currentAvatarUrl;
+            } else if (this.profileData.photo_url) {
                 this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+            } else {
+                this.currentAvatarUrl = MediaService.getAvatarUrl("default_avatar.jpg");
+                this.profileData.photo_url = this.currentAvatarUrl;
             }
 
             const userSection = await this.createUserSection();
@@ -106,7 +108,6 @@ export class Profile {
             block.appendChild(userSection);
             block.appendChild(dataSection);
         } catch (error) {
-            console.error('Ошибка загрузки профиля:', error);
             block.appendChild(this.createErrorSection((error as Error).message));
         }
 
@@ -114,25 +115,29 @@ export class Profile {
         return content;
     }
 
-    // Новый метод для обновления данных без полного перерендера
     async updateData(): Promise<void> {
         if (!this.contentElement) {
             return;
         }
-        
-        // Полностью очищаем контент
-        this.contentElement.innerHTML = '';
-        
-        // Загружаем актуальные данные
+
+        const oldAvatarUrl = this.currentAvatarUrl;
+
         try {
             this.profileData = await ProfileService.getProfile();
             this.originalEmail = this.profileData.email;
-            
-            // Обновляем аватарку из данных профиля
-            if (this.profileData.photo_url) {
+
+            if (oldAvatarUrl && !oldAvatarUrl.includes('default_avatar.jpg')) {
+                this.currentAvatarUrl = oldAvatarUrl;
+                this.profileData.photo_url = oldAvatarUrl;
+            } else if (this.profileData.photo_url) {
                 this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+            } else {
+                this.currentAvatarUrl = MediaService.getAvatarUrl("default_avatar.jpg");
+                this.profileData.photo_url = this.currentAvatarUrl;
             }
-            
+
+            this.contentElement.innerHTML = '';
+
             const block = document.createElement("div");
             block.className = "profile__block";
 
@@ -141,11 +146,10 @@ export class Profile {
 
             block.appendChild(userSection);
             block.appendChild(dataSection);
-            
+
             this.contentElement.appendChild(block);
-            
+
         } catch (error) {
-            console.error('Ошибка обновления профиля:', error);
             const errorSection = this.createErrorSection((error as Error).message);
             this.contentElement.appendChild(errorSection);
         }
@@ -158,29 +162,17 @@ export class Profile {
         const avatar = document.createElement("img");
         avatar.className = "profile__avatar";
 
-        // Используем актуальную аватарку
-        let avatarUrl = MediaService.getAvatarUrl("default_avatar.jpg");
-        
-        if (this.currentAvatarUrl) {
-            avatarUrl = this.currentAvatarUrl;
-        } else if (this.profileData?.photo_url) {
+        let avatarUrl = this.currentAvatarUrl ||
+                       MediaService.getAvatarUrl("default_avatar.jpg");
+
+        if (this.profileData?.photo_url) {
             avatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
-        } else if (this.controller.user) {
-            const user = this.controller.user;
-            const userAvatar = user.AvatarURL ||
-                             user.avatar ||
-                             user.photo_url ||
-                             user.avatarUrl;
-            if (userAvatar) {
-                avatarUrl = MediaService.getAvatarUrl(userAvatar);
-            }
         }
 
         avatar.src = avatarUrl;
         avatar.alt = "Аватар";
         avatar.id = "profile-avatar";
         avatar.onerror = () => {
-            console.warn('Ошибка загрузки аватарки, используем дефолтную');
             avatar.src = MediaService.getAvatarUrl("default_avatar.jpg");
         };
 
@@ -189,7 +181,7 @@ export class Profile {
 
         let fullName = "Пользователь";
         const user = this.controller.user;
-        
+
         if (user) {
             if (user.FirstName && user.LastName) {
                 fullName = `${user.FirstName} ${user.LastName}`;
@@ -249,14 +241,13 @@ export class Profile {
                         throw new Error(fileErrors.join(', '));
                     }
 
-                    // Загружаем аватар
                     const uploadResult = await MediaService.uploadImage(file);
                     const avatarUrl = uploadResult.url;
-                    
-                    // Обновляем аватарку в интерфейсе
+
                     this.updateCurrentAvatar(avatarUrl);
 
-                    // Обновляем данные пользователя в контроллере
+                    this.currentAvatarUrl = avatarUrl;
+
                     if (this.controller.user) {
                         const updatedUser = {
                             ...this.controller.user,
@@ -267,17 +258,16 @@ export class Profile {
                         this.controller.updateUser(updatedUser);
                     }
 
-                    // Сохраняем URL аватарки для отправки при сохранении профиля
-                    this.currentAvatarUrl = avatarUrl;
+                    if (this.controller.view && this.controller.view.header) {
+                        await this.controller.view.header.render();
+                    }
 
-                    // Обновляем сайдбар
                     if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
                         await this.parentWidget.updateSidebar();
                     }
 
                     this.showLoading(false);
-                    
-                    // Показываем успешное сообщение
+
                     Modal.show({
                         title: 'Успех',
                         message: 'Аватар успешно загружен! Нажмите "Сохранить изменения", чтобы сохранить его в профиле.',
@@ -389,43 +379,43 @@ export class Profile {
         input.addEventListener('input', (e) => {
             const target = e.target as HTMLInputElement;
             let value = target.value.replace(/\D/g, '');
-            
+
             if (value.startsWith('7') || value.startsWith('8')) {
                 value = value.substring(1);
             }
-            
+
             value = value.substring(0, 10);
-            
+
             let formattedValue = '+7 (';
-            
+
             if (value.length > 0) {
                 formattedValue += value.substring(0, 3);
             }
-            
+
             if (value.length >= 3) {
                 formattedValue += ') ';
             }
-            
+
             if (value.length > 3) {
                 formattedValue += value.substring(3, 6);
             }
-            
+
             if (value.length >= 6) {
                 formattedValue += '-';
             }
-            
+
             if (value.length > 6) {
                 formattedValue += value.substring(6, 8);
             }
-            
+
             if (value.length >= 8) {
                 formattedValue += '-';
             }
-            
+
             if (value.length > 8) {
                 formattedValue += value.substring(8, 10);
             }
-            
+
             target.value = formattedValue;
         });
 
@@ -433,7 +423,7 @@ export class Profile {
             if (e.key === 'Backspace') {
                 const target = e.target as HTMLInputElement;
                 const value = target.value;
-                
+
                 if (value.length === 7 || value.length === 11 || value.length === 14) {
                     e.preventDefault();
                     target.value = value.slice(0, -1);
@@ -450,45 +440,45 @@ export class Profile {
 
     private formatPhoneValue(phone: string): string {
         if (!phone) return '';
-        
+
         let digits = phone.replace(/\D/g, '');
-        
+
         if (digits.startsWith('7') || digits.startsWith('8')) {
             digits = digits.substring(1);
         }
-        
+
         digits = digits.substring(0, 10);
-        
+
         let formatted = '+7 (';
-        
+
         if (digits.length > 0) {
             formatted += digits.substring(0, 3);
         }
-        
+
         if (digits.length >= 3) {
             formatted += ') ';
         }
-        
+
         if (digits.length > 3) {
             formatted += digits.substring(3, 6);
         }
-        
+
         if (digits.length >= 6) {
             formatted += '-';
         }
-        
+
         if (digits.length > 6) {
             formatted += digits.substring(6, 8);
         }
-        
+
         if (digits.length >= 8) {
             formatted += '-';
         }
-        
+
         if (digits.length > 8) {
             formatted += digits.substring(8, 10);
         }
-        
+
         return formatted;
     }
 
@@ -571,6 +561,11 @@ export class Profile {
                 photo_url: this.currentAvatarUrl || this.profileData?.photo_url || this.controller.user?.avatar
             };
 
+            if (profileData.photo_url && profileData.photo_url.includes('/images/')) {
+                const urlParts = profileData.photo_url.split('/images/');
+                profileData.photo_url = urlParts.length > 1 ? urlParts[1] : profileData.photo_url;
+            }
+
             const validation = ProfileService.validateProfile(profileData);
             if (!validation.isValid) {
                 const errorMessages = Object.values(validation.errors).flat();
@@ -584,7 +579,6 @@ export class Profile {
                 this.originalEmail = profileData.email;
             }
 
-            // Обновляем данные пользователя в контроллере
             const updatedUser = {
                 ...this.controller.user,
                 id: this.controller.user?.id || ProfileService.getCurrentUserId(),
@@ -593,28 +587,28 @@ export class Profile {
                 email: profileData.email,
                 phone: profileData.phone,
                 name: `${profileData.first_name} ${profileData.last_name}`,
-                avatar: profileData.photo_url,
-                photo_url: profileData.photo_url
+                avatar: this.currentAvatarUrl || profileData.photo_url,
+                photo_url: this.currentAvatarUrl || profileData.photo_url,
+                AvatarURL: this.currentAvatarUrl || profileData.photo_url
             };
 
             this.controller.updateUser(updatedUser);
-            
-            // Устанавливаем флаг загрузки в false
+
+            this.profileData = await ProfileService.getProfile();
+
+            if (this.profileData.photo_url) {
+                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+            }
+
             this.showLoading(false);
-            
-            // Обновляем текущую аватарку в форме
-            this.updateCurrentAvatar(profileData.photo_url);
-            
-            // 1. Обновляем данные текущего компонента
-            await this.updateData();
-            
-            // 2. Обновляем сайдбар
+
+            this.updateCurrentAvatar(this.currentAvatarUrl || profileData.photo_url);
+
+            await this.controller.refreshProfileAndUI();
+
             if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
                 await this.parentWidget.updateSidebar();
             }
-            
-            // 3. Вызываем обновление UI контроллера
-            await this.controller.refreshProfileAndUI();
 
             Modal.show({
                 title: 'Успех',
@@ -636,10 +630,8 @@ export class Profile {
     }
 
     private updateCurrentAvatar(avatarUrl: string): void {
-        // Обновляем текущую аватарку
         this.currentAvatarUrl = MediaService.getAvatarUrl(avatarUrl);
-        
-        // Обновляем изображение в форме, если оно есть
+
         const avatarImg = document.getElementById("profile-avatar") as HTMLImageElement;
         if (avatarImg && avatarUrl) {
             avatarImg.src = this.currentAvatarUrl;
@@ -682,7 +674,6 @@ export class Profile {
     }
 
     cleanup(): void {
-        // Очищаем все слушатели событий
         const inputs = document.querySelectorAll('.profile__field-input');
         inputs.forEach(input => {
             input.removeEventListener('blur', () => {});
@@ -693,8 +684,7 @@ export class Profile {
         if (fileInput) {
             fileInput.removeEventListener('change', () => {});
         }
-        
-        // Очищаем контент
+
         if (this.contentElement) {
             this.contentElement.innerHTML = '';
             this.contentElement = null;

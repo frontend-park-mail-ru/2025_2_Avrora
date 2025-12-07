@@ -1052,6 +1052,11 @@ export class OfferCard {
                 setTimeout(() => {
                     if (this.app?.router?.navigate) {
                         this.app.router.navigate('/profile/myoffers');
+                    } else if (window.history && window.history.pushState) {
+                        window.history.pushState({}, "", '/profile/myoffers');
+                        window.dispatchEvent(new PopStateEvent("popstate"));
+                    } else {
+                        window.location.href = '/profile/myoffers';
                     }
                 }, 1500);
             } else {

@@ -762,41 +762,9 @@ export class OfferCreateSecondStage {
 
     validateAndSave(): void {
         const formData: FormData = this.collectFormData();
-        const validation = this.validateFormData(formData);
-
-        if (!validation.isValid) {
-            this.showError(validation.message!);
-            return;
-        }
 
         this.clearError();
         this.saveFormData();
-    }
-
-    validateFormData(formData: FormData): { isValid: boolean; message?: string } {
-        if (formData.floor !== null && formData.total_floors !== null) {
-            if (formData.floor < 0) {
-                return { isValid: false, message: 'Этаж не может быть отрицательным числом' };
-            }
-
-            if (formData.total_floors !== null && formData.total_floors <= 0) {
-                return { isValid: false, message: 'Общее количество этажей должно быть положительным числом' };
-            }
-
-            if (formData.floor > formData.total_floors) {
-                return { isValid: false, message: 'Этаж не может быть больше общего количества этажей в доме' };
-            }
-
-            if (formData.floor === 0 && formData.total_floors > 0) {
-                return { isValid: false, message: 'Этаж 0 обычно не используется. Используйте 1 для первого этажа.' };
-            }
-        }
-
-        if (formData.complex_status === 'yes' && (!formData.complex_name || formData.complex_name.trim() === '')) {
-            return { isValid: false, message: 'Введите название жилищного комплекса' };
-        }
-
-        return { isValid: true };
     }
 
     collectFormData(): FormData {
@@ -900,8 +868,7 @@ export class OfferCreateSecondStage {
         if (currentData.address) {
             this.currentAddress = currentData.address;
         }
-        
-        // Карта инициализируется всегда, независимо от наличия адреса
+
         this.initMap();
     }
 
@@ -929,11 +896,6 @@ export class OfferCreateSecondStage {
             nextBtn.textContent = 'Дальше';
             nextBtn.dataset.action = 'next';
             this.addEventListener(nextBtn, 'click', () => {
-                const validation = this.validateFormData(this.collectFormData());
-                if (!validation.isValid) {
-                    this.showError(validation.message!);
-                    return;
-                }
                 this.saveFormData();
             });
             group.appendChild(nextBtn);
@@ -956,17 +918,13 @@ export class OfferCreateSecondStage {
     }
 
     async initMap(): Promise<void> {
-        // Всегда показываем карту, даже если адрес не введен
         try {
             if (this.currentAddress && this.currentAddress.trim().length >= 5) {
-                // Если есть адрес, используем YandexMapService для показа маркера
                 await this.updateMapWithAddress();
             } else {
-                // Если адреса нет или он слишком короткий, показываем пустую карту
                 await this.initEmptyMap();
             }
         } catch (error) {
-            // В случае ошибки показываем пустую карту
             await this.initEmptyMap();
         }
     }
@@ -978,14 +936,12 @@ export class OfferCreateSecondStage {
         }
 
         try {
-            // Сначала уничтожаем предыдущую карту
             await this.destroyCurrentMap();
 
             const { YandexMapService } = await import('../../../utils/YandexMapService.js');
             await YandexMapService.initMap('yandex-create-map', this.currentAddress);
             this.mapInitialized = true;
         } catch (error) {
-            console.error('Error updating map with address:', error);
             await this.initEmptyMap();
         }
     }
@@ -995,14 +951,14 @@ export class OfferCreateSecondStage {
             const { YandexMapService } = await import('../../../utils/YandexMapService.js');
             YandexMapService.destroyMap();
         } catch (error) {
-            // Игнорируем ошибки при уничтожении карты
+
         }
 
         if (this.emptyMapInstance) {
             try {
                 this.emptyMapInstance.destroy();
             } catch (error) {
-                // Игнорируем ошибки
+
             }
             this.emptyMapInstance = null;
         }
@@ -1030,12 +986,10 @@ export class OfferCreateSecondStage {
                 return;
             }
 
-            // Очищаем контейнер
             container.innerHTML = '';
 
             const {YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer} = ymaps3;
 
-            // Создаем карту с центром в Москве
             this.emptyMapInstance = new YMap(
                 container,
                 {
@@ -1046,7 +1000,6 @@ export class OfferCreateSecondStage {
                 }
             );
 
-            // Добавляем слои
             this.emptyMapInstance.addChild(new YMapDefaultSchemeLayer());
             this.emptyMapInstance.addChild(new YMapDefaultFeaturesLayer());
 
@@ -1081,7 +1034,6 @@ export class OfferCreateSecondStage {
             clearTimeout(this.updateMapTimeout);
         }
 
-        // Уничтожаем карты
         this.destroyCurrentMap();
     }
 }

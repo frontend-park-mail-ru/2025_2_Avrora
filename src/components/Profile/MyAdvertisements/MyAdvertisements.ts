@@ -49,8 +49,7 @@ export class MyAdvertisements {
         }
         
         this.isRendering = true;
-        
-        // Очищаем предыдущий контент
+
         if (this.contentElement) {
             this.contentElement.innerHTML = '';
         } else {
@@ -59,7 +58,6 @@ export class MyAdvertisements {
         }
 
         try {
-            // Загружаем данные
             await this.loadOffers();
             
             const block = document.createElement("div");
@@ -91,7 +89,7 @@ export class MyAdvertisements {
                         const ad = this.createAd(offerData);
                         block.appendChild(ad);
                     } catch (error) {
-                        console.error('Ошибка создания карточки объявления:', error);
+
                     }
                 }
             }
@@ -99,7 +97,6 @@ export class MyAdvertisements {
             this.contentElement.appendChild(block);
             
         } catch (error) {
-            console.error('Ошибка при рендеринге MyAdvertisements:', error);
             this.contentElement.innerHTML = `
                 <div class="profile__error">
                     <p>Не удалось загрузить объявления</p>
@@ -117,7 +114,6 @@ export class MyAdvertisements {
         return this.contentElement;
     }
 
-    // Новый метод для обновления данных
     async updateData(): Promise<void> {
         if (!this.contentElement || this.isRendering) {
             return;
@@ -126,10 +122,8 @@ export class MyAdvertisements {
         this.isRendering = true;
         
         try {
-            // Загружаем актуальные данные
             await this.loadOffers();
-            
-            // Полностью перерисовываем контент
+
             this.contentElement.innerHTML = '';
 
             const block = document.createElement("div");
@@ -152,7 +146,7 @@ export class MyAdvertisements {
                         const ad = this.createAd(offerData);
                         block.appendChild(ad);
                     } catch (error) {
-                        console.error('Ошибка создания карточки объявления:', error);
+
                     }
                 }
             }
@@ -160,7 +154,7 @@ export class MyAdvertisements {
             this.contentElement.appendChild(block);
             
         } catch (error) {
-            console.error('Ошибка при обновлении MyAdvertisements:', error);
+
         } finally {
             this.isRendering = false;
         }
@@ -170,7 +164,6 @@ export class MyAdvertisements {
         try {
             this.offers = await ProfileService.getMyOffers();
         } catch (error) {
-            console.error('Ошибка загрузки объявлений:', error);
             this.offers = [];
             throw error;
         }
@@ -287,15 +280,12 @@ export class MyAdvertisements {
                 if (result.ok) {
                     this.offers = this.offers.filter(offer => offer.id !== offerId);
 
-                    // Обновляем данные после удаления
                     await this.updateData();
 
-                    // Обновляем сайдбар в родительском виджете
                     if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
                         await this.parentWidget.updateSidebar();
                     }
 
-                    // Отправляем событие обновления счетчика
                     if (this.parentWidget && typeof this.parentWidget.forceUpdate === 'function') {
                         await this.parentWidget.forceUpdate();
                     }
@@ -310,7 +300,6 @@ export class MyAdvertisements {
                 }
             }
         } catch (error) {
-            console.error('Ошибка при удалении объявления:', error);
             Modal.show({
                 title: 'Ошибка',
                 message: (error as Error).message || 'Не удалось удалить объявление',
