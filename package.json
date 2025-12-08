@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "npm run compile-hbs && npm run build-css && vite --mode development",
     "build": "npm run compile-hbs && npm run build-css-prod && vite build --mode production",
-    "preview": "vite preview",
+    "preview": "vite preview --port 5000",
     "lint": "eslint . --color",
     "lint:report": "eslint . --format stylish",
     "lint:fix": "eslint . --fix",
@@ -49,7 +49,10 @@
     "jsdoc": "^4.0.4",
     "sass": "^1.93.2",
     "terser": "^5.28.1",
-    "vite": "^7.1.12"
+    "vite": "^7.1.12",
+    "vite-plugin-compression": "^0.6.0",
+    "vite-plugin-imagemin": "^1.3.0",
+    "rollup-plugin-terser": "^7.0.2"
   },
   "engines": {
     "node": ">=14.0.0"

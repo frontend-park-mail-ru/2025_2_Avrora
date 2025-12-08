@@ -1,96 +1,86 @@
 const CACHE_NAME = 'homa-offline-v1';
+const DYNAMIC_CACHE = 'homa-dynamic-v1';
 const OFFLINE_URL = '/index.html';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    (async () => {
-      try {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.addAll([OFFLINE_URL]);
-        await self.skipWaiting();
-      } catch (err) {
-        console.error('Cache add error:', err);
-      }
-    })()
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll([OFFLINE_URL]);
+    })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    (async () => {
-      const keys = await caches.keys();
-      await Promise.all(
-        keys.map((key) => key !== CACHE_NAME && caches.delete(key))
-      );
-      await self.clients.claim();
-    })()
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME && key !== DYNAMIC_CACHE) {
+            return caches.delete(key);
+          }
+        })
+      )
+    )
   );
+  self.clients.claim();
 });
+
+function isNavigationRequest(request) {
+  return request.mode === 'navigate';
+}
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   if (url.pathname.startsWith('/api') || request.method !== 'GET') {
     return;
   }
 
-  if (request.mode === 'navigate') {
+  if (isNavigationRequest(request)) {
     event.respondWith(
       (async () => {
         try {
           return await fetch(request);
         } catch (err) {
-          const cached = await caches.match(OFFLINE_URL);
-          return cached || new Response('Offline', { status: 503 });
+          return await caches.match(OFFLINE_URL);
         }
       })()
     );
     return;
   }
 
-  if (/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|eot|ttf|webp)$/i.test(url.pathname)) {
+  if (/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|eot|ttf|webp|gif)$/i.test(url.pathname)) {
     event.respondWith(
-      (async () => {
-        const cached = await caches.match(request);
-        if (cached) return cached;
+      caches.open(DYNAMIC_CACHE).then(async (cache) => {
+        const cached = await cache.match(request);
+        if (cached) {
+          fetch(request)
+            .then((resp) => {
+              if (resp.ok) cache.put(request, resp.clone());
+            })
+            .catch(() => {});
+          return cached;
+        }
 
         try {
-          const response = await fetch(request);
-
-          if (response && response.status === 200 && response.type === 'basic') {
-            const clone = response.clone();
-            const cache = await caches.open(CACHE_NAME);
-            cache.put(request, clone).catch((err) =>
-              console.error('Cache put error:', err)
-            );
-          }
-
-          return response;
-        } catch (err) {
-          const fallback = await caches.match(OFFLINE_URL);
-          return fallback || new Response('Offline', { status: 503 });
+          const resp = await fetch(request);
+          if (resp.ok) cache.put(request, resp.clone());
+          return resp;
+        } catch {
+          return new Response('Offline asset', { status: 503 });
         }
-      })()
+      })
     );
     return;
   }
 
   event.respondWith(
-    (async () => {
-      try {
-        return await fetch(request);
-      } catch (err) {
-        const cached = await caches.match(request);
-
-        return (
-          cached ||
-          new Response('Not found in cache', {
-            status: 404,
-            statusText: 'File not cached',
-          })
-        );
-      }
-    })()
+    fetch(request).catch(() => caches.match(request))
   );
 });

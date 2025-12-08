@@ -1,5 +1,10 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import viteCompression from 'vite-plugin-compression';
+import viteImagemin from 'vite-plugin-imagemin';
+import { terser } from 'rollup-plugin-terser';
+
+const isProd = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   root: 'src',
@@ -20,6 +25,7 @@ export default defineConfig({
   build: {
     outDir: '../dist',
     emptyOutDir: true,
+    sourcemap: isProd ? false : true,
 
     rollupOptions: {
       input: {
@@ -28,26 +34,30 @@ export default defineConfig({
       },
 
       output: {
-        entryFileNames: chunk => {
+        entryFileNames: (chunk) => {
           if (chunk.name === 'sw') return 'sw.js';
           return 'assets/[name]-[hash].js';
         },
-        assetFileNames: assetInfo => {
-          const ext = assetInfo.name.split('.').pop();
-          const images = ['png','jpg','jpeg','gif','svg','webp'];
-
+        assetFileNames: (assetInfo) => {
+          const ext = assetInfo.name ? assetInfo.name.split('.').pop() : '';
+          const images = ['png','jpg','jpeg','gif','svg','webp','avif'];
           if (images.includes(ext)) {
             return 'assets/images/[name]-[hash][extname]';
           }
-
-          if (assetInfo.name === 'sw.js') {
-            return 'sw.js';
-          }
-
           return 'assets/[name]-[hash][extname]';
-        }
+        },
+        plugins: [
+          terser({
+            format: {
+              comments: false
+            }
+          })
+        ]
       }
-    }
+    },
+
+    minify: 'esbuild',
+    brotliSize: true
   },
 
   plugins: [
@@ -63,7 +73,34 @@ export default defineConfig({
           next();
         });
       }
-    }
+    },
+
+    viteCompression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 10240,
+      deleteOriginFile: false
+    }),
+    viteCompression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 10240,
+      deleteOriginFile: false
+    }),
+
+    viteImagemin({
+      gifsicle: { optimizationLevel: 7, interlaced: false },
+      optipng: { optimizationLevel: 7 },
+      mozjpeg: { quality: 75 },
+      pngquant: { quality: [0.65, 0.9], speed: 4 },
+      svgo: {
+        plugins: [
+          { name: 'removeViewBox', active: false },
+          { name: 'removeEmptyAttrs', active: false }
+        ]
+      },
+      webp: { quality: 75 }
+    })
   ],
 
   resolve: {

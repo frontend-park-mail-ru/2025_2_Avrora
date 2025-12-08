@@ -94,12 +94,12 @@ export class Profile {
             this.originalEmail = this.profileData.email;
 
             if (this.currentAvatarUrl) {
-                this.profileData.photo_url = this.currentAvatarUrl;
-            } else if (this.profileData.photo_url) {
-                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+                this.profileData.avatar_url = this.currentAvatarUrl;
+            } else if (this.profileData.avatar_url) {
+                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.avatar_url);
             } else {
                 this.currentAvatarUrl = MediaService.getAvatarUrl("default_avatar.jpg");
-                this.profileData.photo_url = this.currentAvatarUrl;
+                this.profileData.avatar_url = this.currentAvatarUrl;
             }
 
             const userSection = await this.createUserSection();
@@ -128,12 +128,12 @@ export class Profile {
 
             if (oldAvatarUrl && !oldAvatarUrl.includes('default_avatar.jpg')) {
                 this.currentAvatarUrl = oldAvatarUrl;
-                this.profileData.photo_url = oldAvatarUrl;
-            } else if (this.profileData.photo_url) {
-                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+                this.profileData.avatar_url = oldAvatarUrl;
+            } else if (this.profileData.avatar_url) {
+                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.avatar_url);
             } else {
                 this.currentAvatarUrl = MediaService.getAvatarUrl("default_avatar.jpg");
-                this.profileData.photo_url = this.currentAvatarUrl;
+                this.profileData.avatar_url = this.currentAvatarUrl;
             }
 
             this.contentElement.innerHTML = '';
@@ -166,7 +166,7 @@ export class Profile {
                        MediaService.getAvatarUrl("default_avatar.jpg");
 
         if (this.profileData?.photo_url) {
-            avatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+            avatarUrl = MediaService.getAvatarUrl(this.profileData.avatar_url);
         }
 
         avatar.src = avatarUrl;
@@ -558,12 +558,12 @@ export class Profile {
                 last_name: (inputs[1] as HTMLInputElement)?.value.trim() || "",
                 phone: phoneValue,
                 email: (inputs[3] as HTMLInputElement)?.value.trim() || "",
-                photo_url: this.currentAvatarUrl || this.profileData?.photo_url || this.controller.user?.avatar
+                avatar_url: this.currentAvatarUrl || this.profileData?.photo_url || this.controller.user?.avatar
             };
 
-            if (profileData.photo_url && profileData.photo_url.includes('/images/')) {
-                const urlParts = profileData.photo_url.split('/images/');
-                profileData.photo_url = urlParts.length > 1 ? urlParts[1] : profileData.photo_url;
+            if (profileData.avatar_url && profileData.avatar_url.includes('/images/')) {
+                const urlParts = profileData.avatar_url.split('/images/');
+                profileData.avatar_url = urlParts.length > 1 ? urlParts[1] : profileData.avatar_url;
             }
 
             const validation = ProfileService.validateProfile(profileData);
@@ -587,22 +587,22 @@ export class Profile {
                 email: profileData.email,
                 phone: profileData.phone,
                 name: `${profileData.first_name} ${profileData.last_name}`,
-                avatar: this.currentAvatarUrl || profileData.photo_url,
-                photo_url: this.currentAvatarUrl || profileData.photo_url,
-                AvatarURL: this.currentAvatarUrl || profileData.photo_url
+                avatar: this.currentAvatarUrl || profileData.avatar_url,
+                photo_url: this.currentAvatarUrl || profileData.avatar_url,
+                AvatarURL: this.currentAvatarUrl || profileData.avatar_url
             };
 
             this.controller.updateUser(updatedUser);
 
             this.profileData = await ProfileService.getProfile();
 
-            if (this.profileData.photo_url) {
-                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.photo_url);
+            if (this.profileData.avatar_url) {
+                this.currentAvatarUrl = MediaService.getAvatarUrl(this.profileData.avatar_url);
             }
 
             this.showLoading(false);
 
-            this.updateCurrentAvatar(this.currentAvatarUrl || profileData.photo_url);
+            this.updateCurrentAvatar(this.currentAvatarUrl || profileData.avatar_url);
 
             await this.controller.refreshProfileAndUI();
 
