@@ -192,7 +192,7 @@ export class RegisterPage {
                     const user = {
                         id: userId.toString(),
                         email: loginResult.data.email || emailStr,
-                        avatar: '../../images/user.png',
+                        avatar: '../../images/default_avatar.jpg',
                         firstName: '',
                         lastName: '',
                         phone: ''

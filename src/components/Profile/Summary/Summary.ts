@@ -19,26 +19,95 @@ export class Summary {
     private controller: any;
     private myOffers: OfferData[];
     private favoriteOffers: OfferData[];
+    private contentElement: HTMLElement | null;
+    private isRendering: boolean;
 
     constructor(controller: any) {
         this.controller = controller;
         this.myOffers = [];
         this.favoriteOffers = [];
+        this.contentElement = null;
+        this.isRendering = false;
     }
 
     async render(): Promise<HTMLElement> {
-        const content = document.createElement("div");
-        content.className = "profile__content";
+        if (this.isRendering) {
+            return this.contentElement || document.createElement("div");
+        }
+        
+        this.isRendering = true;
 
-        const quickAdBlock = this.createQuickAdBlock();
-        const myAdsBlock = await this.createMyAdsBlock();
-        const favoritesBlock = await this.createFavoritesBlock();
+        if (this.contentElement) {
+            this.contentElement.innerHTML = '';
+        } else {
+            this.contentElement = document.createElement("div");
+            this.contentElement.className = "profile__content";
+        }
 
-        content.appendChild(quickAdBlock);
-        content.appendChild(myAdsBlock);
-        content.appendChild(favoritesBlock);
+        try {
+            await this.loadData();
+            
+            const quickAdBlock = this.createQuickAdBlock();
+            const myAdsBlock = await this.createMyAdsBlock();
+            const favoritesBlock = this.createFavoritesBlock();
 
-        return content;
+            this.contentElement.appendChild(quickAdBlock);
+            this.contentElement.appendChild(myAdsBlock);
+            this.contentElement.appendChild(favoritesBlock);
+            
+        } catch (error) {
+            this.contentElement.innerHTML = `
+                <div class="profile__error">
+                    <p>Не удалось загрузить данные сводки</p>
+                    <button class="profile__retry-button">Попробовать снова</button>
+                </div>
+            `;
+            
+            const retryBtn = this.contentElement.querySelector('.profile__retry-button');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => this.render());
+            }
+        }
+        
+        this.isRendering = false;
+        return this.contentElement;
+    }
+
+    async updateData(): Promise<void> {
+        if (!this.contentElement || this.isRendering) {
+            return;
+        }
+
+        this.isRendering = true;
+        
+        try {
+            await this.loadData();
+
+            this.contentElement.innerHTML = '';
+
+            const quickAdBlock = this.createQuickAdBlock();
+            const myAdsBlock = await this.createMyAdsBlock();
+            const favoritesBlock = this.createFavoritesBlock();
+
+            this.contentElement.appendChild(quickAdBlock);
+            this.contentElement.appendChild(myAdsBlock);
+            this.contentElement.appendChild(favoritesBlock);
+            
+        } catch (error) {
+
+        } finally {
+            this.isRendering = false;
+        }
+    }
+
+    private async loadData(): Promise<void> {
+        try {
+            this.myOffers = await ProfileService.getMyOffers();
+        } catch (error) {
+            this.myOffers = [];
+        }
+
+        this.favoriteOffers = [];
     }
 
     private createQuickAdBlock(): HTMLElement {
@@ -83,36 +152,26 @@ export class Summary {
 
         const title = document.createElement("h1");
         title.className = "profile__title";
+        title.textContent = `Мои объявления (${this.myOffers.length})`;
 
-        try {
-            this.myOffers = await ProfileService.getMyOffers();
-            title.textContent = `Мои объявления (${this.myOffers.length})`;
-            block.appendChild(title);
+        block.appendChild(title);
 
-            if (this.myOffers.length === 0) {
-                const ad = this.createAd(
-                    null,
-                    "У вас пока нет объявлений",
-                    "Создайте первое объявление, чтобы оно появилось здесь"
-                );
-                block.appendChild(ad);
-            } else {
-                const recentOffers = this.myOffers.slice(0, 3);
-                recentOffers.forEach(offer => {
-                    const ad = this.createOfferAd(offer);
-                    block.appendChild(ad);
-                });
-            }
-        } catch (error) {
-            title.textContent = "Мои объявления";
-            block.appendChild(title);
-
+        if (this.myOffers.length === 0) {
             const ad = this.createAd(
-                null,
-                "Не удалось загрузить объявления",
-                "Попробуйте обновить страницу"
+                MediaService.getAvatarUrl("default_offer.jpg"),
+                "У вас пока нет объявлений",
+                "Создайте первое объявление, чтобы оно появилось здесь"
             );
             block.appendChild(ad);
+        } else {
+            const recentOffers = this.myOffers.slice(0, 3);
+            for (const offer of recentOffers) {
+                try {
+                    const ad = this.createOfferAd(offer);
+                    block.appendChild(ad);
+                } catch (error) {
+                }
+            }
         }
 
         const link = document.createElement("button");
@@ -129,22 +188,16 @@ export class Summary {
         return block;
     }
 
-    private async createFavoritesBlock(): Promise<HTMLElement> {
+    private createFavoritesBlock(): HTMLElement {
         const block = document.createElement("div");
         block.className = "profile__block";
 
         const title = document.createElement("h1");
         title.className = "profile__title";
-
-        try {
-            this.favoriteOffers = [];
-            title.textContent = `Избранное (${this.favoriteOffers.length})`;
-        } catch (error) {
-            title.textContent = "Избранное";
-        }
+        title.textContent = `Избранное (${this.favoriteOffers.length})`;
 
         const favorite = this.createAd(
-            null,
+            MediaService.getAvatarUrl("default_offer.jpg"),
             "В избранном пока пусто",
             "Добавляйте объявления в избранное, чтобы они появились здесь"
         );
@@ -166,18 +219,21 @@ export class Summary {
         ad.className = "profile__ad";
         ad.dataset.offerId = offerData.id;
 
-        let imageUrl = offerData.image_url || offerData.images?.[0];
-        if (imageUrl && !imageUrl.startsWith('http')) {
-            imageUrl = MediaService.getImageUrl(imageUrl);
-        } else if (!imageUrl) {
-            imageUrl = MediaService.getImageUrl('default_offer.jpg');
-        }
-
         const img = document.createElement("img");
         img.className = "profile__ad-image";
-        img.src = imageUrl;
+
+        let imageUrl = offerData.image_url || offerData.images?.[0];
+        if (imageUrl) {
+            img.src = MediaService.getOfferImageUrl(imageUrl);
+        } else {
+            img.src = MediaService.getAvatarUrl("default_offer.jpg");
+        }
+        
         img.alt = "Объявление";
         img.loading = "lazy";
+        img.onerror = () => {
+            img.src = MediaService.getAvatarUrl("default_offer.jpg");
+        };
 
         const info = document.createElement("div");
         info.className = "profile__ad-info";
@@ -208,17 +264,17 @@ export class Summary {
         return ad;
     }
 
-    private createAd(imgSrc: string | null, titleText: string, description: string): HTMLElement {
+    private createAd(imgSrc: string, titleText: string, description: string): HTMLElement {
         const ad = document.createElement("div");
         ad.className = "profile__ad";
 
-        if (imgSrc) {
-            const img = document.createElement("img");
-            img.className = "profile__ad-image";
-            img.src = imgSrc;
-            img.alt = "Объявление";
-            ad.appendChild(img);
-        }
+        const img = document.createElement("img");
+        img.className = "profile__ad-image";
+        img.src = imgSrc;
+        img.alt = "Объявление";
+        img.onerror = () => {
+            img.src = MediaService.getAvatarUrl("default_offer.jpg");
+        };
 
         const info = document.createElement("div");
         info.className = "profile__ad-info";
@@ -234,6 +290,7 @@ export class Summary {
         info.appendChild(title);
         info.appendChild(text);
 
+        ad.appendChild(img);
         ad.appendChild(info);
 
         return ad;
@@ -255,6 +312,9 @@ export class Summary {
     }
 
     cleanup(): void {
-
+        if (this.contentElement) {
+            this.contentElement.innerHTML = '';
+        }
+        this.contentElement = null;
     }
 }

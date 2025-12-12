@@ -165,7 +165,7 @@ export class YandexMapService {
     private static async geocodeAddress(address: string): Promise<[number, number] | null> {
         try {
             const response = await fetch(
-                `https://geocode-maps.yandex.ru/1.x/?format=json&apikey=apikey&geocode=${encodeURIComponent(address)}`
+                `https://geocode-maps.yandex.ru/1.x/?format=json&apikey=fb8ef9b8-e5d4-49d2-9ccf-b4b8de0e5a44&geocode=${encodeURIComponent(address)}`
             );
 
             if (!response.ok) {

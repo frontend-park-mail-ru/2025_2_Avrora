@@ -130,11 +130,32 @@ export class OfferCreateThirdStage {
         btn.dataset.value = value;
 
         const currentData = this.dataManager.getData();
-        if (String(currentData[field]) === value) {
-            btn.classList.add('active');
+
+        if (field === 'rooms') {
+            const currentValue = currentData[field];
+
+            if (currentValue !== undefined && currentValue !== null) {
+                const currentValueStr = String(currentValue);
+                const buttonValueStr = String(value);
+
+                if (currentValueStr === buttonValueStr) {
+                    btn.classList.add('active');
+                } else {
+                    const currentNum = Number(currentValue);
+                    const buttonNum = Number(value);
+                    if (!isNaN(currentNum) && !isNaN(buttonNum) && currentNum === buttonNum) {
+                        btn.classList.add('active');
+                    }
+                }
+            }
+        } else {
+            if (String(currentData[field]) === value) {
+                btn.classList.add('active');
+            }
         }
 
         btn.addEventListener('click', () => {
+
             const group = btn.closest('.create-ad__choice-group');
             if (group) {
                 const siblings = group.querySelectorAll('.create-ad__choice-button');
@@ -145,11 +166,15 @@ export class OfferCreateThirdStage {
 
             const update: any = {};
             if (field === 'rooms') {
-                update[field] = parseInt(value) || 0;
+                const numericValue = Number(value);
+                update[field] = isNaN(numericValue) ? 0 : numericValue;
             } else {
                 update[field] = value;
             }
+
             this.dataManager.updateStage3(update);
+
+            this.saveFormData();
         });
 
         return btn;
@@ -176,7 +201,8 @@ export class OfferCreateThirdStage {
             const value = (button as HTMLElement).dataset.value!;
 
             if (fieldName === 'rooms') {
-                formData[fieldName] = parseInt(value) || 0;
+                const numericValue = Number(value);
+                formData[fieldName] = isNaN(numericValue) ? null : numericValue;
             } else {
                 formData[fieldName] = value;
             }
@@ -189,13 +215,45 @@ export class OfferCreateThirdStage {
         const currentData = this.dataManager.getData();
 
         const roomButtons = this.root!.querySelectorAll('.create-ad__choice-button[data-field="rooms"]');
-        roomButtons.forEach(button => button.classList.remove('active'));
+
+        roomButtons.forEach((button, index) => {
+            button.classList.remove('active');
+        });
 
         if (currentData.rooms !== undefined && currentData.rooms !== null) {
-            const button = this.root!.querySelector(`.create-ad__choice-button[data-field="rooms"][data-value="${String(currentData.rooms)}"]`) as HTMLButtonElement;
-            if (button) {
-                button.classList.add('active');
+
+            const roomButtonsArray = Array.from(roomButtons);
+
+            let foundButton = null;
+
+            const targetValueStr = String(currentData.rooms);
+            foundButton = roomButtonsArray.find(button =>
+                button.dataset.value === targetValueStr
+            );
+
+            if (!foundButton) {
+                const currentNum = Number(currentData.rooms);
+                if (!isNaN(currentNum)) {
+                    foundButton = roomButtonsArray.find(button => {
+                        const buttonNum = Number(button.dataset.value);
+                        return !isNaN(buttonNum) && buttonNum === currentNum;
+                    });
+                }
             }
+
+            if (!foundButton && currentData.rooms === 0) {
+                foundButton = roomButtonsArray.find(button =>
+                    button.dataset.value === "0" || Number(button.dataset.value) === 0
+                );
+            }
+
+            if (foundButton) {
+                foundButton.classList.add('active');
+            } else {
+
+            }
+        } else {
+
         }
 
         ['area', 'living_area', 'kitchen_area'].forEach(field => {
@@ -204,6 +262,40 @@ export class OfferCreateThirdStage {
                 input.value = String(currentData[field]);
             }
         });
+
+        const finalActiveButtons = this.root!.querySelectorAll('.create-ad__choice-button.active');
+    }
+
+    validateFormData(): { isValid: boolean; message?: string } {
+        const currentData = this.dataManager.getData();
+
+        if (currentData.rooms === null || currentData.rooms === undefined) {
+            return { isValid: false, message: 'Выберите количество комнат' };
+        }
+
+        if (!currentData.area || currentData.area <= 0) {
+            return { isValid: false, message: 'Введите корректную общую площадь (больше 0)' };
+        }
+
+        if (currentData.living_area !== null && currentData.living_area !== undefined) {
+            if (currentData.living_area <= 0) {
+                return { isValid: false, message: 'Жилая площадь должна быть положительным числом' };
+            }
+            if (currentData.living_area > currentData.area) {
+                return { isValid: false, message: 'Жилая площадь не может быть больше общей площади' };
+            }
+        }
+
+        if (currentData.kitchen_area !== null && currentData.kitchen_area !== undefined) {
+            if (currentData.kitchen_area <= 0) {
+                return { isValid: false, message: 'Площадь кухни должна быть положительным числом' };
+            }
+            if (currentData.kitchen_area > currentData.area) {
+                return { isValid: false, message: 'Площадь кухни не может быть больше общей площади' };
+            }
+        }
+
+        return { isValid: true };
     }
 
     createNav({ prev = false, next = false }: { prev?: boolean; next?: boolean } = {}): HTMLElement {

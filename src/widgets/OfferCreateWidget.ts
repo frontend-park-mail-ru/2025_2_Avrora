@@ -21,6 +21,17 @@ export class OfferCreateWidget {
     private editOfferId: string | null;
     private currentStageElement: HTMLElement | null;
 
+    private readonly MAX_INT4 = 2147483647;
+    private readonly MAX_FLOOR = 500;
+    private readonly MAX_TOTAL_FLOORS = 500;
+    private readonly MAX_ROOMS = 100;
+    private readonly MAX_AREA = 10000;
+    private readonly MAX_PRICE = 1000000000000;
+    private readonly MAX_DEPOSIT = 1000000000000;
+    private readonly MAX_COMMISSION = 100;
+    private readonly MAX_LIVING_AREA = 10000;
+    private readonly MAX_KITCHEN_AREA = 10000;
+
     constructor(parent: HTMLElement, controller: any, options: OfferCreateWidgetOptions = {}) {
         this.parent = parent;
         this.controller = controller;
@@ -84,7 +95,8 @@ export class OfferCreateWidget {
                 this.addEventListener(stageEl, 'cleanup', () => secondStage.cleanup());
                 break;
             case 3:
-                stageEl = new OfferCreateThirdStage(stageOptions).render();
+                const thirdStage = new OfferCreateThirdStage(stageOptions);
+                stageEl = thirdStage.render();
                 break;
             case 4:
                 stageEl = new OfferCreateFourthStage(stageOptions).render();
@@ -141,17 +153,6 @@ export class OfferCreateWidget {
                 if (!validationResult.isValid) {
                     this.showError(validationResult.message!);
                     return;
-                }
-
-                if (this.step === 5) {
-                    const fifthStage = this.currentStageElement as any;
-                    if (fifthStage && fifthStage.validateFormData) {
-                        const fifthStageValidation = fifthStage.validateFormData();
-                        if (!fifthStageValidation.isValid) {
-                            this.showError(fifthStageValidation.message!);
-                            return;
-                        }
-                    }
                 }
 
                 await this.handlePublish();
@@ -255,22 +256,51 @@ export class OfferCreateWidget {
                     return { isValid: false, message: 'Введите адрес' };
                 }
 
-                if (currentData.complex_status === 'yes' && (!currentData.complex_name || currentData.complex_name.trim() === '')) {
-                    return { isValid: false, message: 'Введите название жилищного комплекса' };
+                if (currentData.address.length < 5) {
+                    return { isValid: false, message: 'Адрес должен содержать не менее 5 символов' };
+                }
+
+                if (currentData.floor === null || currentData.floor === undefined) {
+                    return { isValid: false, message: 'Введите этаж' };
+                }
+                if (currentData.total_floors === null || currentData.total_floors === undefined) {
+                    return { isValid: false, message: 'Введите общее количество этажей' };
                 }
 
                 const floorValidation = this.validateFloors(currentData);
                 if (!floorValidation.isValid) {
                     return floorValidation;
                 }
+
+                if (currentData.in_housing_complex) {
+                    if (!currentData.housing_complex || currentData.housing_complex.trim() === '') {
+                        return { isValid: false, message: 'Введите название жилищного комплекса' };
+                    }
+                }
                 break;
 
             case 3:
-                if (!currentData.rooms && currentData.rooms !== 0) {
+                if (currentData.rooms === null || currentData.rooms === undefined) {
                     return { isValid: false, message: 'Выберите количество комнат' };
                 }
-                if (!currentData.area) {
-                    return { isValid: false, message: 'Введите общую площадь' };
+
+                const roomsNum = Number(currentData.rooms);
+                if (isNaN(roomsNum)) {
+                    return { isValid: false, message: 'Количество комнат должно быть числом' };
+                }
+
+                if (roomsNum < 0) {
+                    return { isValid: false, message: 'Количество комнат не может быть отрицательным' };
+                }
+                if (roomsNum > this.MAX_ROOMS) {
+                    return { isValid: false, message: `Количество комнат не может быть больше ${this.MAX_ROOMS}` };
+                }
+                if (roomsNum > this.MAX_INT4) {
+                    return { isValid: false, message: `Количество комнат превышает максимально допустимое значение ${this.MAX_INT4}` };
+                }
+
+                if (!currentData.area || currentData.area <= 0) {
+                    return { isValid: false, message: 'Введите корректную общую площадь (больше 0)' };
                 }
 
                 const areaValidation = this.validateAreas(currentData);
@@ -280,13 +310,17 @@ export class OfferCreateWidget {
                 break;
 
             case 4:
-                if (!currentData.price) {
-                    return { isValid: false, message: 'Введите цену' };
+                if (!currentData.price || currentData.price <= 0) {
+                    return { isValid: false, message: 'Введите корректную цену (больше 0)' };
                 }
 
                 const priceValidation = this.validatePrice(currentData);
                 if (!priceValidation.isValid) {
                     return priceValidation;
+                }
+
+                if (currentData.offer_type === 'rent' && !currentData.rental_period) {
+                    return { isValid: false, message: 'Выберите срок аренды' };
                 }
                 break;
 
@@ -341,6 +375,11 @@ export class OfferCreateWidget {
             return { isValid: false, message: 'Описание не должно превышать 2000 символов' };
         }
 
+        const generatedTitle = this.generateTitle(data);
+        if (!generatedTitle || generatedTitle.trim() === '') {
+            return { isValid: false, message: 'Не удалось сгенерировать заголовок. Проверьте заполненные данные.' };
+        }
+
         return { isValid: true };
     }
 
@@ -348,26 +387,51 @@ export class OfferCreateWidget {
         const floor = data.floor;
         const totalFloors = data.total_floors;
 
-        if ((floor !== null && totalFloors === null) || (floor === null && totalFloors !== null)) {
-            return { isValid: false, message: 'Заполните оба поля: этаж и количество этажей в доме' };
+        if (floor === null || floor === undefined) {
+            return { isValid: false, message: 'Введите этаж' };
         }
 
-        if (floor !== null && totalFloors !== null) {
-            if (floor < 0) {
-                return { isValid: false, message: 'Этаж не может быть отрицательным числом' };
-            }
+        if (totalFloors === null || totalFloors === undefined) {
+            return { isValid: false, message: 'Введите общее количество этажей' };
+        }
 
-            if (totalFloors <= 0) {
-                return { isValid: false, message: 'Общее количество этажей должно быть положительным числом' };
-            }
+        const floorNum = Number(floor);
+        const totalFloorsNum = Number(totalFloors);
 
-            if (floor > totalFloors) {
-                return { isValid: false, message: 'Этаж не может быть больше общего количества этажей в доме' };
-            }
+        if (isNaN(floorNum)) {
+            return { isValid: false, message: 'Этаж должен быть числом' };
+        }
 
-            if (floor === 0 && totalFloors > 0) {
-                return { isValid: false, message: 'Этаж 0 обычно не используется. Используйте 1 для первого этажа.' };
-            }
+        if (isNaN(totalFloorsNum)) {
+            return { isValid: false, message: 'Общее количество этажей должно быть числом' };
+        }
+
+        if (floorNum < 1) {
+            return { isValid: false, message: 'Этаж должен быть не менее 1' };
+        }
+
+        if (floorNum > this.MAX_FLOOR) {
+            return { isValid: false, message: `Этаж не может быть больше ${this.MAX_FLOOR}` };
+        }
+
+        if (floorNum > this.MAX_INT4) {
+            return { isValid: false, message: `Этаж превышает максимально допустимое значение ${this.MAX_INT4}` };
+        }
+
+        if (totalFloorsNum < 1) {
+            return { isValid: false, message: 'Общее количество этажей должно быть не менее 1' };
+        }
+
+        if (totalFloorsNum > this.MAX_TOTAL_FLOORS) {
+            return { isValid: false, message: `Общее количество этажей не может быть больше ${this.MAX_TOTAL_FLOORS}` };
+        }
+
+        if (totalFloorsNum > this.MAX_INT4) {
+            return { isValid: false, message: `Общее количество этажей превышает максимально допустимое значение ${this.MAX_INT4}` };
+        }
+
+        if (floorNum > totalFloorsNum) {
+            return { isValid: false, message: 'Этаж не может быть больше общего количества этажей в доме' };
         }
 
         return { isValid: true };
@@ -382,12 +446,24 @@ export class OfferCreateWidget {
             return { isValid: false, message: 'Общая площадь должна быть положительным числом' };
         }
 
+        if (area && area > this.MAX_AREA) {
+            return { isValid: false, message: `Общая площадь не может быть больше ${this.MAX_AREA} м²` };
+        }
+
         if (livingArea && livingArea <= 0) {
             return { isValid: false, message: 'Жилая площадь должна быть положительным числом' };
         }
 
+        if (livingArea && livingArea > this.MAX_LIVING_AREA) {
+            return { isValid: false, message: `Жилая площадь не может быть больше ${this.MAX_LIVING_AREA} м²` };
+        }
+
         if (kitchenArea && kitchenArea <= 0) {
             return { isValid: false, message: 'Площадь кухни должна быть положительным числом' };
+        }
+
+        if (kitchenArea && kitchenArea > this.MAX_KITCHEN_AREA) {
+            return { isValid: false, message: `Площадь кухни не может быть больше ${this.MAX_KITCHEN_AREA} м²` };
         }
 
         if (livingArea && area && livingArea > area) {
@@ -410,15 +486,31 @@ export class OfferCreateWidget {
             return { isValid: false, message: 'Цена должна быть положительным числом' };
         }
 
+        if (price && price > this.MAX_PRICE) {
+            return { isValid: false, message: `Цена не может превышать ${this.formatNumber(this.MAX_PRICE)} руб.` };
+        }
+
         if (deposit && deposit < 0) {
             return { isValid: false, message: 'Залог не может быть отрицательным' };
         }
 
-        if (commission && (commission < 0 || commission > 100)) {
-            return { isValid: false, message: 'Комиссия должна быть в диапазоне от 0 до 100%' };
+        if (deposit && deposit > this.MAX_DEPOSIT) {
+            return { isValid: false, message: `Залог не может превышать ${this.formatNumber(this.MAX_DEPOSIT)} руб.` };
+        }
+
+        if (commission && (commission < 0 || commission > this.MAX_COMMISSION)) {
+            return { isValid: false, message: `Комиссия должна быть в диапазоне от 0 до ${this.MAX_COMMISSION}%` };
+        }
+
+        if (commission && commission > this.MAX_INT4) {
+            return { isValid: false, message: `Комиссия превышает максимально допустимое значение ${this.MAX_INT4}` };
         }
 
         return { isValid: true };
+    }
+
+    private formatNumber(num: number): string {
+        return num.toLocaleString('ru-RU');
     }
 
     collectFormData(formElement: HTMLElement): any {
@@ -430,7 +522,12 @@ export class OfferCreateWidget {
             if (field) {
                 const value = (button as HTMLElement).dataset.value;
                 if (field === 'rooms') {
-                    formData[field] = value !== null && value !== undefined ? parseInt(value) || null : null;
+                    if (value !== null && value !== undefined) {
+                        const intValue = parseInt(value);
+                        formData[field] = isNaN(intValue) ? null : intValue;
+                    } else {
+                        formData[field] = null;
+                    }
                 } else {
                     formData[field] = value || null;
                 }
@@ -481,7 +578,54 @@ export class OfferCreateWidget {
             this.saveCurrentStepData();
             const currentData = this.dataManager.getData();
 
+            if (!currentData.user_id && this.controller.user?.id) {
+                currentData.user_id = this.controller.user.id;
+            }
+
+            if (!currentData.user_id) {
+                this.showError('Пользователь не авторизован');
+                return;
+            }
+
+            const finalValidation = this.validateAllStages(currentData);
+            if (!finalValidation.isValid) {
+                this.showError(finalValidation.message!);
+                return;
+            }
+
+            const generatedTitle = this.generateTitle(currentData);
+            if (!generatedTitle || generatedTitle.trim() === '') {
+                this.showError('Не удалось сгенерировать заголовок объявления. Проверьте заполненные данные.');
+                return;
+            }
+            currentData.title = generatedTitle;
+
             const preparedData = this.prepareOfferData(currentData);
+
+            if (!preparedData.title || preparedData.title.trim() === '') {
+                this.showError('Не удалось сгенерировать заголовок объявления');
+                return;
+            }
+
+            if (preparedData.price <= 0) {
+                this.showError('Цена должна быть больше 0');
+                return;
+            }
+
+            if (preparedData.area <= 0) {
+                this.showError('Площадь должна быть больше 0');
+                return;
+            }
+
+            if (preparedData.floor === null || preparedData.floor === undefined) {
+                this.showError('Этаж обязателен для заполнения');
+                return;
+            }
+
+            if (preparedData.total_floors === null || preparedData.total_floors === undefined) {
+                this.showError('Общее количество этажей обязательно для заполнения');
+                return;
+            }
 
             const validationResult = this.controller.validateOfferData ?
                 this.controller.validateOfferData(preparedData) :
@@ -499,6 +643,7 @@ export class OfferCreateWidget {
 
             let result: any;
             if (this.isEditing) {
+                delete preparedData.id;
                 result = await this.controller.updateOffer(this.editOfferId!, preparedData);
             } else {
                 result = await this.controller.createOffer(preparedData);
@@ -546,6 +691,78 @@ export class OfferCreateWidget {
         }
     }
 
+    private validateAllStages(data: any): { isValid: boolean; message?: string } {
+        const stages = [
+            this.validateStage1(data),
+            this.validateStage2(data),
+            this.validateStage3(data),
+            this.validateStage4(data),
+            this.validateStage5(data)
+        ];
+
+        for (const stage of stages) {
+            if (!stage.isValid) {
+                return stage;
+            }
+        }
+
+        return { isValid: true };
+    }
+
+    private validateStage1(data: any): { isValid: boolean; message?: string } {
+        if (!data.offer_type) return { isValid: false, message: 'Выберите тип объявления' };
+        if (!data.property_type) return { isValid: false, message: 'Выберите тип недвижимости' };
+        if (!data.category) return { isValid: false, message: 'Выберите вид недвижимости' };
+        return { isValid: true };
+    }
+
+    private validateStage2(data: any): { isValid: boolean; message?: string } {
+        if (!data.address) return { isValid: false, message: 'Введите адрес' };
+        if (data.address.length < 5) return { isValid: false, message: 'Адрес должен содержать не менее 5 символов' };
+
+        if (data.floor === null || data.floor === undefined) {
+            return { isValid: false, message: 'Введите этаж' };
+        }
+        if (data.total_floors === null || data.total_floors === undefined) {
+            return { isValid: false, message: 'Введите общее количество этажей' };
+        }
+
+        const floorValidation = this.validateFloors(data);
+        if (!floorValidation.isValid) return floorValidation;
+
+        if (data.in_housing_complex) {
+            if (!data.housing_complex || data.housing_complex.trim() === '') {
+                return { isValid: false, message: 'Введите название жилищного комплекса' };
+            }
+        }
+        return { isValid: true };
+    }
+
+    private validateStage3(data: any): { isValid: boolean; message?: string } {
+        if (data.rooms === null || data.rooms === undefined) return { isValid: false, message: 'Выберите количество комнат' };
+
+        const roomsNum = Number(data.rooms);
+        if (isNaN(roomsNum)) return { isValid: false, message: 'Количество комнат должно быть числом' };
+        if (roomsNum < 0) return { isValid: false, message: 'Количество комнат не может быть отрицательным' };
+        if (roomsNum > this.MAX_ROOMS) return { isValid: false, message: `Количество комнат не может быть больше ${this.MAX_ROOMS}` };
+        if (roomsNum > this.MAX_INT4) return { isValid: false, message: `Количество комнат превышает максимально допустимое значение ${this.MAX_INT4}` };
+
+        if (!data.area || data.area <= 0) return { isValid: false, message: 'Введите корректную общую площадь' };
+        return this.validateAreas(data);
+    }
+
+    private validateStage4(data: any): { isValid: boolean; message?: string } {
+        if (!data.price || data.price <= 0) return { isValid: false, message: 'Введите корректную цену' };
+        if (data.offer_type === 'rent' && !data.rental_period) {
+            return { isValid: false, message: 'Выберите срок аренды' };
+        }
+        return this.validatePrice(data);
+    }
+
+    private validateStage5(data: any): { isValid: boolean; message?: string } {
+        return this.validateFifthStage(data);
+    }
+
     private prepareOfferData(data: any): any {
         const preparedData = { ...data };
 
@@ -591,14 +808,8 @@ export class OfferCreateWidget {
             preparedData.in_housing_complex = false;
         }
 
-        if (preparedData.housing_complex !== undefined && preparedData.housing_complex !== null) {
-            preparedData.housing_complex = String(preparedData.housing_complex);
-        } else {
-            preparedData.housing_complex = '';
-        }
-
-        if (!preparedData.title && this.shouldGenerateTitle(data)) {
-            preparedData.title = this.generateTitle(data);
+        if (!preparedData.title) {
+            preparedData.title = this.generateTitle(preparedData);
         }
 
         if (!preparedData.user_id && this.controller.user?.id) {
@@ -611,18 +822,13 @@ export class OfferCreateWidget {
 
         if (preparedData.images && Array.isArray(preparedData.images)) {
             preparedData.image_urls = preparedData.images.map((img: any) => img.filename);
+            delete preparedData.images;
         }
 
-        delete preparedData.images;
         delete preparedData.complex_status;
         delete preparedData.complex_name;
 
-
         return preparedData;
-    }
-
-    private shouldGenerateTitle(data: any): boolean {
-        return data.property_type && data.rooms !== undefined && data.area;
     }
 
     private generateTitle(data: any): string {
@@ -638,13 +844,23 @@ export class OfferCreateWidget {
             'rent': 'Аренда'
         };
 
+        const categoryMap: { [key: string]: string } = {
+            'new': 'новостройка',
+            'secondary': 'вторичка'
+        };
+
         const propertyType = propertyTypeMap[data.property_type] || 'недвижимость';
         const offerType = offerTypeMap[data.offer_type] || '';
+        const category = categoryMap[data.category] || '';
 
         let title = '';
 
         if (offerType) {
             title += `${offerType} `;
+        }
+
+        if (category) {
+            title += `${category}, `;
         }
 
         if (data.rooms !== undefined && data.rooms !== null) {
@@ -654,11 +870,20 @@ export class OfferCreateWidget {
                 title += `${data.rooms}-комн. `;
             }
         }
-        
+
         title += `${propertyType}`;
-        
+
         if (data.area) {
             title += `, ${data.area} м²`;
+        }
+
+        if (data.address) {
+            const addressParts = data.address.split(',');
+            if (addressParts.length > 1) {
+                title += `, ${addressParts[0].trim()}`;
+            } else {
+                title += `, ${data.address}`;
+            }
         }
         
         return title;

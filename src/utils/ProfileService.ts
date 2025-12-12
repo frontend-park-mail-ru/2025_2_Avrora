@@ -324,7 +324,7 @@ export class ProfileService {
       last_name: backendData.LastName || '',
       email: backendData.Email || '',
       phone: backendData.Phone || '',
-      photo_url: backendData.AvatarURL || '../../images/user.png',
+      photo_url: backendData.AvatarURL || '../../images/default_avatar.jpg',
       role: backendData.Role || 'user'
     };
   }

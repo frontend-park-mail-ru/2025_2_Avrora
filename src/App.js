@@ -21,7 +21,6 @@ import { API_CONFIG } from "./config.js";
 import Handlebars from 'handlebars';
 import { templates } from './templates/compiled/templates.js';
 
-
 function initializeHandlebarsHelpers() {
     Handlebars.templates = templates;
     window.Handlebars = Handlebars;
@@ -55,9 +54,9 @@ class App {
     constructor() {
         this.userModel = new UserModel();
         this.appStateModel = new AppStateModel();
-        
+
         this.modalView = new ModalView();
-        
+
         this.controller = new AppController(
             {
                 userModel: this.userModel,
@@ -69,6 +68,11 @@ class App {
             }
         );
 
+        this.header = null;
+        this.router = null;
+        this.initialHeaderRendered = false;
+        this.profileUpdateTimeout = null;
+
         this.init();
     }
 
@@ -78,11 +82,13 @@ class App {
         this.createDOMStructure();
         this.initializeComponents();
 
+        this.setupGlobalEventListeners();
+
         if (this.userModel.user && this.userModel.user.id) {
             try {
                 await this.controller.loadUserProfile(this.userModel.user.id);
             } catch (error) {
-
+                console.error('Error loading user profile:', error);
             }
         }
 
@@ -123,6 +129,33 @@ class App {
         this.controller.registerPage('editOffer', new OfferCreateWidget(this.mainElement, this.controller, { isEditing: true }));
     }
 
+    setupGlobalEventListeners() {
+        window.addEventListener('profileUpdated', (event) => {
+            if (this.header) {
+                this.header.render().catch(error => {
+                    console.error('Error rendering header:', error);
+                });
+            }
+        });
+
+        window.addEventListener('uiUpdate', () => {
+            this.updateProfileSidebarCounters();
+        });
+
+        window.addEventListener('offersCountUpdated', () => {
+            this.updateProfileSidebarCounters();
+        });
+    }
+
+    updateProfileSidebarCounters() {
+        const currentPage = this.controller.model.appStateModel.currentPage;
+        if (currentPage && currentPage instanceof ProfileWidget) {
+            currentPage.updateSidebar().catch(error => {
+                console.error('Error updating sidebar:', error);
+            });
+        }
+    }
+
     setupRouter() {
         this.router = new Router(this.controller);
         this.controller.setRouter(this.router);
@@ -159,41 +192,45 @@ class App {
     async initializeServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
-
-                const registration = await navigator.serviceWorker.register('/sw.js', {
-                    scope: '/',
-                    updateViaCache: 'none'
-                });
-
-                registration.addEventListener('updatefound', () => {
-                    const newWorker = registration.installing;
-
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            
-                        }
+                  window.addEventListener('load', async () => {
+                  try {
+                    const registration = await navigator.serviceWorker.register('/sw.js', {
+                      scope: '/',
+                      updateViaCache: 'none'
                     });
-                });
 
-                if (registration.active) {
-                    registration.active.postMessage('CLEAR_DYNAMIC_CACHE');
-                }
+                    console.log('✅ Service Worker зарегистрирован:', registration.scope);
+
+                    registration.addEventListener('updatefound', () => {
+                      const newWorker = registration.installing;
+                      console.log('🔄 Обновление Service Worker найдено');
+
+                      newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                          console.log('🔄 Новый контент доступен, обновите страницу!');
+                          if (confirm('Доступна новая версия приложения. Обновить?')) {
+                            window.location.reload();
+                          }
+                        }
+                      });
+                    });
+
+                    if (registration.active) {
+                      registration.active.postMessage('CLEAR_DYNAMIC_CACHE');
+                    }
+
+                  } catch (error) {
+                    console.error('❌ Ошибка регистрации Service Worker:', error);
+                  }
+                });
 
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage('CLEAR_DYNAMIC_CACHE');
-                    }
+                  console.log('🔄 Контроллер Service Worker изменился, перезагружаем...');
+                  window.location.reload();
                 });
-
-                setInterval(() => {
-                    registration.update();
-                }, 60 * 60 * 1000);
-
             } catch (err) {
-
+                console.warn('Service Worker не зарегистрирован:', err);
             }
-        } else {
-
         }
     }
 }

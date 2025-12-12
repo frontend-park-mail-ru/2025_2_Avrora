@@ -90,6 +90,39 @@
 		}
 	}
 
+	&__logo-container {
+        display: flex;
+        align-items: center;
+        @media (max-width: 768px) {
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
+
+	&__buttons-container {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        @media (max-width: 768px) {
+            width: 100%;
+            justify-content: flex-end;
+            gap: 16px;
+        }
+
+        @media (max-width: 480px) {
+            gap: 8px;
+        }
+
+        .header__menu-item {
+            flex-shrink: 0;
+
+            @media (max-width: 480px) {
+                width: auto;
+                text-align: center;
+            }
+        }
+    }
+
 	&__logo-link {
 		display: flex;
 		align-items: center;
@@ -201,8 +234,7 @@
 		}
 
 		&--like,
-		&--user,
-		&--add-object {
+		&--user {
 			width: 30px;
 			height: 30px;
 			padding: 0;

@@ -31,39 +31,52 @@ export class MyAdvertisements {
     private offers: OfferData[];
     private isLoading: boolean;
     private parentWidget: any;
+    private contentElement: HTMLElement | null;
+    private isRendering: boolean;
 
     constructor(controller: any, parentWidget?: any) {
         this.controller = controller;
         this.parentWidget = parentWidget;
         this.offers = [];
         this.isLoading = false;
+        this.contentElement = null;
+        this.isRendering = false;
     }
 
     async render(): Promise<HTMLElement> {
-        const content = document.createElement("div");
-        content.className = "profile__content";
+        if (this.isRendering) {
+            return this.contentElement || document.createElement("div");
+        }
+        
+        this.isRendering = true;
 
-        const block = document.createElement("div");
-        block.className = "profile__block";
-
-        const title = document.createElement("h1");
-        title.className = "profile__title";
-        title.textContent = "Мои объявления";
-
-        block.appendChild(title);
-
-        if (this.isLoading) {
-            const loadingDiv = document.createElement("div");
-            loadingDiv.className = "profile__loading";
-            loadingDiv.textContent = "Загрузка объявлений...";
-            block.appendChild(loadingDiv);
-            content.appendChild(block);
-            return content;
+        if (this.contentElement) {
+            this.contentElement.innerHTML = '';
+        } else {
+            this.contentElement = document.createElement("div");
+            this.contentElement.className = "profile__content";
         }
 
         try {
-            this.offers = await ProfileService.getMyOffers();
+            await this.loadOffers();
+            
+            const block = document.createElement("div");
+            block.className = "profile__block";
+
+            const title = document.createElement("h1");
+            title.className = "profile__title";
             title.textContent = `Мои объявления (${this.offers.length})`;
+
+            block.appendChild(title);
+
+            if (this.isLoading) {
+                const loadingDiv = document.createElement("div");
+                loadingDiv.className = "profile__loading";
+                loadingDiv.textContent = "Загрузка объявлений...";
+                block.appendChild(loadingDiv);
+                this.contentElement.appendChild(block);
+                return this.contentElement;
+            }
 
             if (this.offers.length === 0) {
                 const emptyMessage = document.createElement("div");
@@ -71,39 +84,89 @@ export class MyAdvertisements {
                 emptyMessage.textContent = "У вас пока нет объявлений";
                 block.appendChild(emptyMessage);
             } else {
-                this.offers.forEach(offerData => {
-                    const ad = this.createAd(offerData);
-                    block.appendChild(ad);
-                });
+                for (const offerData of this.offers) {
+                    try {
+                        const ad = this.createAd(offerData);
+                        block.appendChild(ad);
+                    } catch (error) {
+
+                    }
+                }
             }
 
+            this.contentElement.appendChild(block);
+            
         } catch (error) {
-            title.textContent = "Мои объявления";
+            this.contentElement.innerHTML = `
+                <div class="profile__error">
+                    <p>Не удалось загрузить объявления</p>
+                    <button class="profile__retry-button">Попробовать снова</button>
+                </div>
+            `;
+            
+            const retryBtn = this.contentElement.querySelector('.profile__retry-button');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => this.render());
+            }
+        }
+        
+        this.isRendering = false;
+        return this.contentElement;
+    }
 
-            const errorDiv = document.createElement("div");
-            errorDiv.className = "profile__error";
-
-            const errorText = document.createElement("p");
-            errorText.textContent = "Не удалось загрузить объявления";
-            errorDiv.appendChild(errorText);
-
-            const retryButton = document.createElement("button");
-            retryButton.className = "profile__retry-button";
-            retryButton.textContent = "Попробовать снова";
-            retryButton.addEventListener("click", () => {
-                this.render().then(newContent => {
-                    if (content.parentNode) {
-                        content.parentNode.replaceChild(newContent, content);
-                    }
-                });
-            });
-            errorDiv.appendChild(retryButton);
-
-            block.appendChild(errorDiv);
+    async updateData(): Promise<void> {
+        if (!this.contentElement || this.isRendering) {
+            return;
         }
 
-        content.appendChild(block);
-        return content;
+        this.isRendering = true;
+        
+        try {
+            await this.loadOffers();
+
+            this.contentElement.innerHTML = '';
+
+            const block = document.createElement("div");
+            block.className = "profile__block";
+
+            const title = document.createElement("h1");
+            title.className = "profile__title";
+            title.textContent = `Мои объявления (${this.offers.length})`;
+
+            block.appendChild(title);
+
+            if (this.offers.length === 0) {
+                const emptyMessage = document.createElement("div");
+                emptyMessage.className = "profile__empty";
+                emptyMessage.textContent = "У вас пока нет объявлений";
+                block.appendChild(emptyMessage);
+            } else {
+                for (const offerData of this.offers) {
+                    try {
+                        const ad = this.createAd(offerData);
+                        block.appendChild(ad);
+                    } catch (error) {
+
+                    }
+                }
+            }
+
+            this.contentElement.appendChild(block);
+            
+        } catch (error) {
+
+        } finally {
+            this.isRendering = false;
+        }
+    }
+
+    private async loadOffers(): Promise<void> {
+        try {
+            this.offers = await ProfileService.getMyOffers();
+        } catch (error) {
+            this.offers = [];
+            throw error;
+        }
     }
 
     private createAd(offerData: OfferData): HTMLElement {
@@ -115,15 +178,17 @@ export class MyAdvertisements {
         img.className = "profile__ad-image";
 
         let imageUrl = offerData.image_url || offerData.images?.[0];
-        if (imageUrl && !imageUrl.startsWith('http')) {
-            imageUrl = MediaService.getImageUrl(imageUrl);
-        } else if (!imageUrl) {
-            imageUrl = MediaService.getImageUrl('default_offer.jpg');
+        if (imageUrl) {
+            img.src = MediaService.getOfferImageUrl(imageUrl);
+        } else {
+            img.src = MediaService.getAvatarUrl("default_offer.jpg");
         }
-
-        img.src = imageUrl;
+        
         img.alt = "Объявление";
         img.loading = "lazy";
+        img.onerror = () => {
+            img.src = MediaService.getAvatarUrl("default_offer.jpg");
+        };
 
         const info = document.createElement("div");
         info.className = "profile__ad-info";
@@ -147,14 +212,16 @@ export class MyAdvertisements {
         const editButton = document.createElement("button");
         editButton.className = "profile__ad-action profile__ad-action--edit";
         editButton.textContent = "Редактировать";
-        editButton.addEventListener("click", () => {
+        editButton.addEventListener("click", (e) => {
+            e.stopPropagation();
             this.controller.navigate(`/edit-offer/${offerData.id}`);
         });
 
         const deleteButton = document.createElement("button");
         deleteButton.className = "profile__ad-action profile__ad-action--delete";
         deleteButton.textContent = "Удалить";
-        deleteButton.addEventListener("click", () => {
+        deleteButton.addEventListener("click", (e) => {
+            e.stopPropagation();
             this.handleDeleteOffer(offerData.id);
         });
 
@@ -204,31 +271,29 @@ export class MyAdvertisements {
 
             if (confirmed) {
                 this.isLoading = true;
+                await this.updateData();
 
                 const { API } = await import('../../../utils/API.js');
-                const { API_CONFIG } = await import('../../../config.js');
 
                 const result = await API.delete(`${API_CONFIG.ENDPOINTS.OFFERS.DELETE}${offerId}`);
 
                 if (result.ok) {
                     this.offers = this.offers.filter(offer => offer.id !== offerId);
 
+                    await this.updateData();
+
                     if (this.parentWidget && typeof this.parentWidget.updateSidebar === 'function') {
-                        this.parentWidget.updateSidebar();
+                        await this.parentWidget.updateSidebar();
+                    }
+
+                    if (this.parentWidget && typeof this.parentWidget.forceUpdate === 'function') {
+                        await this.parentWidget.forceUpdate();
                     }
 
                     Modal.show({
                         title: 'Успех',
                         message: 'Объявление успешно удалено',
-                        type: 'info',
-                        onConfirm: () => {
-                            this.render().then(newContent => {
-                                const currentContent = document.querySelector('.profile__content');
-                                if (currentContent && currentContent.parentNode) {
-                                    currentContent.parentNode.replaceChild(newContent, currentContent);
-                                }
-                            });
-                        }
+                        type: 'info'
                     });
                 } else {
                     throw new Error(result.error || 'Не удалось удалить объявление');
@@ -246,6 +311,9 @@ export class MyAdvertisements {
     }
 
     cleanup(): void {
-
+        if (this.contentElement) {
+            this.contentElement.innerHTML = '';
+        }
+        this.contentElement = null;
     }
 }

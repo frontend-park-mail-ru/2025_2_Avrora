@@ -1,6 +1,7 @@
-// config.js
+const API_BASE_URL = import.meta.env.API_URL;
+
 export const API_CONFIG = {
-  API_BASE_URL: 'http://localhost:8080/api/v1',
+  API_BASE_URL: API_BASE_URL,
   ENDPOINTS: {
     AUTH: {
         LOGIN: '/login',

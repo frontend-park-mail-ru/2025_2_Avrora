@@ -56,7 +56,6 @@ export class Router {
         const [path, search] = fullPath.split('?');
         const urlParams = new URLSearchParams(search);
 
-        // Проверка защищенных маршрутов
         if (this.protectedRoutes.some(route => {
             if (route.includes(':')) {
                 const routePattern = new RegExp('^' + route.replace(/:\w+/g, '[^/]+') + '$');
@@ -68,7 +67,6 @@ export class Router {
             return;
         }
 
-        // Проверка полноты профиля для создания/редактирования офферов
         if ((path.startsWith('/create-ad') || path.startsWith('/edit-offer')) &&
             this.controller.isAuthenticated && !this.controller.isProfileComplete()) {
             this.controller.showProfileCompletionModal();
@@ -102,7 +100,6 @@ export class Router {
             matchedRoute = this.routes["/"];
         }
 
-        // Проверка владения оффером для редактирования
         if (path.startsWith('/edit-offer/') && routeParams.id) {
             const isOwner = await this.controller.checkOfferOwnership(routeParams.id);
             if (!isOwner) {

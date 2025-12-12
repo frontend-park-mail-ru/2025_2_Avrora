@@ -77,7 +77,7 @@ export const API = {
         const requiredFields = ['firstName', 'lastName', 'phone', 'email'];
         const hasCompleteProfile = requiredFields.every(field =>
           userData[field] && userData[field].trim() !== ''
-        ) && userData.avatar && !userData.avatar.includes('user.png');
+        ) && userData.avatar && !userData.avatar.includes('default_avatar.jpg');
 
         if (!hasCompleteProfile) {
           return {

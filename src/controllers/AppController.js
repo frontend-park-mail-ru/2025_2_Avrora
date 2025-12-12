@@ -1,5 +1,6 @@
 import { API } from '../utils/API.js';
 import { API_CONFIG } from "../config.js";
+import { EventDispatcher } from '../utils/EventDispatcher.js';
 
 export class AppController {
     constructor(model, view) {
@@ -7,6 +8,8 @@ export class AppController {
         this.view = view;
         this.router = null;
         this.api = API;
+        this.isRefreshing = false;
+        this.updateTimeout = null;
     }
 
     setRouter(router) {
@@ -33,7 +36,7 @@ export class AppController {
                     user.id = decoded.user_id;
                 }
             } catch (error) {
-                
+
             }
         }
 
@@ -48,7 +51,7 @@ export class AppController {
         }
 
         this.updateUI();
-        
+
         if (this.router) {
             this.router.navigate("/");
         }
@@ -114,7 +117,6 @@ export class AppController {
             }
             return false;
         } catch (error) {
-
             return false;
         }
     }
@@ -157,7 +159,9 @@ export class AppController {
 
     updateUI() {
         if (this.view.header) {
-            this.view.header.render();
+            this.view.header.render().catch(error => {
+
+            });
         }
 
         const currentPage = this.model.appStateModel.currentPage;
@@ -204,7 +208,7 @@ export class AppController {
 
     getOfferImages(apiData) {
         let images = [];
-        
+
         if (Array.isArray(apiData.images)) {
             images = apiData.images;
         } else if (apiData.image_url) {
@@ -259,7 +263,6 @@ export class AppController {
 
             return { offers, meta };
         } catch (error) {
-
             throw new Error(`Не удалось загрузить объявления: ${error.message}`);
         }
     }
@@ -296,7 +299,6 @@ export class AppController {
                 }
             };
         } catch (error) {
-
             throw new Error(`Не удалось загрузить объявления: ${error.message}`);
         }
     }
@@ -551,6 +553,73 @@ export class AppController {
             }
         } catch (error) {
             throw error;
+        }
+    }
+
+    cleanupCurrentPage() {
+        const currentPage = this.model.appStateModel.currentPage;
+        if (currentPage && typeof currentPage.cleanup === 'function') {
+            try {
+                currentPage.cleanup();
+            } catch (error) {
+
+            }
+        }
+    }
+
+    notifyProfileUpdate() {
+        if (this.updateTimeout) {
+            clearTimeout(this.updateTimeout);
+        }
+
+        this.updateTimeout = setTimeout(() => {
+            EventDispatcher.dispatchProfileUpdated(this.model.userModel.user);
+
+            EventDispatcher.dispatchUIUpdate();
+
+        }, 100);
+    }
+
+    async refreshProfileAndUI() {
+        if (this.isRefreshing) {
+            return;
+        }
+
+        this.isRefreshing = true;
+
+        try {
+
+            if (this.model.userModel.user?.id) {
+                await this.loadUserProfile(this.model.userModel.user.id);
+            }
+
+            this.cleanupCurrentPage();
+
+            if (this.view.header) {
+                this.view.header.render().catch(error => {
+
+                });
+            }
+
+            const currentPage = this.model.appStateModel.currentPage;
+            if (currentPage && currentPage.render) {
+                currentPage.render();
+            }
+
+            this.notifyProfileUpdate();
+
+        } catch (error) {
+
+        } finally {
+            this.isRefreshing = false;
+        }
+    }
+
+    async refreshOffersCount() {
+        try {
+            EventDispatcher.dispatchOffersCountUpdated();
+        } catch (error) {
+
         }
     }
 }
