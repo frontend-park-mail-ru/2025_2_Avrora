@@ -19,42 +19,6 @@ interface OfferData {
     promotion_expires_at?: string;
 }
 
-interface YooKassaPaymentRequest {
-    amount: {
-        value: string;
-        currency: string;
-    };
-    payment_method_data: {
-        type: string;
-    };
-    confirmation: {
-        type: string;
-        return_url: string;
-    };
-    metadata: {
-        offer_id: string;
-    };
-}
-
-interface YooKassaPaymentResponse {
-    id: string;
-    status: string;
-    paid: boolean;
-    amount: {
-        value: string;
-        currency: string;
-    };
-    confirmation?: {
-        type: string;
-        confirmation_url: string;
-        return_url: string;
-    };
-    created_at: string;
-    metadata: {
-        offer_id: string;
-    };
-}
-
 export class MyAdvertisements {
     private controller: any;
     private offers: OfferData[];
@@ -64,11 +28,6 @@ export class MyAdvertisements {
     private isRendering: boolean;
     private modalView: ModalView;
     
-    private readonly YOO_KASSA_API_URL = 'https://api.yookassa.ru/v3/payments';
-    private readonly YOO_KASSA_USERNAME = '1223051';
-    private readonly YOO_KASSA_PASSWORD = 'test_-GnHiyTV214hmFlfY1ZiPAbymVGPaezFYFDZ-LLNs6o';
-    private readonly RETURN_URL = 'http://localhost:3000';
-
     private daysInput: HTMLInputElement | null = null;
     private premiumYesButton: HTMLButtonElement | null = null;
     private premiumNoButton: HTMLButtonElement | null = null;
@@ -136,7 +95,6 @@ export class MyAdvertisements {
                         const ad = this.createAd(offerData);
                         block.appendChild(ad);
                     } catch (error) {
-
                     }
                 }
             }
@@ -201,7 +159,7 @@ export class MyAdvertisements {
             this.contentElement.appendChild(block);
             
         } catch (error) {
-            
+
         } finally {
             this.isRendering = false;
         }
@@ -219,53 +177,28 @@ export class MyAdvertisements {
 
     private async checkPromotionStatus(): Promise<void> {
         try {
-            for (const offer of this.offers) {
-                const isPromoted = await this.isOfferPromoted(offer.id);
-                offer.is_promoted = isPromoted;
-                if (isPromoted) {
-                    offer.promotion_expires_at = await this.getPromotionExpiry(offer.id);
-                }
-            }
-        } catch (error) {
-
-        }
-    }
-
-    private async isOfferPromoted(offerId: string): Promise<boolean> {
-        try {
             const { API } = await import('../../../utils/API.js');
             const response = await API.get(API_CONFIG.ENDPOINTS.OFFERS.PAID_OFFERS);
             
             if (response.ok && response.data) {
-                let offers = [];
-                if (response.data.Offers && Array.isArray(response.data.Offers)) {
-                    offers = response.data.Offers;
-                } else if (response.data.offers && Array.isArray(response.data.offers)) {
-                    offers = response.data.offers;
-                } else if (Array.isArray(response.data)) {
-                    offers = response.data;
-                }
+                let paidOffers = [];
                 
-                const paidOffer = offers.find((offer: any) => offer.id === offerId);
-                return !!paidOffer;
-            }
-            return false;
-        } catch (error) {
-            return false;
-        }
-    }
+                if (response.data.Offers && Array.isArray(response.data.Offers)) {
+                    paidOffers = response.data.Offers;
+                } else if (response.data.offers && Array.isArray(response.data.offers)) {
+                    paidOffers = response.data.offers;
+                } else if (Array.isArray(response.data)) {
+                    paidOffers = response.data;
+                }
 
-    private async getPromotionExpiry(offerId: string): Promise<string> {
-        try {
-            const { API } = await import('../../../utils/API.js');
-            const response = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIST}/${offerId}`);
-            
-            if (response.ok && response.data) {
-                return response.data.promotion_expires_at || response.data.expires_at || '';
+                const paidOfferIds = new Set(paidOffers.map((offer: any) => offer.ID || offer.id));
+                
+                for (const offer of this.offers) {
+                    offer.is_promoted = paidOfferIds.has(offer.id);
+                }
             }
-            return '';
         } catch (error) {
-            return '';
+
         }
     }
 
@@ -676,9 +609,9 @@ export class MyAdvertisements {
             payButton.style.boxShadow = 'none';
         });
 
-        payButton.addEventListener('click', () => {
+        payButton.addEventListener('click', async () => {
             if (this.currentOfferId) {
-                this.createYooKassaPayment(this.currentOfferId);
+                await this.createYooKassaPayment(this.currentOfferId);
             }
         });
 
@@ -727,66 +660,288 @@ export class MyAdvertisements {
 
     private async createYooKassaPayment(offerId: string): Promise<void> {
         try {
-            const basePricePerDay = 100;
-            let totalPrice = this.daysCount * basePricePerDay;
-            if (this.isPremium) {
-                totalPrice *= 1.5;
-            }
+            const { API } = await import('../../../utils/API.js');
             
-            const priceValue = Math.round(totalPrice).toFixed(2);
-            
-            const idempotenceKey = this.generateUUID();
-            
-            const paymentRequest: YooKassaPaymentRequest = {
-                amount: {
-                    value: priceValue,
-                    currency: "RUB"
-                },
-                payment_method_data: {
-                    type: "bank_card"
-                },
-                confirmation: {
-                    type: "redirect",
-                    return_url: this.RETURN_URL
-                },
-                metadata: {
-                    offer_id: offerId
-                }
-            };
+            const response = await API.post(`${API_CONFIG.ENDPOINTS.OFFERS.GET_PAYMENT_LINK}${offerId}`, {});
 
-            const authString = btoa(`${this.YOO_KASSA_USERNAME}:${this.YOO_KASSA_PASSWORD}`);
-            
-            const response = await fetch(this.YOO_KASSA_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Basic ${authString}`,
-                    'Idempotence-Key': idempotenceKey,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(paymentRequest)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-
+            if (response.ok && response.data) {
+                let paymentUrl = response.data;
                 
-                this.showErrorModal('Ошибка при создании платежа', 
-                    'Не удалось создать платеж в YooKassa. Пожалуйста, попробуйте позже или обратитесь в поддержку.');
-                return;
-            }
+                if (typeof paymentUrl === 'string') {
+                    paymentUrl = paymentUrl.trim();
+                    paymentUrl = paymentUrl.replace(/^["']|["']$/g, '');
 
-            const paymentResponse: YooKassaPaymentResponse = await response.json();
-            
-            if (paymentResponse.confirmation && paymentResponse.confirmation.confirmation_url) {
-                window.location.href = paymentResponse.confirmation.confirmation_url;
+                    if (paymentUrl && (paymentUrl.startsWith('http://') || paymentUrl.startsWith('https://'))) {
+                        const newWindow = window.open(paymentUrl, '_blank');
+                        
+                        const modalOverlay = document.querySelector('.modal-overlay');
+                        if (modalOverlay) {
+                            modalOverlay.remove();
+                        }
+                        
+                        if (newWindow) {
+                            this.showPaymentStartedModal(paymentUrl);
+                        } else {
+                            this.showPaymentLinkModal(paymentUrl);
+                        }
+                    } else {
+                        this.showErrorModal('Ошибка платежа', `Получена некорректная ссылка для оплаты. Свяжитесь с поддержкой.`);
+                    }
+                } else {
+                    this.showErrorModal('Ошибка платежа', 'Неверный формат ответа от сервера. Ожидалась ссылка.');
+                }
             } else {
-                this.showErrorModal('Ошибка платежа', 'Не удалось получить ссылку для оплаты');
+                this.showErrorModal('Ошибка при создании платежа', 
+                    response.error || 'Не удалось создать платеж. Пожалуйста, попробуйте позже.');
             }
 
         } catch (error) {
             this.showErrorModal('Ошибка при создании платежа', 
-                'Не удалось создать платеж в YooKassa. Пожалуйста, попробуйте позже или обратитесь в поддержку.');
+                'Не удалось создать платеж. Пожалуйста, попробуйте позже или обратитесь в поддержку.');
         }
+    }
+
+    private showPaymentStartedModal(paymentUrl: string): void {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.maxWidth = '500px';
+
+        const modalHeader = document.createElement('div');
+        modalHeader.className = 'modal__header';
+
+        const modalTitle = document.createElement('h3');
+        modalTitle.textContent = 'Платеж создан';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'modal__close';
+        closeBtn.innerHTML = '&times;';
+
+        modalHeader.appendChild(modalTitle);
+        modalHeader.appendChild(closeBtn);
+
+        const modalBody = document.createElement('div');
+        modalBody.className = 'modal__body';
+
+        const successIcon = document.createElement('div');
+        successIcon.innerHTML = '✅';
+        successIcon.style.textAlign = 'center';
+        successIcon.style.fontSize = '48px';
+        successIcon.style.marginBottom = '20px';
+
+        const message = document.createElement('p');
+        message.textContent = 'Вы будете перенаправлены на страницу оплаты ЮKassa. Если окно не открылось автоматически, нажмите кнопку ниже:';
+        message.style.textAlign = 'center';
+        message.style.marginBottom = '20px';
+
+        const openPaymentButton = document.createElement('button');
+        openPaymentButton.textContent = 'Перейти к оплате';
+        openPaymentButton.style.width = '100%';
+        openPaymentButton.style.padding = '16px';
+        openPaymentButton.style.fontFamily = '"Inter", sans-serif';
+        openPaymentButton.style.fontSize = '18px';
+        openPaymentButton.style.fontWeight = '600';
+        openPaymentButton.style.color = 'white';
+        openPaymentButton.style.backgroundColor = '#1FBB72';
+        openPaymentButton.style.border = 'none';
+        openPaymentButton.style.borderRadius = '8px';
+        openPaymentButton.style.cursor = 'pointer';
+        openPaymentButton.style.transition = 'all 0.3s ease';
+        openPaymentButton.style.marginBottom = '16px';
+
+        openPaymentButton.addEventListener('click', () => {
+            window.open(paymentUrl, '_blank');
+        });
+
+        const copyButton = document.createElement('button');
+        copyButton.textContent = 'Скопировать ссылку';
+        copyButton.style.width = '100%';
+        copyButton.style.padding = '12px';
+        copyButton.style.fontFamily = '"Inter", sans-serif';
+        copyButton.style.fontSize = '16px';
+        copyButton.style.fontWeight = '500';
+        copyButton.style.color = '#333';
+        copyButton.style.backgroundColor = '#f5f5f5';
+        copyButton.style.border = '1px solid #ddd';
+        copyButton.style.borderRadius = '8px';
+        copyButton.style.cursor = 'pointer';
+        copyButton.style.marginBottom = '16px';
+
+        copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(paymentUrl).then(() => {
+                copyButton.textContent = 'Скопировано!';
+                copyButton.style.backgroundColor = '#1FBB72';
+                copyButton.style.color = 'white';
+                setTimeout(() => {
+                    copyButton.textContent = 'Скопировать ссылку';
+                    copyButton.style.backgroundColor = '#f5f5f5';
+                    copyButton.style.color = '#333';
+                }, 2000);
+            });
+        });
+
+        const note = document.createElement('p');
+        note.textContent = 'После успешной оплаты статус продвижения обновится автоматически в течение нескольких минут. Для обновления статуса обновите страницу.';
+        note.style.color = '#666';
+        note.style.fontSize = '14px';
+        note.style.textAlign = 'center';
+
+        modalBody.appendChild(successIcon);
+        modalBody.appendChild(message);
+        modalBody.appendChild(openPaymentButton);
+        modalBody.appendChild(copyButton);
+        modalBody.appendChild(note);
+
+        const modalFooter = document.createElement('div');
+        modalFooter.className = 'modal__footer';
+
+        const closeButton = document.createElement('button');
+        closeButton.className = 'modal__btn modal__btn--confirm';
+        closeButton.textContent = 'Закрыть';
+
+        modalFooter.appendChild(closeButton);
+
+        modal.appendChild(modalHeader);
+        modal.appendChild(modalBody);
+        modal.appendChild(modalFooter);
+        modalOverlay.appendChild(modal);
+
+        const closeModal = () => modalOverlay.remove();
+
+        closeBtn.addEventListener('click', closeModal);
+        closeButton.addEventListener('click', closeModal);
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        document.body.appendChild(modalOverlay);
+    }
+
+    private showPaymentLinkModal(paymentUrl: string): void {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.maxWidth = '500px';
+
+        const modalHeader = document.createElement('div');
+        modalHeader.className = 'modal__header';
+
+        const modalTitle = document.createElement('h3');
+        modalTitle.textContent = 'Окно было заблокировано';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'modal__close';
+        closeBtn.innerHTML = '&times;';
+
+        modalHeader.appendChild(modalTitle);
+        modalHeader.appendChild(closeBtn);
+
+        const modalBody = document.createElement('div');
+        modalBody.className = 'modal__body';
+
+        const warningIcon = document.createElement('div');
+        warningIcon.innerHTML = '⚠️';
+        warningIcon.style.textAlign = 'center';
+        warningIcon.style.fontSize = '48px';
+        warningIcon.style.marginBottom = '20px';
+
+        const message = document.createElement('p');
+        message.textContent = 'Браузер заблокировал всплывающее окно. Скопируйте ссылку ниже и откройте ее в новом окне:';
+        message.style.textAlign = 'center';
+        message.style.marginBottom = '20px';
+
+        const urlContainer = document.createElement('div');
+        urlContainer.style.display = 'flex';
+        urlContainer.style.gap = '8px';
+        urlContainer.style.marginBottom = '20px';
+
+        const urlInput = document.createElement('input');
+        urlInput.type = 'text';
+        urlInput.value = paymentUrl;
+        urlInput.readOnly = true;
+        urlInput.style.flex = '1';
+        urlInput.style.padding = '12px 16px';
+        urlInput.style.border = '1px solid #ddd';
+        urlInput.style.borderRadius = '4px';
+        urlInput.style.fontSize = '14px';
+
+        const copyButton = document.createElement('button');
+        copyButton.textContent = 'Копировать';
+        copyButton.style.padding = '12px 16px';
+        copyButton.style.backgroundColor = '#f5f5f5';
+        copyButton.style.border = '1px solid #ddd';
+        copyButton.style.borderRadius = '4px';
+        copyButton.style.cursor = 'pointer';
+
+        copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(paymentUrl).then(() => {
+                copyButton.textContent = 'Скопировано!';
+                copyButton.style.backgroundColor = '#1FBB72';
+                copyButton.style.color = 'white';
+                setTimeout(() => {
+                    copyButton.textContent = 'Копировать';
+                    copyButton.style.backgroundColor = '#f5f5f5';
+                    copyButton.style.color = 'inherit';
+                }, 2000);
+            });
+        });
+
+        urlContainer.appendChild(urlInput);
+        urlContainer.appendChild(copyButton);
+
+        const openButton = document.createElement('button');
+        openButton.textContent = 'Открыть ссылку';
+        openButton.style.width = '100%';
+        openButton.style.padding = '16px';
+        openButton.style.fontFamily = '"Inter", sans-serif';
+        openButton.style.fontSize = '18px';
+        openButton.style.fontWeight = '600';
+        openButton.style.color = 'white';
+        openButton.style.backgroundColor = '#1FBB72';
+        openButton.style.border = 'none';
+        openButton.style.borderRadius = '8px';
+        openButton.style.cursor = 'pointer';
+        openButton.style.transition = 'all 0.3s ease';
+        openButton.style.marginBottom = '16px';
+
+        openButton.addEventListener('click', () => {
+            window.open(paymentUrl, '_blank');
+        });
+
+        modalBody.appendChild(warningIcon);
+        modalBody.appendChild(message);
+        modalBody.appendChild(urlContainer);
+        modalBody.appendChild(openButton);
+
+        const modalFooter = document.createElement('div');
+        modalFooter.className = 'modal__footer';
+
+        const closeButton = document.createElement('button');
+        closeButton.className = 'modal__btn modal__btn--confirm';
+        closeButton.textContent = 'Закрыть';
+
+        modalFooter.appendChild(closeButton);
+
+        modal.appendChild(modalHeader);
+        modal.appendChild(modalBody);
+        modal.appendChild(modalFooter);
+        modalOverlay.appendChild(modal);
+
+        const closeModal = () => modalOverlay.remove();
+
+        closeBtn.addEventListener('click', closeModal);
+        closeButton.addEventListener('click', closeModal);
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+
+        document.body.appendChild(modalOverlay);
     }
 
     private showErrorModal(title: string, message: string): void {
@@ -841,14 +996,6 @@ export class MyAdvertisements {
         });
 
         document.body.appendChild(modalOverlay);
-    }
-
-    private generateUUID(): string {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
     }
 
     private async handleDeleteOffer(offerId: string): Promise<void> {

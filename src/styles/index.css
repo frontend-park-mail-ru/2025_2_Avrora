@@ -5488,12 +5488,12 @@
 .favorite-like-btn svg {
   width: 20px;
   height: 20px;
-  color: #1FBB72; /* Светло-зеленый цвет сердечка */
+  color: #1FBB72;
   transition: all 0.2s ease;
 }
 
 .favorite-like-btn:hover svg {
-  color: #1da863; /* Немного темнее при наведении */
+  color: #1da863;
 }
 
 .profile__ad:hover .favorite-like-btn svg {

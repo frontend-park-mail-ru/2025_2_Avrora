@@ -5,11 +5,12 @@ import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
 
 interface Offer {
-
+    id: string;
+    [key: string]: any;
 }
 
 interface Complex {
-
+    [key: string]: any;
 }
 
 export class MainPage {
@@ -49,53 +50,77 @@ export class MainPage {
     }
 
     private async loadData(): Promise<void> {
-        const offersResult = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, {
-            limit: 8
-        });
-
-        if (offersResult.ok) {
-            const responseData = offersResult.data || offersResult;
-
-            let allOffers: Offer[] = [];
-            if (Array.isArray(responseData.Offers)) {
-                allOffers = responseData.Offers;
-            } else if (Array.isArray(responseData.offers)) {
-                allOffers = responseData.offers;
-            } else if (Array.isArray(responseData.data)) {
-                allOffers = responseData.data;
-            } else if (responseData.Offers && Array.isArray(responseData.Offers)) {
-                allOffers = responseData.Offers;
-            }
-
-            this.firstOffers = allOffers.slice(0, 4) || [];
-            this.secondOffers = allOffers.slice(4, 8) || [];
-        } else {
-            this.firstOffers = [];
-            this.secondOffers = [];
-        }
-
         try {
-            const complexesResult = await API.get(API_CONFIG.ENDPOINTS.COMPLEXES.LIST, {
-                isMainPage: true,
-                limit: 5
+            const paidResult = await API.get(API_CONFIG.ENDPOINTS.OFFERS.PAID_OFFERS, {
+                limit: 4
             });
 
-            if (complexesResult.ok) {
-                const complexesData = complexesResult.data || complexesResult;
+            let paidOffers: Offer[] = [];
+            if (paidResult.ok) {
+                const responseData = paidResult.data || paidResult;
+                if (Array.isArray(responseData.Offers)) {
+                    paidOffers = responseData.Offers;
+                } else if (Array.isArray(responseData.offers)) {
+                    paidOffers = responseData.offers;
+                } else if (Array.isArray(responseData.data)) {
+                    paidOffers = responseData.data;
+                } else if (responseData.Offers && Array.isArray(responseData.Offers)) {
+                    paidOffers = responseData.Offers;
+                }
+            }
 
-                if (Array.isArray(complexesData.Complexes)) {
-                    this.complexes = complexesData.Complexes;
-                } else if (Array.isArray(complexesData.complexes)) {
-                    this.complexes = complexesData.complexes;
-                } else if (Array.isArray(complexesData.data)) {
-                    this.complexes = complexesData.data;
+            const offersResult = await API.get(API_CONFIG.ENDPOINTS.OFFERS.LIST, {
+                limit: 8
+            });
+
+            let allOffers: Offer[] = [];
+            if (offersResult.ok) {
+                const responseData = offersResult.data || offersResult;
+                if (Array.isArray(responseData.Offers)) {
+                    allOffers = responseData.Offers;
+                } else if (Array.isArray(responseData.offers)) {
+                    allOffers = responseData.offers;
+                } else if (Array.isArray(responseData.data)) {
+                    allOffers = responseData.data;
+                } else if (responseData.Offers && Array.isArray(responseData.Offers)) {
+                    allOffers = responseData.Offers;
+                }
+            }
+
+            const paidIds = new Set(paidOffers.map((offer: any) => offer.id || offer.ID));
+            const regularOffers = allOffers.filter((offer: any) => !paidIds.has(offer.id || offer.ID));
+
+            const combinedOffers = [...paidOffers, ...regularOffers].slice(0, 8);
+
+            this.firstOffers = combinedOffers.slice(0, 4) || [];
+            this.secondOffers = combinedOffers.slice(4, 8) || [];
+
+            try {
+                const complexesResult = await API.get(API_CONFIG.ENDPOINTS.COMPLEXES.LIST, {
+                    isMainPage: true,
+                    limit: 5
+                });
+
+                if (complexesResult.ok) {
+                    const complexesData = complexesResult.data || complexesResult;
+                    if (Array.isArray(complexesData.Complexes)) {
+                        this.complexes = complexesData.Complexes;
+                    } else if (Array.isArray(complexesData.complexes)) {
+                        this.complexes = complexesData.complexes;
+                    } else if (Array.isArray(complexesData.data)) {
+                        this.complexes = complexesData.data;
+                    } else {
+                        this.complexes = [];
+                    }
                 } else {
                     this.complexes = [];
                 }
-            } else {
+            } catch (complexError) {
                 this.complexes = [];
             }
-        } catch (complexError) {
+        } catch (error) {
+            this.firstOffers = [];
+            this.secondOffers = [];
             this.complexes = [];
         }
     }

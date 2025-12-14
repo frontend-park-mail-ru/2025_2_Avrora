@@ -21,8 +21,10 @@ export const API_CONFIG = {
         VIEW: '/offers/view/',
         VIEWCOUNT: '/offers/viewcount/',
         LIKECOUNT: '/offers/likecount/',
+        LIKED: '/offers/liked',
         PAID_OFFERS: '/paid_offers',
-        LIKED: '/offers/liked'
+        GET_PAYMENT_LINK: '/offers/getpaymentlink/',
+        WEBHOOK: '/offers/webhook'
     },
     COMPLEXES: {
         LIST: '/complexes/list',

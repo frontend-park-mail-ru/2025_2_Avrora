@@ -179,7 +179,7 @@ export class Header {
 
     private handleLikeClick(): void {
         if (this.controller.isAuthenticated) {
-            this.controller.navigate("/profile");
+            this.controller.navigate("/profile/favorites");
         } else {
             this.controller.navigate("/login");
         }
