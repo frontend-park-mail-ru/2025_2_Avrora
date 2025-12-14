@@ -316,11 +316,55 @@ export class OfferCard {
                 return;
             }
 
+            await this.syncWithFavorites(newLikedState);
+
             await this.updateLikeCount();
 
         } catch (error) {
+
         } finally {
             this.isLikeRequestInProgress = false;
+        }
+    }
+
+    private async syncWithFavorites(isLiked: boolean): Promise<void> {
+        try {
+            const favoritesStr = localStorage.getItem('favoriteOffers');
+            let favorites = [];
+
+            if (favoritesStr && favoritesStr !== 'undefined') {
+                favorites = JSON.parse(favoritesStr);
+            }
+
+            if (isLiked) {
+                if (!favorites.find((fav: any) => fav.id === this.data.id.toString())) {
+                    const offerForFavorites = {
+                        id: this.data.id.toString(),
+                        offer_type: this.data.offerType,
+                        property_type: this.data.rawData?.property_type || this.data.rawData?.PropertyType || 'flat',
+                        rooms: this.data.rawData?.rooms || this.data.rawData?.Rooms || 1,
+                        price: this.data.rawData?.price || this.data.rawData?.Price || 0,
+                        address: this.data.address,
+                        images: this.data.images,
+                        image_url: this.data.images?.[0] || '',
+                        status: 'active',
+                        description: this.data.description || this.data.title || '',
+                        area: this.data.rawData?.area || this.data.rawData?.Area || 0
+                    };
+
+                    favorites.push(offerForFavorites);
+                    localStorage.setItem('favoriteOffers', JSON.stringify(favorites));
+
+                    window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+                }
+            } else {
+                const updatedFavorites = favorites.filter((fav: any) => fav.id !== this.data.id.toString());
+                localStorage.setItem('favoriteOffers', JSON.stringify(updatedFavorites));
+
+                window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+            }
+        } catch (error) {
+
         }
     }
 

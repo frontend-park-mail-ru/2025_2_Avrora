@@ -94,7 +94,10 @@ export class OffersListWidget {
     }
 
     formatOffer(apiData: any): any {
-        const isLiked = this.controller.isOfferLiked(apiData.id || apiData.ID);
+        const isLiked = this.controller.isAuthenticated ? 
+            this.controller.isOfferLiked(apiData.id || apiData.ID) : 
+            false;
+
         const images = this.controller.getOfferImages(apiData);
 
         const offerId = apiData.id || apiData.ID;
@@ -114,10 +117,10 @@ export class OffersListWidget {
             likeClass: isLiked ? "liked" : "",
             likeIcon: isLiked ? "../../images/active__like.png" : "../../images/like.png",
             formattedPrice: this.formatPrice(price),
-            likesCount: apiData.likes_count || apiData.likesCount || 0, // Добавляем получение счетчика
+            likesCount: apiData.likes_count || apiData.likesCount || 0,
             isLiked: isLiked
         };
-    }
+    }      
 
     async initializeOfferCards(container: HTMLElement, offers: any[]): Promise<void> {
         this.offerCards = [];

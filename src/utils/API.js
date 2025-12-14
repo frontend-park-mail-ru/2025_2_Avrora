@@ -317,5 +317,49 @@ export const API = {
         error: error.message
       };
     }
+  },
+  
+  promote: async (endpoint, body) => {
+    try {
+      const url = API_CONFIG.API_BASE_URL + endpoint;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        },
+        body: JSON.stringify(body),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: response.statusText };
+        }
+        return {
+          ok: false,
+          status: response.status,
+          error: errorData.error || `HTTP error ${response.status}`
+        };
+      }
+
+      const data = await response.json();
+      return {
+        ok: true,
+        status: response.status,
+        data
+      };
+
+    } catch (error) {
+      return {
+        ok: false,
+        status: 0,
+        error: error.message
+      };
+    }
   }
 };

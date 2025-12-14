@@ -22,4 +22,34 @@ export class EventDispatcher {
         });
         window.dispatchEvent(event);
     }
+    
+    static dispatchFavoritesUpdated() {
+        const event = new CustomEvent('favoritesUpdated', {
+            detail: { 
+                timestamp: new Date().toISOString(),
+                action: 'updated'
+            }
+        });
+        window.dispatchEvent(event);
+    }
+    
+    static dispatchFavoritesCountUpdated(count) {
+        const event = new CustomEvent('favoritesCountUpdated', {
+            detail: { 
+                count: count,
+                timestamp: new Date().toISOString()
+            }
+        });
+        window.dispatchEvent(event);
+    }
+    
+    static dispatchAuthChanged(isAuthenticated) {
+        const event = new CustomEvent('authChanged', {
+            detail: { 
+                isAuthenticated: isAuthenticated,
+                timestamp: new Date().toISOString()
+            }
+        });
+        window.dispatchEvent(event);
+    }
 }

@@ -56,7 +56,6 @@ export class MediaService {
       return filename;
     }
 
-    // Для аватарки используем правильный путь
     if (filename.includes('avatar') || filename.includes('default_avatar')) {
       return `${window.location.origin}/images/${filename}`;
     }
@@ -108,7 +107,6 @@ export class MediaService {
     }
   }
 
-  // Новые методы для работы с путями изображений
   static getAvatarUrl(avatarPath: string | null | undefined): string {
     if (!avatarPath) {
       return `${window.location.origin}/images/default_avatar.jpg`;
@@ -118,17 +116,14 @@ export class MediaService {
       return avatarPath;
     }
 
-    // Если путь уже содержит /images/
     if (avatarPath.includes('/images/')) {
       return `${window.location.origin}${avatarPath.startsWith('/') ? '' : '/'}${avatarPath}`;
     }
 
-    // Если это просто имя файла
     if (avatarPath.includes('.')) {
       return `${window.location.origin}/images/${avatarPath}`;
     }
 
-    // По умолчанию
     return `${window.location.origin}/images/default_avatar.jpg`;
   }
 
@@ -141,17 +136,14 @@ export class MediaService {
       return imagePath;
     }
 
-    // Если путь уже содержит /images/
     if (imagePath.includes('/images/')) {
       return `${window.location.origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
     }
 
-    // Если это просто имя файла
     if (imagePath.includes('.')) {
       return `${API_CONFIG.API_BASE_URL}${API_CONFIG.ENDPOINTS.MEDIA.BY_FILENAME}/${imagePath}`;
     }
 
-    // По умолчанию
     return `${window.location.origin}/images/default_offer.jpg`;
   }
 }

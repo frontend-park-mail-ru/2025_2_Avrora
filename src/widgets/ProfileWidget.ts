@@ -2,6 +2,7 @@ import { Summary } from '../components/Profile/Summary/Summary.ts';
 import { Profile } from '../components/Profile/Profile/Profile.ts';
 import { Safety } from '../components/Profile/Safety/Safety.ts';
 import { MyAdvertisements } from '../components/Profile/MyAdvertisements/MyAdvertisements.ts';
+import { Favorites } from '../components/Profile/Favorites/Favorites.ts';
 import { ProfileService } from '../utils/ProfileService.ts';
 
 interface User {
@@ -42,11 +43,14 @@ export class ProfileWidget {
     private eventListeners: EventListener[];
     private root: HTMLElement | null;
     private currentComponent: Component | null;
+    private currentComponentElement: HTMLElement | null;
     private myOffersCount: number;
+    private favoritesCount: number;
     private isRendering: boolean;
     private isUpdating: boolean;
     private profileUpdateListener: (event: Event) => void;
     private uiUpdateListener: (event: Event) => void;
+    private favoritesUpdateListener: (event: Event) => void;
 
     constructor(parent: HTMLElement, controller: any, options: ProfileWidgetOptions = {}) {
         this.parent = parent;
@@ -55,12 +59,15 @@ export class ProfileWidget {
         this.eventListeners = [];
         this.root = null;
         this.currentComponent = null;
+        this.currentComponentElement = null;
         this.myOffersCount = 0;
+        this.favoritesCount = 0;
         this.isRendering = false;
         this.isUpdating = false;
         
         this.profileUpdateListener = this.handleProfileUpdate.bind(this);
         this.uiUpdateListener = this.handleUIUpdate.bind(this);
+        this.favoritesUpdateListener = this.handleFavoritesUpdate.bind(this);
         
         this.setupEventListeners();
     }
@@ -68,6 +75,8 @@ export class ProfileWidget {
     private setupEventListeners(): void {
         window.addEventListener('profileUpdated', this.profileUpdateListener);
         window.addEventListener('uiUpdate', this.uiUpdateListener);
+        window.addEventListener('favoritesUpdated', this.favoritesUpdateListener);
+        window.addEventListener('favoritesCountUpdated', this.handleFavoritesCountUpdated.bind(this));
     }
     
     private handleProfileUpdate(event: Event): void {
@@ -75,7 +84,17 @@ export class ProfileWidget {
     }
     
     private handleUIUpdate(event: Event): void {
-        this.updateSidebar().catch();
+        this.updateSidebar();
+    }
+    
+    private handleFavoritesUpdate(event: Event): void {
+        this.updateFavoritesCount();
+        this.updateSidebar();
+    }
+
+    private handleFavoritesCountUpdated(event: CustomEvent): void {
+        this.favoritesCount = event.detail.count;
+        this.updateSidebar();
     }
 
     async forceUpdate(): Promise<void> {
@@ -86,9 +105,8 @@ export class ProfileWidget {
         this.isUpdating = true;
         
         try {
-
             await this.updateMyOffersCount();
-
+            await this.updateFavoritesCount();
             await this.updateSidebar();
 
             if (this.currentComponent && typeof this.currentComponent.updateData === 'function') {
@@ -96,9 +114,20 @@ export class ProfileWidget {
             }
 
         } catch (error) {
-
         } finally {
             this.isUpdating = false;
+        }
+    }
+
+    private async updateFavoritesCount(): Promise<void> {
+        try {
+            if (this.controller.user) {
+                this.favoritesCount = await this.controller.refreshFavoritesCount();
+            } else {
+                this.favoritesCount = 0;
+            }
+        } catch (error) {
+            this.favoritesCount = 0;
         }
     }
 
@@ -107,6 +136,7 @@ export class ProfileWidget {
         if (path.startsWith("/profile/security")) return "safety";
         if (path.startsWith("/profile/edit")) return "profile";
         if (path.startsWith("/profile/myoffers")) return "myads";
+        if (path.startsWith("/profile/favorites")) return "favorites";
         return "summary";
     }
 
@@ -121,6 +151,7 @@ export class ProfileWidget {
         this.view = this.resolveViewFromLocation();
 
         await this.updateMyOffersCount();
+        await this.updateFavoritesCount();
 
         this.root = document.createElement("div");
         this.root.className = "profile";
@@ -152,6 +183,9 @@ export class ProfileWidget {
             case "myads":
                 component = new MyAdvertisements(this.controller, this);
                 break;
+            case "favorites":
+                component = new Favorites(this.controller);
+                break;
             case "summary":
             default:
                 component = new Summary(this.controller);
@@ -162,7 +196,9 @@ export class ProfileWidget {
 
         try {
             const componentElement = await component.render();
-            if (componentElement && componentElement.nodeType) {
+            
+            if (componentElement && componentElement.nodeType === Node.ELEMENT_NODE) {
+                this.currentComponentElement = componentElement;
                 this.root.appendChild(componentElement);
             } else {
                 this.renderError("Ошибка при загрузке компонента");
@@ -175,13 +211,10 @@ export class ProfileWidget {
     private cleanupContent(): void {
         if (!this.root) return;
 
-        const contentElements = Array.from(this.root.children).filter(
-            child => !child.classList.contains('profile__sidebar')
-        );
-
-        contentElements.forEach(element => {
-            this.root?.removeChild(element);
-        });
+        if (this.currentComponentElement && this.currentComponentElement.parentNode) {
+            this.currentComponentElement.parentNode.removeChild(this.currentComponentElement);
+            this.currentComponentElement = null;
+        }
 
         if (this.currentComponent && typeof this.currentComponent.cleanup === 'function') {
             this.currentComponent.cleanup();
@@ -197,16 +230,20 @@ export class ProfileWidget {
         if (!this.root) return;
 
         const oldSidebar = this.root.querySelector('.profile__sidebar');
-        if (oldSidebar) {
+        if (oldSidebar && oldSidebar.parentNode) {
             const newSidebar = this.createSidebar();
-            this.root.replaceChild(newSidebar, oldSidebar);
+            oldSidebar.parentNode.replaceChild(newSidebar, oldSidebar);
         }
     }
 
     private async updateMyOffersCount(): Promise<void> {
         try {
-            const offers = await ProfileService.getMyOffers();
-            this.myOffersCount = offers.length;
+            if (this.controller.user) {
+                const offers = await ProfileService.getMyOffers();
+                this.myOffersCount = offers.length;
+            } else {
+                this.myOffersCount = 0;
+            }
         } catch (error) {
             this.myOffersCount = 0;
         }
@@ -286,6 +323,7 @@ export class ProfileWidget {
             { key: "summary", text: "Сводка", path: "/profile" },
             { key: "profile", text: "Профиль", path: "/profile/edit" },
             { key: "myads", text: `Мои объявления (${this.myOffersCount})`, path: "/profile/myoffers" },
+            { key: "favorites", text: `Избранное (${this.favoritesCount})`, path: "/profile/favorites" },
             { key: "safety", text: "Безопасность", path: "/profile/security" }
         ];
 
@@ -360,6 +398,8 @@ export class ProfileWidget {
     cleanup(): void {
         window.removeEventListener('profileUpdated', this.profileUpdateListener);
         window.removeEventListener('uiUpdate', this.uiUpdateListener);
+        window.removeEventListener('favoritesUpdated', this.favoritesUpdateListener);
+        window.removeEventListener('favoritesCountUpdated', this.handleFavoritesCountUpdated.bind(this));
 
         if (this.currentComponent && typeof this.currentComponent.cleanup === 'function') {
             this.currentComponent.cleanup();
@@ -376,5 +416,6 @@ export class ProfileWidget {
         
         this.root = null;
         this.currentComponent = null;
+        this.currentComponentElement = null;
     }
 }

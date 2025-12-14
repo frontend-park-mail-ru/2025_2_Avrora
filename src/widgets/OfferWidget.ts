@@ -3,6 +3,8 @@ import { YandexMapService } from "../utils/YandexMapService.ts";
 import { PriceHistoryChartService } from "../utils/PriceHistoryChartService.ts";
 import { API } from "../utils/API.js";
 import { API_CONFIG } from "../config.js";
+import { Modal } from "../components/OfferCreate/Modal/Modal.ts";
+import { MediaService } from "../utils/MediaService.ts";
 
 export class OfferWidget {
     private parent: HTMLElement;
@@ -12,6 +14,8 @@ export class OfferWidget {
     private isLoading: boolean;
     private offerCard: OfferCard | null;
     private rootEl: HTMLElement | null;
+    private offerData: any;
+    private favorites: any[] = [];
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -21,6 +25,8 @@ export class OfferWidget {
         this.isLoading = false;
         this.offerCard = null;
         this.rootEl = null;
+        this.offerData = null;
+        this.loadFavorites();
     }
 
     async renderWithParams(params: any = {}): Promise<void> {
@@ -30,6 +36,7 @@ export class OfferWidget {
 
             this.offerId = params.id || null;
             const offerData = await this.loadOffer();
+            this.offerData = offerData;
             await this.renderContent(offerData);
         } catch (error) {
             this.renderError("Не удалось загрузить объявление");
@@ -57,6 +64,54 @@ export class OfferWidget {
         throw new Error(result.error || "Ошибка загрузки объявления");
     }
 
+    private loadFavorites(): void {
+        try {
+            const favoritesStr = localStorage.getItem('favoriteOffers');
+            if (favoritesStr && favoritesStr !== 'undefined') {
+                this.favorites = JSON.parse(favoritesStr);
+            }
+        } catch (error) {
+            this.favorites = [];
+        }
+    }
+
+    private saveFavorites(): void {
+        localStorage.setItem('favoriteOffers', JSON.stringify(this.favorites));
+        window.dispatchEvent(new CustomEvent('favoritesUpdated', {
+            detail: { action: 'updated' }
+        }));
+    }
+
+    private isFavorite(offerId: string): boolean {
+        return this.favorites.some(fav => fav.id === offerId);
+    }
+
+    private addToFavorites(offer: any): void {
+        if (!this.isFavorite(offer.id)) {
+            const favoriteOffer = {
+                id: offer.id,
+                offer_type: offer.offer_type || offer.offerType,
+                property_type: offer.property_type || offer.propertyType,
+                rooms: offer.rooms || 1,
+                price: offer.price || 0,
+                address: offer.address || '',
+                images: offer.images || [],
+                image_url: offer.image_url || offer.images?.[0] || '',
+                status: 'active',
+                description: offer.description || '',
+                area: offer.area || 0
+            };
+            
+            this.favorites.push(favoriteOffer);
+            this.saveFavorites();
+        }
+    }
+
+    private removeFromFavorites(offerId: string): void {
+        this.favorites = this.favorites.filter(fav => fav.id !== offerId);
+        this.saveFavorites();
+    }
+
     formatOffer(apiData: any, sellerData: any): any {
         const offerId = apiData.id || apiData.ID;
         const userId = apiData.user_id || apiData.UserID;
@@ -79,6 +134,8 @@ export class OfferWidget {
 
         const images = this.controller.getOfferImages(apiData);
         const sellerInfo = this.controller.getSellerInfo(sellerData);
+        
+        const isFavorite = this.isFavorite(offerId);
 
         return {
             id: offerId,
@@ -115,6 +172,8 @@ export class OfferWidget {
             showPhone: false,
             likesCount: apiData.likes_count || apiData.likesCount || 0,
             isLiked: apiData.is_liked || apiData.isLiked || false,
+            isFavorite: isFavorite,
+            rawData: apiData
         };
     }
 
@@ -229,6 +288,100 @@ export class OfferWidget {
 
         await this.initYandexMap(offerData.address);
         await this.initPriceHistoryChart(offerData.id);
+    }
+
+    private async addFavoriteButton(offerData: any): Promise<void> {
+        if (!this.rootEl) return;
+
+        const actionsContainer = this.rootEl.querySelector('.offer__actions');
+        if (!actionsContainer) {
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'offer__actions';
+            this.rootEl.querySelector('.offer__info')?.appendChild(actionsContainer);
+        }
+
+        const favoriteButton = this.createFavoriteButton(offerData.isFavorite, offerData);
+        
+        const container = this.rootEl.querySelector('.offer__actions');
+        if (container) {
+            container.prepend(favoriteButton);
+        }
+    }
+
+    private createFavoriteButton(isFavorite: boolean, offerData: any): HTMLButtonElement {
+        const button = document.createElement('button');
+        button.className = `offer__favorite-btn ${isFavorite ? 'offer__favorite-btn--active' : ''}`;
+        button.type = 'button';
+        button.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <span>${isFavorite ? 'В избранном' : 'В избранное'}</span>
+        `;
+
+        button.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (!this.controller.isAuthenticated) {
+                this.controller.navigate('/login');
+                return;
+            }
+
+            const newFavoriteState = !isFavorite;
+            
+            if (newFavoriteState) {
+                const offerForFavorites = {
+                    id: offerData.id,
+                    offer_type: offerData.offerType,
+                    property_type: offerData.rawData?.property_type || offerData.rawData?.PropertyType,
+                    rooms: offerData.rawData?.rooms || offerData.rawData?.Rooms || 1,
+                    price: offerData.rawData?.price || offerData.rawData?.Price || 0,
+                    address: offerData.address,
+                    images: offerData.images,
+                    image_url: offerData.images?.[0] || '',
+                    status: 'active',
+                    description: offerData.description,
+                    area: offerData.rawData?.area || offerData.rawData?.Area || 0
+                };
+                
+                this.addToFavorites(offerForFavorites);
+                
+                button.classList.add('offer__favorite-btn--active');
+                button.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    <span>В избранном</span>
+                `;
+                
+                Modal.show({
+                    title: 'Успех',
+                    message: 'Объявление добавлено в избранное',
+                    type: 'info'
+                });
+            } else {
+                this.removeFromFavorites(offerData.id);
+                
+                button.classList.remove('offer__favorite-btn--active');
+                button.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    <span>В избранное</span>
+                `;
+                
+                Modal.show({
+                    title: 'Успех',
+                    message: 'Объявление удалено из избранного',
+                    type: 'info'
+                });
+            }
+            
+            isFavorite = newFavoriteState;
+        });
+
+        return button;
     }
 
     private async initYandexMap(address: string | undefined): Promise<void> {
@@ -357,7 +510,6 @@ export class OfferWidget {
         timeDeduplicated.sort((a: any, b: any) => a.timestamp - b.timestamp);
 
         const uniquePriceData = [];
-
         for (let i = 0; i < timeDeduplicated.length; i++) {
             const current = timeDeduplicated[i];
             const previous = uniquePriceData[uniquePriceData.length - 1];
@@ -453,5 +605,6 @@ export class OfferWidget {
 
         this.offerCard = null;
         this.rootEl = null;
+        this.offerData = null;
     }
 }

@@ -71,7 +71,7 @@ class App {
         this.header = null;
         this.router = null;
         this.initialHeaderRendered = false;
-        this.profileUpdateTimeout = null;
+        this.favoritesUpdateInterval = null;
 
         this.init();
     }
@@ -88,7 +88,6 @@ class App {
             try {
                 await this.controller.loadUserProfile(this.userModel.user.id);
             } catch (error) {
-                console.error('Error loading user profile:', error);
             }
         }
 
@@ -119,6 +118,7 @@ class App {
         this.controller.registerPage('profileEdit', new ProfileWidget(this.mainElement, this.controller, { view: "profile" }));
         this.controller.registerPage('profileSafety', new ProfileWidget(this.mainElement, this.controller, { view: "safety" }));
         this.controller.registerPage('profileMyAds', new ProfileWidget(this.mainElement, this.controller, { view: "myads" }));
+        this.controller.registerPage('profileFavorites', new ProfileWidget(this.mainElement, this.controller, { view: "favorites" }));
         this.controller.registerPage('complexesList', new ComplexesListWidget(this.mainElement, this.controller));
         this.controller.registerPage('complexesDetail', new ComplexWidget(this.mainElement, this.controller));
         this.controller.registerPage('createAd', new OfferCreateWidget(this.mainElement, this.controller));
@@ -133,26 +133,162 @@ class App {
         window.addEventListener('profileUpdated', (event) => {
             if (this.header) {
                 this.header.render().catch(error => {
-                    console.error('Error rendering header:', error);
                 });
+            }
+            
+            this.refreshProfileDependentPages();
+        });
+
+        window.addEventListener('favoritesUpdated', async (event) => {
+            await this.updateFavoritesComponents();
+        });
+
+        window.addEventListener('favoritesCountUpdated', (event) => {
+            this.updateFavoritesCounters(event.detail.count);
+        });
+
+        window.addEventListener('authChanged', async (event) => {
+            this.controller.updateUI();
+            
+            if (!event.detail.isAuthenticated) {
+                this.updateFavoritesCounters(0);
+                this.stopFavoritesAutoRefresh();
+            } else {
+                try {
+                    await this.controller.refreshFavoritesCount();
+                    this.startFavoritesAutoRefresh();
+                } catch (error) {
+                }
             }
         });
 
-        window.addEventListener('uiUpdate', () => {
-            this.updateProfileSidebarCounters();
+        window.addEventListener('offersCountUpdated', () => {
+            this.refreshOffersDependentPages();
         });
 
-        window.addEventListener('offersCountUpdated', () => {
-            this.updateProfileSidebarCounters();
+        window.addEventListener('uiUpdate', () => {
+            this.refreshCurrentPage();
+        });
+
+        window.addEventListener('offline', () => {
+            this.showNetworkError('Нет подключения к интернету');
+        });
+
+        window.addEventListener('online', () => {
+            this.hideNetworkError();
+            this.refreshCurrentPage();
         });
     }
 
-    updateProfileSidebarCounters() {
+    async updateFavoritesComponents() {
+        try {
+            const favoritesPage = this.controller.getPage('profileFavorites');
+            if (favoritesPage && typeof favoritesPage.refresh === 'function') {
+                await favoritesPage.refresh();
+            } else if (favoritesPage && typeof favoritesPage.updateData === 'function') {
+                await favoritesPage.updateData();
+            }
+
+            const summaryPage = this.controller.getPage('profileSummary');
+            if (summaryPage && typeof summaryPage.updateData === 'function') {
+                await summaryPage.updateData();
+            }
+        } catch (error) {
+        }
+    }
+
+    updateFavoritesCounters(count) {
+        const pagesWithFavorites = ['profileSummary', 'profileFavorites'];
+        pagesWithFavorites.forEach(pageName => {
+            const page = this.controller.getPage(pageName);
+            if (page && typeof page.updateFavoritesBlock === 'function') {
+                page.updateFavoritesBlock(count);
+            }
+        });
+    }
+
+    startFavoritesAutoRefresh() {
+        this.stopFavoritesAutoRefresh();
+        
+        this.favoritesUpdateInterval = window.setInterval(async () => {
+            if (this.controller.isAuthenticated) {
+                try {
+                    await this.controller.refreshFavoritesCount();
+                } catch (error) {
+                }
+            }
+        }, 30000);
+    }
+
+    stopFavoritesAutoRefresh() {
+        if (this.favoritesUpdateInterval) {
+            clearInterval(this.favoritesUpdateInterval);
+            this.favoritesUpdateInterval = null;
+        }
+    }
+
+    refreshProfileDependentPages() {
+        const profilePages = ['profileSummary', 'profileEdit', 'profileSafety', 'profileMyAds', 'profileFavorites'];
+        profilePages.forEach(pageName => {
+            const page = this.controller.getPage(pageName);
+            if (page && typeof page.updateData === 'function') {
+                page.updateData().catch(error => {
+                });
+            }
+        });
+    }
+
+    refreshOffersDependentPages() {
+        const offersPages = ['main', 'offersList', 'searchAds', 'searchMap'];
+        offersPages.forEach(pageName => {
+            const page = this.controller.getPage(pageName);
+            if (page && typeof page.updateData === 'function') {
+                page.updateData().catch(error => {
+                });
+            }
+        });
+    }
+
+    refreshCurrentPage() {
         const currentPage = this.controller.model.appStateModel.currentPage;
-        if (currentPage && currentPage instanceof ProfileWidget) {
-            currentPage.updateSidebar().catch(error => {
-                console.error('Error updating sidebar:', error);
+        if (currentPage && typeof currentPage.render === 'function') {
+            currentPage.render().catch(error => {
             });
+        }
+    }
+
+    showNetworkError(message) {
+        const existingError = document.querySelector('.network-error');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'network-error';
+        errorDiv.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background-color: #ff3b30;
+                color: white;
+                padding: 10px 20px;
+                text-align: center;
+                z-index: 10000;
+                font-weight: 500;
+            ">
+                ${message}
+            </div>
+        `;
+        
+        document.body.appendChild(errorDiv);
+    }
+
+    hideNetworkError() {
+        const errorDiv = document.querySelector('.network-error');
+        if (errorDiv) {
+            errorDiv.remove();
         }
     }
 
@@ -167,6 +303,7 @@ class App {
         this.router.register("/profile/edit", this.controller.getPage('profileEdit'));
         this.router.register("/profile/security", this.controller.getPage('profileSafety'));
         this.router.register("/profile/myoffers", this.controller.getPage('profileMyAds'));
+        this.router.register("/profile/favorites", this.controller.getPage('profileFavorites'));
         this.router.register("/complexes", this.controller.getPage('complexesList'));
         this.router.register("/complexes/:id", this.controller.getPage('complexesDetail'));
         this.router.register('/create-ad', this.controller.getPage('createAd'));
@@ -192,49 +329,149 @@ class App {
     async initializeServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
-                  window.addEventListener('load', async () => {
-                  try {
-                    const registration = await navigator.serviceWorker.register('/sw.js', {
-                      scope: '/',
-                      updateViaCache: 'none'
-                    });
-
-                    console.log('✅ Service Worker зарегистрирован:', registration.scope);
-
-                    registration.addEventListener('updatefound', () => {
-                      const newWorker = registration.installing;
-                      console.log('🔄 Обновление Service Worker найдено');
-
-                      newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                          console.log('🔄 Новый контент доступен, обновите страницу!');
-                          if (confirm('Доступна новая версия приложения. Обновить?')) {
-                            window.location.reload();
-                          }
-                        }
-                      });
-                    });
-
-                    if (registration.active) {
-                      registration.active.postMessage('CLEAR_DYNAMIC_CACHE');
+                window.addEventListener('load', async () => {
+                    try {
+                        const registration = await navigator.serviceWorker.register('/sw.js', {
+                            scope: '/',
+                            updateViaCache: 'none'
+                        });
+                        
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    this.showServiceWorkerUpdateNotification(registration);
+                                }
+                            });
+                        });
+                    } catch (error) {
                     }
-
-                  } catch (error) {
-                    console.error('❌ Ошибка регистрации Service Worker:', error);
-                  }
-                });
-
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                  console.log('🔄 Контроллер Service Worker изменился, перезагружаем...');
-                  window.location.reload();
                 });
             } catch (err) {
-                console.warn('Service Worker не зарегистрирован:', err);
             }
+        }
+    }
+
+    showServiceWorkerUpdateNotification(registration) {
+        const notification = document.createElement('div');
+        notification.className = 'sw-update-notification';
+        notification.innerHTML = `
+            <div style="
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background-color: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                max-width: 300px;
+            ">
+                <div style="font-weight: 500; margin-bottom: 10px;">Доступно обновление</div>
+                <div style="color: #666; margin-bottom: 15px; font-size: 14px;">
+                    Новая версия приложения готова к использованию
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="sw-update-btn" style="
+                        background-color: #1FBB72;
+                        color: white;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        flex: 1;
+                    ">Обновить</button>
+                    <button class="sw-cancel-btn" style="
+                        background-color: #f5f5f5;
+                        color: #666;
+                        border: 1px solid #ddd;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">Позже</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        notification.querySelector('.sw-update-btn').addEventListener('click', () => {
+            if (registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            notification.remove();
+            location.reload();
+        });
+        
+        notification.querySelector('.sw-cancel-btn').addEventListener('click', () => {
+            notification.remove();
+        });
+    }
+
+    cleanup() {
+        this.stopFavoritesAutoRefresh();
+        
+        window.removeEventListener('profileUpdated', () => {});
+        window.removeEventListener('favoritesUpdated', () => {});
+        window.removeEventListener('favoritesCountUpdated', () => {});
+        window.removeEventListener('authChanged', () => {});
+        window.removeEventListener('offersCountUpdated', () => {});
+        window.removeEventListener('uiUpdate', () => {});
+        window.removeEventListener('offline', () => {});
+        window.removeEventListener('online', () => {});
+        
+        if (this.controller.cleanup) {
+            this.controller.cleanup();
+        }
+        
+        if (this.header && this.header.cleanup) {
+            this.header.cleanup();
         }
     }
 }
 
+let app;
+
 document.addEventListener('DOMContentLoaded', () => {
-    new App();
+    try {
+        app = new App();
+    } catch (error) {
+        document.getElementById('root').innerHTML = `
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                background-color: white;
+                z-index: 10000;
+                padding: 20px;
+                text-align: center;
+            ">
+                <div style="font-size: 48px; margin-bottom: 20px;">😞</div>
+                <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">Ошибка загрузки приложения</div>
+                <div style="color: #666; margin-bottom: 20px; max-width: 400px;">
+                    Произошла ошибка при загрузке приложения. Пожалуйста, попробуйте перезагрузить страницу.
+                </div>
+                <button onclick="location.reload()" style="
+                    background-color: #1FBB72;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 16px;
+                ">
+                    Перезагрузить страницу
+                </button>
+            </div>
+        `;
+    }
 });

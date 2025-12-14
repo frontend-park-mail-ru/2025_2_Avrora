@@ -10,6 +10,7 @@ export class Router {
             "/profile/edit",
             "/profile/security",
             "/profile/myoffers",
+            "/profile/favorites",
             "/create-ad",
             "/create-ad/step-1",
             "/create-ad/step-2",

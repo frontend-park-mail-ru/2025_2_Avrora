@@ -17,7 +17,6 @@ export class YandexMapService {
                 return;
             }
 
-            // Удаляем старую карту если существует
             if (this.mapInstance) {
                 this.mapInstance.destroy();
                 this.mapInstance = null;
@@ -25,7 +24,6 @@ export class YandexMapService {
 
             const {YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker} = ymaps3;
 
-            // Создаем карту
             this.mapInstance = new YMap(
                 container,
                 {
@@ -36,25 +34,20 @@ export class YandexMapService {
                 }
             );
 
-            // Добавляем слои
             this.mapInstance.addChild(new YMapDefaultSchemeLayer());
             this.mapInstance.addChild(new YMapDefaultFeaturesLayer());
 
-            // Геокодируем адрес
             const coords = await this.geocodeAddress(address);
             if (coords) {
-                // Центрируем карту на найденных координатах
                 this.mapInstance.setLocation({
                     center: coords,
                     zoom: 16
                 });
 
-                // Удаляем старый маркер
                 if (this.marker) {
                     this.mapInstance.removeChild(this.marker);
                 }
 
-                // Создаем DOM-элемент для маркера
                 const markerElement = document.createElement('div');
                 markerElement.innerHTML = `
                     <div style="
@@ -67,7 +60,6 @@ export class YandexMapService {
                     " title="${address}"></div>
                 `;
 
-                // Добавляем маркер
                 this.marker = new YMapMarker(
                     {
                         coordinates: coords,
@@ -80,7 +72,6 @@ export class YandexMapService {
 
             } else {
 
-                // Создаем сообщение об ошибке
                 const errorElement = document.createElement('div');
                 errorElement.style.cssText = `
                     display: flex;
@@ -99,7 +90,6 @@ export class YandexMapService {
 
         } catch (error) {
 
-            // Создаем сообщение об ошибке
             const container = document.getElementById(containerId);
             if (container) {
                 const errorElement = document.createElement('div');
@@ -126,13 +116,11 @@ export class YandexMapService {
             return;
         }
 
-        // Сохраняем важные атрибуты
         const dataAttributes: {[key: string]: string} = {};
         const classes = container.className;
         const style = container.style.cssText;
         const id = container.id;
 
-        // Собираем все data-атрибуты
         for (let i = 0; i < container.attributes.length; i++) {
             const attr = container.attributes[i];
             if (attr.name.startsWith('data-')) {
@@ -140,20 +128,16 @@ export class YandexMapService {
             }
         }
 
-        // Полностью очищаем контейнер
         container.innerHTML = '';
 
-        // Восстанавливаем атрибуты
         container.className = classes;
         container.style.cssText = style;
         container.id = id;
 
-        // Восстанавливаем data-атрибуты
         Object.keys(dataAttributes).forEach(key => {
             container.setAttribute(key, dataAttributes[key]);
         });
 
-        // Устанавливаем минимальные стили если их нет
         if (!container.style.height) {
             container.style.height = '400px';
         }

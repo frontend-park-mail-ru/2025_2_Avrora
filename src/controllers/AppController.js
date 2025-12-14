@@ -10,6 +10,8 @@ export class AppController {
         this.api = API;
         this.isRefreshing = false;
         this.updateTimeout = null;
+        this.favoritesCount = 0;
+        this.favoritesUpdateInterval = null;
     }
 
     setRouter(router) {
@@ -36,7 +38,6 @@ export class AppController {
                     user.id = decoded.user_id;
                 }
             } catch (error) {
-
             }
         }
 
@@ -46,9 +47,14 @@ export class AppController {
             try {
                 await this.loadUserProfile(user.id);
             } catch (error) {
-
             }
         }
+
+        EventDispatcher.dispatchAuthChanged(true);
+        
+        await this.refreshFavoritesCount();
+        
+        this.startFavoritesAutoRefresh();
 
         this.updateUI();
 
@@ -64,11 +70,8 @@ export class AppController {
             if (response.ok && response.data) {
                 this.model.userModel.updateUser(response.data);
                 this.updateUI();
-            } else {
-
             }
         } catch (error) {
-
         }
     }
 
@@ -76,7 +79,6 @@ export class AppController {
         try {
             await this.api.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT, {});
         } catch (err) {
-
         } finally {
             this.model.userModel.clearUser();
             this.model.appStateModel.setOffers([]);
@@ -86,6 +88,13 @@ export class AppController {
                 currentPage.cleanup();
             }
             this.model.appStateModel.setCurrentPage(null);
+
+            this.stopFavoritesAutoRefresh();
+            
+            EventDispatcher.dispatchAuthChanged(false);
+            
+            this.favoritesCount = 0;
+            EventDispatcher.dispatchFavoritesCountUpdated(0);
 
             this.updateUI();
 
@@ -160,7 +169,6 @@ export class AppController {
     updateUI() {
         if (this.view.header) {
             this.view.header.render().catch(error => {
-
             });
         }
 
@@ -202,8 +210,97 @@ export class AppController {
         return this.model.userModel.isProfileComplete();
     }
 
-    isOfferLiked(offerId) {
-        return false;
+    async isOfferLiked(offerId) {
+        if (!this.isAuthenticated) {
+            return false;
+        }
+
+        try {
+            const response = await this.api.get(`${API_CONFIG.ENDPOINTS.OFFERS.IS_LIKED}${offerId}`);
+            if (response.ok && response.data !== undefined) {
+                return response.data === true || response.data.isLiked === true;
+            }
+            return false;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async toggleFavorite(offerId, offerData = null) {
+        if (!this.isAuthenticated) {
+            this.navigate("/login");
+            return { success: false, error: 'Требуется авторизация' };
+        }
+
+        try {
+            const response = await this.api.post(`${API_CONFIG.ENDPOINTS.OFFERS.LIKE}${offerId}`, {});
+            
+            if (response.ok) {
+                const isLiked = await this.isOfferLiked(offerId);
+                
+                EventDispatcher.dispatchFavoritesUpdated();
+                
+                await this.refreshFavoritesCount();
+                
+                return { success: true, isLiked };
+            }
+            
+            return { success: false, error: response.error };
+            
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    async refreshFavoritesCount() {
+        if (!this.isAuthenticated) {
+            this.favoritesCount = 0;
+            EventDispatcher.dispatchFavoritesCountUpdated(0);
+            return 0;
+        }
+
+        try {
+            const response = await this.api.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIKED}?limit=1&page=1`);
+            
+            if (response.ok && response.data && response.data.Meta) {
+                const newCount = response.data.Meta.Total || 0;
+                if (newCount !== this.favoritesCount) {
+                    this.favoritesCount = newCount;
+                    EventDispatcher.dispatchFavoritesCountUpdated(this.favoritesCount);
+                }
+                return this.favoritesCount;
+            }
+            
+            this.favoritesCount = 0;
+            EventDispatcher.dispatchFavoritesCountUpdated(0);
+            return 0;
+            
+        } catch (error) {
+            this.favoritesCount = 0;
+            EventDispatcher.dispatchFavoritesCountUpdated(0);
+            return 0;
+        }
+    }
+
+    async getFavoritesCount() {
+        return this.favoritesCount;
+    }
+
+    startFavoritesAutoRefresh() {
+        this.stopFavoritesAutoRefresh();
+        
+        this.favoritesUpdateInterval = window.setInterval(async () => {
+            if (this.isAuthenticated) {
+                await this.refreshFavoritesCount();
+            }
+        }, 30000);
+    }
+
+    stopFavoritesAutoRefresh() {
+        if (this.favoritesUpdateInterval) {
+            clearInterval(this.favoritesUpdateInterval);
+            this.favoritesUpdateInterval = null;
+        }
     }
 
     getOfferImages(apiData) {
@@ -562,7 +659,6 @@ export class AppController {
             try {
                 currentPage.cleanup();
             } catch (error) {
-
             }
         }
     }
@@ -574,9 +670,7 @@ export class AppController {
 
         this.updateTimeout = setTimeout(() => {
             EventDispatcher.dispatchProfileUpdated(this.model.userModel.user);
-
             EventDispatcher.dispatchUIUpdate();
-
         }, 100);
     }
 
@@ -588,7 +682,6 @@ export class AppController {
         this.isRefreshing = true;
 
         try {
-
             if (this.model.userModel.user?.id) {
                 await this.loadUserProfile(this.model.userModel.user.id);
             }
@@ -597,7 +690,6 @@ export class AppController {
 
             if (this.view.header) {
                 this.view.header.render().catch(error => {
-
                 });
             }
 
@@ -606,10 +698,11 @@ export class AppController {
                 currentPage.render();
             }
 
+            await this.refreshFavoritesCount();
+
             this.notifyProfileUpdate();
 
         } catch (error) {
-
         } finally {
             this.isRefreshing = false;
         }
@@ -619,7 +712,36 @@ export class AppController {
         try {
             EventDispatcher.dispatchOffersCountUpdated();
         } catch (error) {
-
         }
+    }
+
+    async refreshFavoritesList() {
+        EventDispatcher.dispatchFavoritesUpdated();
+    }
+
+    cleanup() {
+        this.stopFavoritesAutoRefresh();
+        
+        if (this.updateTimeout) {
+            clearTimeout(this.updateTimeout);
+            this.updateTimeout = null;
+        }
+    }
+
+    prepareOfferData(apiData) {
+        return {
+            id: apiData.ID || apiData.id || '',
+            offer_type: apiData.OfferType || apiData.offer_type || 'rent',
+            property_type: apiData.PropertyType || apiData.property_type || 'flat',
+            rooms: apiData.Rooms || apiData.rooms || 1,
+            price: apiData.Price || apiData.price || 0,
+            address: apiData.Address || apiData.address || '',
+            images: apiData.Images || apiData.images || [],
+            image_url: apiData.ImageURL || apiData.image_url || '',
+            status: apiData.Status || apiData.status || 'active',
+            description: apiData.Description || apiData.description || '',
+            area: apiData.Area || apiData.area || 0,
+            title: apiData.Title || apiData.title || ''
+        };
     }
 }

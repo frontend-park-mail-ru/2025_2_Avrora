@@ -20,7 +20,9 @@ export const API_CONFIG = {
         IS_LIKED: '/offers/isliked/',
         VIEW: '/offers/view/',
         VIEWCOUNT: '/offers/viewcount/',
-        LIKECOUNT: '/offers/likecount/'
+        LIKECOUNT: '/offers/likecount/',
+        PAID_OFFERS: '/paid_offers',
+        LIKED: '/offers/liked'
     },
     COMPLEXES: {
         LIST: '/complexes/list',
