@@ -14,9 +14,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(express.json());
 
-// Улучшенная CORS настройка
 app.use((req, res, next) => {
-  // В production разрешаем все локальные хосты
   if (isProduction) {
     const origin = req.headers.origin;
     if (origin && origin.includes('localhost')) {
@@ -27,7 +25,6 @@ app.use((req, res, next) => {
       res.header("Access-Control-Allow-Origin", '*');
     }
   } else {
-    // В development разрешаем localhost:3000
     res.header("Access-Control-Allow-Origin", "http://localhost:3000");
   }
   
