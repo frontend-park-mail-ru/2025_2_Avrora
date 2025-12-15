@@ -64,7 +64,7 @@
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 		height: 60px;
 
-		@media (max-width: 768px) {
+		@media (max-width: 1000px) {
 			flex-direction: column;
 			height: auto;
 			gap: 10px;
@@ -94,7 +94,7 @@
 		transition: all 0.2s ease;
 		min-width: 150px;
 
-		@media (max-width: 768px) {
+		@media (max-width: 1000px) {
 			flex: 0 0 100%;
 			min-width: auto;
 			border-right: none;

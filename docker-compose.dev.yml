@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DOCKER=true
+      - CHOKIDAR_USEPOLLING=true
+      - PORT=8000
+      - VITE_PORT=3000
+      - VITE_HOST=0.0.0.0
+      - VITE_API_URL=${VITE_API_URL:-http://host.docker.internal:8080}
+    env_file:
+      - .env.development
+    stdin_open: true
+    tty: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

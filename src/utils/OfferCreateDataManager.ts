@@ -20,6 +20,7 @@ interface OfferData {
     housing_complex: string | null;
     complex_status: string | null;
     complex_name: string | null;
+    housing_complex_id: string | null;
 }
 
 interface ImageData {
@@ -39,6 +40,7 @@ interface Stage2Data {
     total_floors?: number | null;
     in_housing_complex?: boolean;
     housing_complex?: string | null;
+    housing_complex_id?: string | null;
     complex_status?: string | null;
     complex_name?: string | null;
 }
@@ -98,6 +100,11 @@ interface APIOfferData {
     status?: string;
     in_housing_complex?: boolean;
     housing_complex?: string;
+    housing_complex_id?: string;
+    metro?: string;
+    location_id?: string;
+    user_id?: string;
+    title?: string;
 }
 
 export class OfferCreateDataManager {
@@ -124,6 +131,7 @@ export class OfferCreateDataManager {
             status: 'active',
             in_housing_complex: false,
             housing_complex: null,
+            housing_complex_id: null,
             complex_status: null,
             complex_name: null
         };
@@ -164,9 +172,14 @@ export class OfferCreateDataManager {
             }
         }
 
+        if (data.housing_complex_id !== undefined) {
+            this.data.housing_complex_id = data.housing_complex_id;
+        }
+
         if (!this.data.in_housing_complex) {
             this.data.housing_complex = null;
             this.data.complex_name = null;
+            this.data.housing_complex_id = null;
         }
     }
 
@@ -216,6 +229,7 @@ export class OfferCreateDataManager {
             status: 'active',
             in_housing_complex: false,
             housing_complex: null,
+            housing_complex_id: null,
             complex_status: null,
             complex_name: null
         };
@@ -224,9 +238,15 @@ export class OfferCreateDataManager {
     populateFromAPI(apiData: APIOfferData): void {
         const inHousingComplex = apiData.in_housing_complex || false;
         const housingComplex = apiData.housing_complex || null;
+        const housingComplexId = apiData.housing_complex_id || null;
+
+        let category = apiData.category;
+        if (!category) {
+            category = (housingComplexId || inHousingComplex) ? 'new' : 'secondary';
+        }
 
         this.data = {
-            category: apiData.category || 'secondary',
+            category: category,
             offer_type: apiData.offer_type || apiData.OfferType || 'sale',
             property_type: apiData.property_type || apiData.PropertyType || 'apartment',
             address: apiData.address || apiData.Address || null,
@@ -245,6 +265,7 @@ export class OfferCreateDataManager {
             status: apiData.status || 'active',
             in_housing_complex: inHousingComplex,
             housing_complex: housingComplex,
+            housing_complex_id: housingComplexId,
             complex_status: inHousingComplex ? 'yes' : 'no',
             complex_name: housingComplex
         };
@@ -271,13 +292,24 @@ export class OfferCreateDataManager {
         return images.map(img => {
             if (typeof img === 'string') {
                 return {
-                    filename: img,
+                    filename: img.split('/').pop() || img,
                     url: img
                 };
             }
+
+            if (typeof img === 'object') {
+                const filename = img.filename || img.url || '';
+                const url = img.url || img.filename || '';
+
+                return {
+                    filename: filename,
+                    url: url
+                };
+            }
+
             return {
-                filename: img.filename || img.url || '',
-                url: img.url || img.filename || ''
+                filename: '',
+                url: ''
             };
         }).filter(img => img.filename && img.filename.trim() !== '');
     }

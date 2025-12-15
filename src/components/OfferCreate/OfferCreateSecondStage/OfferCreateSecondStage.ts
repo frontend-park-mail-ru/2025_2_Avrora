@@ -51,6 +51,7 @@ export class OfferCreateSecondStage {
     private pendingComplexRestoration: string | null = null;
     private mapInitialized: boolean = false;
     private updateMapTimeout: number | null = null;
+    private emptyMapInstance: any = null;
 
     constructor({ state, app, dataManager, isEditing = false, editOfferId = null }: StageOptions = {}) {
         this.state = state;
@@ -761,41 +762,9 @@ export class OfferCreateSecondStage {
 
     validateAndSave(): void {
         const formData: FormData = this.collectFormData();
-        const validation = this.validateFormData(formData);
-
-        if (!validation.isValid) {
-            this.showError(validation.message!);
-            return;
-        }
 
         this.clearError();
         this.saveFormData();
-    }
-
-    validateFormData(formData: FormData): { isValid: boolean; message?: string } {
-        if (formData.floor !== null && formData.total_floors !== null) {
-            if (formData.floor < 0) {
-                return { isValid: false, message: 'Этаж не может быть отрицательным числом' };
-            }
-
-            if (formData.total_floors !== null && formData.total_floors <= 0) {
-                return { isValid: false, message: 'Общее количество этажей должно быть положительным числом' };
-            }
-
-            if (formData.floor > formData.total_floors) {
-                return { isValid: false, message: 'Этаж не может быть больше общего количества этажей в доме' };
-            }
-
-            if (formData.floor === 0 && formData.total_floors > 0) {
-                return { isValid: false, message: 'Этаж 0 обычно не используется. Используйте 1 для первого этажа.' };
-            }
-        }
-
-        if (formData.complex_status === 'yes' && (!formData.complex_name || formData.complex_name.trim() === '')) {
-            return { isValid: false, message: 'Введите название жилищного комплекса' };
-        }
-
-        return { isValid: true };
     }
 
     collectFormData(): FormData {
@@ -898,8 +867,9 @@ export class OfferCreateSecondStage {
 
         if (currentData.address) {
             this.currentAddress = currentData.address;
-            this.initMap();
         }
+
+        this.initMap();
     }
 
     createNav({ prev = false, next = false }: { prev?: boolean; next?: boolean } = {}): HTMLElement {
@@ -926,11 +896,6 @@ export class OfferCreateSecondStage {
             nextBtn.textContent = 'Дальше';
             nextBtn.dataset.action = 'next';
             this.addEventListener(nextBtn, 'click', () => {
-                const validation = this.validateFormData(this.collectFormData());
-                if (!validation.isValid) {
-                    this.showError(validation.message!);
-                    return;
-                }
                 this.saveFormData();
             });
             group.appendChild(nextBtn);
@@ -948,17 +913,64 @@ export class OfferCreateSecondStage {
         }
 
         this.updateMapTimeout = window.setTimeout(() => {
-            this.initMap();
+            this.updateMapWithAddress();
         }, 500);
     }
 
     async initMap(): Promise<void> {
+        try {
+            if (this.currentAddress && this.currentAddress.trim().length >= 5) {
+                await this.updateMapWithAddress();
+            } else {
+                await this.initEmptyMap();
+            }
+        } catch (error) {
+            await this.initEmptyMap();
+        }
+    }
+
+    private async updateMapWithAddress(): Promise<void> {
         if (!this.currentAddress || this.currentAddress.trim().length < 5) {
+            await this.initEmptyMap();
+            return;
+        }
+
+        try {
+            await this.destroyCurrentMap();
+
+            const { YandexMapService } = await import('../../../utils/YandexMapService.js');
+            await YandexMapService.initMap('yandex-create-map', this.currentAddress);
+            this.mapInitialized = true;
+        } catch (error) {
+            await this.initEmptyMap();
+        }
+    }
+
+    private async destroyCurrentMap(): Promise<void> {
+        try {
+            const { YandexMapService } = await import('../../../utils/YandexMapService.js');
+            YandexMapService.destroyMap();
+        } catch (error) {
+
+        }
+
+        if (this.emptyMapInstance) {
+            try {
+                this.emptyMapInstance.destroy();
+            } catch (error) {
+
+            }
+            this.emptyMapInstance = null;
+        }
+    }
+
+    private async initEmptyMap(): Promise<void> {
+        if (!window.ymaps3) {
             const mapContainer = document.getElementById('yandex-create-map');
-            if (mapContainer && mapContainer.innerHTML === '') {
+            if (mapContainer) {
                 mapContainer.innerHTML = `
                     <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px; text-align: center; padding: 20px; background: #f5f5f5;">
-                        Введите адрес для отображения на карте
+                        Карта временно недоступна
                     </div>
                 `;
             }
@@ -966,16 +978,37 @@ export class OfferCreateSecondStage {
         }
 
         try {
-            const { YandexMapService } = await import('../../../utils/YandexMapService.js');
+            await this.destroyCurrentMap();
+            await ymaps3.ready;
 
-            await YandexMapService.initMap('yandex-create-map', this.currentAddress);
-            this.mapInitialized = true;
+            const container = document.getElementById('yandex-create-map');
+            if (!container) {
+                return;
+            }
+
+            container.innerHTML = '';
+
+            const {YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer} = ymaps3;
+
+            this.emptyMapInstance = new YMap(
+                container,
+                {
+                    location: {
+                        center: [37.6173, 55.7558],
+                        zoom: 10
+                    }
+                }
+            );
+
+            this.emptyMapInstance.addChild(new YMapDefaultSchemeLayer());
+            this.emptyMapInstance.addChild(new YMapDefaultFeaturesLayer());
+
         } catch (error) {
             const mapContainer = document.getElementById('yandex-create-map');
             if (mapContainer) {
                 mapContainer.innerHTML = `
                     <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px; text-align: center; padding: 20px;">
-                        Не удалось загрузить карту для адреса: "${this.currentAddress}"
+                        Не удалось загрузить карту
                     </div>
                 `;
             }
@@ -997,13 +1030,10 @@ export class OfferCreateSecondStage {
             clearTimeout(this.complexSearchTimeout);
         }
 
-        setTimeout(async () => {
-            try {
-                const { YandexMapService } = await import('../../../utils/YandexMapService.js');
-                YandexMapService.destroyMap();
-            } catch (error) {
+        if (this.updateMapTimeout) {
+            clearTimeout(this.updateMapTimeout);
+        }
 
-            }
-        }, 100);
+        this.destroyCurrentMap();
     }
 }

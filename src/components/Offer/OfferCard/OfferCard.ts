@@ -90,7 +90,7 @@ export class OfferCard {
             rentalPeriod: data.rentalPeriod || "",
             userId: data.userId || data.UserID || 0,
             userPhone: data.userPhone || "+7 XXX XXX-XX-XX",
-            userAvatar: data.userAvatar || MediaService.getImageUrl('user.png'),
+            userAvatar: data.userAvatar || "../../images/default_avatar.jpg",
             views: data.views || 0,
             housingComplexId: data.housingComplexId || data.housing_complex_id || null,
             housingComplexName: data.housingComplexName || data.housing_complex_name || null,
@@ -159,7 +159,7 @@ export class OfferCard {
                     (this.sellerData.photo_url.startsWith('http') ?
                         this.sellerData.photo_url :
                         MediaService.getImageUrl(this.sellerData.photo_url)) :
-                    MediaService.getImageUrl('user.png'),
+                    "../../images/default_avatar.jpg",
                 userName: this.sellerData ?
                     `${this.sellerData.first_name || ''} ${this.sellerData.last_name || ''}`.trim() || "Продавец" :
                     "Продавец",
@@ -316,11 +316,55 @@ export class OfferCard {
                 return;
             }
 
+            await this.syncWithFavorites(newLikedState);
+
             await this.updateLikeCount();
 
         } catch (error) {
+
         } finally {
             this.isLikeRequestInProgress = false;
+        }
+    }
+
+    private async syncWithFavorites(isLiked: boolean): Promise<void> {
+        try {
+            const favoritesStr = localStorage.getItem('favoriteOffers');
+            let favorites = [];
+
+            if (favoritesStr && favoritesStr !== 'undefined') {
+                favorites = JSON.parse(favoritesStr);
+            }
+
+            if (isLiked) {
+                if (!favorites.find((fav: any) => fav.id === this.data.id.toString())) {
+                    const offerForFavorites = {
+                        id: this.data.id.toString(),
+                        offer_type: this.data.offerType,
+                        property_type: this.data.rawData?.property_type || this.data.rawData?.PropertyType || 'flat',
+                        rooms: this.data.rawData?.rooms || this.data.rawData?.Rooms || 1,
+                        price: this.data.rawData?.price || this.data.rawData?.Price || 0,
+                        address: this.data.address,
+                        images: this.data.images,
+                        image_url: this.data.images?.[0] || '',
+                        status: 'active',
+                        description: this.data.description || this.data.title || '',
+                        area: this.data.rawData?.area || this.data.rawData?.Area || 0
+                    };
+
+                    favorites.push(offerForFavorites);
+                    localStorage.setItem('favoriteOffers', JSON.stringify(favorites));
+
+                    window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+                }
+            } else {
+                const updatedFavorites = favorites.filter((fav: any) => fav.id !== this.data.id.toString());
+                localStorage.setItem('favoriteOffers', JSON.stringify(updatedFavorites));
+
+                window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+            }
+        } catch (error) {
+
         }
     }
 
@@ -1052,6 +1096,11 @@ export class OfferCard {
                 setTimeout(() => {
                     if (this.app?.router?.navigate) {
                         this.app.router.navigate('/profile/myoffers');
+                    } else if (window.history && window.history.pushState) {
+                        window.history.pushState({}, "", '/profile/myoffers');
+                        window.dispatchEvent(new PopStateEvent("popstate"));
+                    } else {
+                        window.location.href = '/profile/myoffers';
                     }
                 }, 1500);
             } else {

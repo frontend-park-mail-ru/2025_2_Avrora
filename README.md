@@ -1,17 +1,24 @@
 # 2025_2_Avrora
-- Ссылка на деплой - https://homa-land.ru
-- npm run dev - Запуск сервера для разработки. Использование: основная команда для разработки
-- npm run build - Сборка проекта для продакшена. Использование: перед деплоем на сервер
-- npm run preview - Просмотр собранной версии. Использование: после build для проверки
-- npm run lint - Проверка кода на ошибки
-- npm run lint:fix - Автоматическое исправление ошибок
-- npm run docs - Генерация документации
-- npm run build-css - Компиляция SCSS в CSS
-- npm run watch-css - Автоматическая компиляция SCSS
-- npm run build-css-prod - Продакшен-сборка CSS
-- npm run compile-hbs - Компиляция Handlebars шаблонов
-- npm run sw:unregister - Отмена регистрации Service Worker'ов
-- npm run sw:clean - Очистка кэша браузера
-- npm run babel:check - Проверка транспайлинга Babel
-- npm run babel:build - Сборка с помощью Babel
+- Ссылка на деплой - https://homa-land.ru <br/><br/>
+Основные команды:
+- npm run dev — Запуск сервера для разработки. Выполняет компиляцию Handlebars шаблонов, сборку CSS и запуск Vite-сервера.
+- npm run build — Сборка проекта для продакшена. Компилирует шаблоны, собирает CSS в сжатом режиме и запускает сборку Vite.
+- npm run build:dev — Сборка проекта в режиме разработки.
+- npm run build:prod — Сборка проекта в режиме продакшена.
+- npm run preview — Просмотр собранной версии на порту 3000.
+- npm run lint — Проверка кода на ошибки с помощью ESLint. <br/><br/>
+Команды для Docker:
+- npm run docker:dev — Запуск Docker-контейнера для разработки.
+- npm run docker:prod — Запуск Docker-контейнера для продакшена в фоновом режиме.
+- npm run docker:stop — Остановка всех Docker-контейнеров проекта.
+- npm run docker:clean — Очистка неиспользуемых Docker-ресурсов. <br/><br/>
+Команды для запуска сервера:
+- npm start — Запуск сервера.
+- npm run start:dev — Запуск сервера в режиме разработки.
+- npm run start:prod — Запуск сервера в режиме продакшена. <br/><br/>
+Вспомогательные команды сборки:
+- npm run compile-hbs — Компиляция Handlebars шаблонов.
+- npm run build-css — Компиляция SCSS в CSS.
+- npm run build-css-prod — Продакшен-сборка CSS (сжатый режим).
+
 

@@ -21,6 +21,7 @@ interface OfferListData {
 
 interface OfferListState {
     user?: any;
+    isAuthenticated?: boolean;
 }
 
 interface AppRouter {
@@ -71,7 +72,7 @@ export class OffersListCard {
 
             const images = this.getImages();
             const likesCount = this.offerData.likesCount || this.offerData.likes_count || 0;
-            const isLiked = this.offerData.isLiked || false;
+            const isLiked = this.state.user ? (this.offerData.isLiked || false) : false;
 
             const formattedOffer = {
                 id: this.offerData.id || this.offerData.ID,
@@ -109,9 +110,9 @@ export class OffersListCard {
     async loadLikeData(): Promise<void> {
         if (!this.offerData.id && !this.offerData.ID) return;
 
-        try {
-            const offerId = (this.offerData.id || this.offerData.ID).toString();
+        const offerId = (this.offerData.id || this.offerData.ID).toString();
 
+        try {
             const likesCountResponse = await API.get(`${API_CONFIG.ENDPOINTS.OFFERS.LIKECOUNT}${offerId}`);
             if (likesCountResponse.ok && likesCountResponse.data) {
                 this.offerData.likesCount = likesCountResponse.data.count || 0;
@@ -122,9 +123,12 @@ export class OffersListCard {
                 if (isLikedResponse.ok && isLikedResponse.data) {
                     this.offerData.isLiked = isLikedResponse.data.is_liked || false;
                 }
+            } else {
+                this.offerData.isLiked = false;
             }
         } catch (error) {
-
+            this.offerData.likesCount = this.offerData.likesCount || this.offerData.likes_count || 0;
+            this.offerData.isLiked = false;
         }
     }
 
@@ -219,7 +223,7 @@ export class OffersListCard {
         const images = this.getImages();
         const imageUrl = images.length > 0 ? images[0] : MediaService.getImageUrl('default_offer.jpg');
         const likesCount = this.offerData.likesCount || this.offerData.likes_count || 0;
-        const isLiked = this.offerData.isLiked || false;
+        const isLiked = this.state.user ? (this.offerData.isLiked || false) : false;
 
         this.parentElement.innerHTML = `
             <div class="offer-card" data-offer-id="${this.offerData.id || this.offerData.ID}">
@@ -305,12 +309,55 @@ export class OffersListCard {
                 return;
             }
 
+            await this.syncWithFavorites(newLikedState, offerId);
+
             await this.updateLikeCount(offerId);
 
         } catch (error) {
 
         } finally {
             this.isLikeRequestInProgress = false;
+        }
+    }
+    
+    private async syncWithFavorites(isLiked: boolean, offerId: string): Promise<void> {
+        try {
+            const favoritesStr = localStorage.getItem('favoriteOffers');
+            let favorites = [];
+
+            if (favoritesStr && favoritesStr !== 'undefined') {
+                favorites = JSON.parse(favoritesStr);
+            }
+
+            if (isLiked) {
+                if (!favorites.find((fav: any) => fav.id === offerId)) {
+                    const offerForFavorites = {
+                        id: offerId,
+                        offer_type: this.offerData.offer_type || 'sale',
+                        property_type: this.offerData.property_type || 'flat',
+                        rooms: this.offerData.rooms || 1,
+                        price: this.offerData.price || 0,
+                        address: this.offerData.address || '',
+                        images: this.getImages(),
+                        image_url: this.offerData.image_url || this.offerData.ImageURL || this.getImages()[0],
+                        status: 'active',
+                        description: this.offerData.title || '',
+                        area: this.offerData.area || 0
+                    };
+
+                    favorites.push(offerForFavorites);
+                    localStorage.setItem('favoriteOffers', JSON.stringify(favorites));
+
+                    window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+                }
+            } else {
+                const updatedFavorites = favorites.filter((fav: any) => fav.id !== offerId);
+                localStorage.setItem('favoriteOffers', JSON.stringify(updatedFavorites));
+
+                window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+            }
+        } catch (error) {
+
         }
     }
 

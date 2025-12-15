@@ -13,6 +13,9 @@ export class Header {
     private eventListeners: { element: Element; event: string; handler: EventListenerOrEventListenerObject }[];
     private template: ((data: TemplateData) => string) | null;
     private container: HTMLElement | null;
+    private profileUpdateListener: (event: Event) => void;
+    private uiUpdateListener: (event: Event) => void;
+    private isRendering: boolean;
 
     constructor(parent: HTMLElement, controller: any) {
         this.parent = parent;
@@ -20,44 +23,81 @@ export class Header {
         this.eventListeners = [];
         this.template = null;
         this.container = null;
+        this.isRendering = false;
+        this.profileUpdateListener = this.handleProfileUpdate.bind(this);
+        this.uiUpdateListener = this.handleUIUpdate.bind(this);
+
+        this.setupEventListeners();
+    }
+
+    private setupEventListeners(): void {
+        window.addEventListener('profileUpdated', this.profileUpdateListener);
+        window.addEventListener('uiUpdate', this.uiUpdateListener);
+    }
+
+    private handleProfileUpdate(): void {
+        this.render().catch(error => {
+
+        });
+    }
+    
+    private handleUIUpdate(): void {
+        this.render().catch(error => {
+
+        });
     }
 
     async render(): Promise<void> {
+        if (this.isRendering) {
+            return;
+        }
+        
+        this.isRendering = true;
+
         this.cleanup();
-        const template = await this.loadTemplate();
-        const isLoginPage = window.location.pathname === '/login';
-        const isRegisterPage = window.location.pathname === '/register';
+        
+        try {
+            const template = await this.loadTemplate();
+            const isLoginPage = window.location.pathname === '/login';
+            const isRegisterPage = window.location.pathname === '/register';
 
-        const user = this.controller.user;
-        let userAvatar = "../../images/user.png";
+            const user = this.controller.user;
+            let userAvatar = "../../images/default_avatar.jpg";
 
-        if (user) {
-            userAvatar = user.AvatarURL ||
-                        user.avatar ||
-                        user.photo_url ||
-                        user.avatarUrl ||
-                        "../../images/user.png";
+            if (user) {
+                userAvatar = user.AvatarURL ||
+                            user.avatar ||
+                            user.photo_url ||
+                            user.avatarUrl ||
+                            "../../images/default_avatar.jpg";
+            }
+
+            const templateData: TemplateData = {
+                isAuthenticated: this.controller.isAuthenticated,
+                user: {
+                    avatar: userAvatar
+                },
+                isLoginPage,
+                isRegisterPage
+            };
+
+            if (typeof template !== 'function') {
+                throw new Error('Header template is not a valid function');
+            }
+
+            const html = template(templateData);
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html;
+            this.container = tempContainer.firstElementChild as HTMLElement;
+
+            this.parent.innerHTML = '';
+            this.parent.appendChild(this.container);
+            this.attachEventListeners();
+        } catch (error) {
+            throw error;
+        } finally {
+            this.isRendering = false;
         }
-
-        const templateData: TemplateData = {
-            isAuthenticated: this.controller.isAuthenticated,
-            user: {
-                avatar: userAvatar
-            },
-            isLoginPage,
-            isRegisterPage
-        };
-
-        if (typeof template !== 'function') {
-            throw new Error('Header template is not a valid function');
-        }
-
-        const html = template(templateData);
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = html;
-        this.container = tempContainer.firstElementChild as HTMLElement;
-        this.parent.appendChild(this.container);
-        this.attachEventListeners();
     }
 
     private async loadTemplate(): Promise<(data: TemplateData) => string> {
@@ -139,7 +179,7 @@ export class Header {
 
     private handleLikeClick(): void {
         if (this.controller.isAuthenticated) {
-            this.controller.navigate("/profile");
+            this.controller.navigate("/profile/favorites");
         } else {
             this.controller.navigate("/login");
         }
@@ -161,9 +201,18 @@ export class Header {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
+
         if (this.container) {
-            this.container.remove();
+            if (this.container.parentNode === this.parent) {
+                this.parent.removeChild(this.container);
+            }
             this.container = null;
         }
+    }
+
+    destroy(): void {
+        window.removeEventListener('profileUpdated', this.profileUpdateListener);
+        window.removeEventListener('uiUpdate', this.uiUpdateListener);
+        this.cleanup();
     }
 }
